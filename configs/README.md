@@ -6,36 +6,57 @@ This directory contains configuration templates for accel-ppp and RADIUS integra
 
 ```
 configs/
-├── accel-ppp/           # accel-ppp daemon configurations
-│   ├── accel-ppp.conf  # Main configuration
-│   ├── ip-pool.conf    # IP address pools
-│   ├── chap-secrets    # Local authentication (fallback)
-│   └── modules.conf    # Protocol modules
-├── templates/           # Configuration templates for different scenarios
-│   ├── pppoe-basic.conf
-│   ├── pppoe-full.conf
-│   ├── ipoe-basic.conf
-│   ├── l2tp-basic.conf
-│   └── coa-template.conf
-└── radius/              # RADIUS client configurations
-    ├── clients.conf     # RADIUS client definitions
-    └── dictionary       # RADIUS attribute dictionary
+├── pppoe.conf           # PPPoE server configuration
+├── ipoe.conf            # IPoE (DHCP+) server configuration
+├── l2tp.conf            # L2TP server configuration
+├── pptp.conf            # PPTP server configuration
+└── sstp.conf            # SSTP server configuration
 ```
+
+## Protocol Support
+
+| Protocol | Port | Encryption | RADIUS Support |
+|----------|------|-----------|---------------|
+| PPPoE | Ethernet | PAP/CHAP/MPPE | Full |
+| IPoE | Ethernet | DHCP+ | Full |
+| L2TP | UDP 1701 | IPSec | Full |
+| PPTP | TCP 1723 | MPPE | Full |
+| SSTP | TCP 443 | HTTPS/TLS | Full |
 
 ## Usage
 
-Copy templates to your OpenWrt device:
+Copy the appropriate configuration to your OpenWrt device:
 
 ```bash
-# Main config
-scp configs/accel-ppp/accel-ppp.conf root@192.168.1.1:/etc/accel-ppp.conf
+# PPPoE configuration
+scp configs/pppoe.conf root@192.168.1.1:/etc/accel-ppp.conf
 
-# RADIUS config
-scp configs/radius/clients.conf root@192.168.1.1:/etc/accel-ppp/radius.conf
+# IPoE configuration
+scp configs/ipoe.conf root@192.168.1.1:/etc/accel-ppp.conf
+
+# L2TP configuration
+scp configs/l2tp.conf root@192.168.1.1:/etc/accel-ppp.conf
+
+# PPTP configuration
+scp configs/pptp.conf root@192.168.1.1:/etc/accel-ppp.conf
+
+# SSTP configuration
+scp configs/sstp.conf root@192.168.1.1:/etc/accel-ppp.conf
 ```
 
-Or use the deployment script:
+Then restart accel-ppp:
 
 ```bash
-./scripts/deploy/deploy-configs.sh -h 192.168.1.1 -u root -s
+ssh root@192.168.1.1 "/etc/init.d/accel-ppp restart"
 ```
+
+## Configuration Variables
+
+The following variables can be customized in each configuration file:
+
+- `RADIUS_SERVER` - RADIUS server IP address
+- `RADIUS_SECRET` - Shared secret for RADIUS communication
+- `NAS_IP` - IP address of this NAS device
+- `RADIUS_AUTH_PORT` - Authentication port (default: 1812)
+- `RADIUS_ACCT_PORT` - Accounting port (default: 1813)
+- `RADIUS_COA_PORT` - CoA port (default: 3799)
