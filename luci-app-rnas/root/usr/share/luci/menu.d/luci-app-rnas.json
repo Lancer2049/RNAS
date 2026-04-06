@@ -1,0 +1,58 @@
+{
+	"admin/network/rnas": {
+		"title": "RADIUS NAS",
+		"action": {
+			"type": "controller",
+			"path": "rnas"
+		}
+	},
+	"admin/network/rnas/overview": {
+		"title": "Overview",
+		"action": {
+			"type": "cbi",
+			"path": "rnas/overview"
+		}
+	},
+	"admin/network/rnas/radius": {
+		"title": "RADIUS Settings",
+		"action": {
+			"type": "cbi",
+			"path": "rnas/radius"
+		}
+	},
+	"admin/network/rnas/protocol": {
+		"title": "Protocol Config",
+		"action": {
+			"type": "cbi",
+			"path": "rnas/protocol"
+		}
+	},
+	"admin/network/rnas/ip_pool": {
+		"title": "IP Pool",
+		"action": {
+			"type": "cbi",
+			"path": "rnas/ip_pool"
+		}
+	},
+	"admin/network/rnas/sessions": {
+		"title": "Sessions",
+		"action": {
+			"type": "cbi",
+			"path": "rnas/sessions"
+		}
+	},
+	"admin/network/rnas/coa": {
+		"title": "CoA Control",
+		"action": {
+			"type": "cbi",
+			"path": "rnas/coa"
+		}
+	},
+	"admin/network/rnas/status": {
+		"title": "Status",
+		"action": {
+			"type": "cbi",
+			"path": "rnas/status"
+		}
+	}
+}

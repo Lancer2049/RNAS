@@ -1,0 +1,71 @@
+<div class="cbi-section">
+	<h3><%:Active Connections%></h3>
+	
+	<%
+	local connections = {}
+	
+	local f = io.popen("accel-cmd show sessions 2>/dev/null || echo ''")
+	if f then
+		local output = f:read("*a")
+		f:close()
+		
+		for line in output:gmatch("[^\r\n]+") do
+			if line:match("^%d") then
+				table.insert(connections, line)
+			end
+		end
+	end
+	
+	local function format_bytes(b)
+		local n = tonumber(b) or 0
+		if n < 1024 then return n .. " B" end
+		if n < 1048576 then return string.format("%.1f KB", n/1024) end
+		if n < 1073741824 then return string.format("%.1f MB", n/1048576) end
+		return string.format("%.2f GB", n/1073741824)
+	end
+	%>
+	
+	<table class="cbi-section-table">
+		<tr>
+			<th>ID</th>
+			<th>Interface</th>
+			<th>Username</th>
+			<th>IP Address</th>
+			<th>State</th>
+			<th>RX</th>
+			<th>TX</th>
+		</tr>
+		<% if #connections == 0 then %>
+		<tr>
+			<td colspan="7" style="text-align:center"><%:No active connections%></td>
+		</tr>
+		<% else %>
+		<% for _, line in ipairs(connections) do %>
+		<%
+		local fields = {}
+		for field in line:gmatch("[^%s]+") do
+			table.insert(fields, field)
+		end
+		%>
+		<tr>
+			<td><%=fields[1] or "-"%></td>
+			<td><%=fields[2] or "-"%></td>
+			<td><%=fields[3] or "-"%></td>
+			<td><%=fields[4] or "-"%></td>
+			<td><span class="label success"><%=fields[5] or "-"%></span></td>
+			<td><%=format_bytes(fields[7] or 0)%></td>
+			<td><%=format_bytes(fields[8] or 0)%></td>
+		</tr>
+		<% end %>
+		<% end %>
+	</table>
+	
+	<div style="margin-top:10px">
+		<a href="<%=luci.dispatcher.build_url("admin/network/rnas/sessions")%>" class="btn"><%:Manage Sessions%></a>
+	</div>
+</div>
+
+<style>
+.label.success { background: #5f5; color: #000; padding: 2px 8px; border-radius: 3px; }
+.btn { padding: 5px 15px; background: #5bc0de; color: #fff; text-decoration: none; border-radius: 3px; display: inline-block; }
+</style>

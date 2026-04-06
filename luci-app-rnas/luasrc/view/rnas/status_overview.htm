@@ -1,0 +1,88 @@
+<div class="cbi-section">
+	<h3><%:System Overview%></h3>
+	
+	<%
+	local uci = require("uci").cursor()
+	local utl = require("luci.util")
+	
+	local status = {
+		enabled = uci:get("rnas", "config", "enabled") or "0",
+		protocol = uci:get("rnas", "config", "protocol") or "pppoe",
+		server = uci:get("rnas", "radius", "server") or "N/A",
+		secret_set = uci:get("rnas", "radius", "secret") and "Yes" or "No"
+	}
+	
+	local uptime = "N/A"
+	local f = io.popen("cat /proc/uptime")
+	if f then
+		local t = f:read("*a"):match("^%S+")
+		f:close()
+		if t then
+			local s = tonumber(t)
+			if s then
+				local d = math.floor(s/86400)
+				local h = math.floor((s%86400)/3600)
+				local m = math.floor((s%3600)/60)
+				uptime = string.format("%dd %dh %dm", d, h, m)
+			end
+		end
+	end
+	
+	local meminfo = {}
+	f = io.popen("cat /proc/meminfo")
+	if f then
+		for line in f:lines() do
+			local k, v = line:match("(%w+):%s+(%d+)")
+			if k and v then meminfo[k] = tonumber(v) end
+		end
+		f:close()
+	end
+	local mem_used = 0
+	if meminfo.MemTotal and meminfo.MemAvailable then
+		mem_used = math.floor((meminfo.MemTotal - meminfo.MemAvailable) / 1024)
+	end
+	local mem_total = meminfo.MemTotal and math.floor(meminfo.MemTotal / 1024) or 0
+	%>
+	
+	<table class="cbi-section-table">
+		<tr>
+			<th width="40%"><%:Service Status%></th>
+			<td>
+				<% if status.enabled == "1" then %>
+				<span class="label success"><%:Enabled%></span>
+				<% else %>
+				<span class="label warning"><%:Disabled%></span>
+				<% end %>
+			</td>
+		</tr>
+		<tr>
+			<th><%:Protocol%></th>
+			<td><%=status.protocol:upper()%></td>
+		</tr>
+		<tr>
+			<th><%:RADIUS Server%></th>
+			<td><%=status.server%></td>
+		</tr>
+		<tr>
+			<th><%:Secret Configured%></th>
+			<td><%=status.secret_set%></td>
+		</tr>
+		<tr>
+			<th><%:System Uptime%></th>
+			<td><%=uptime%></td>
+		</tr>
+		<tr>
+			<th><%:Memory Usage%></th>
+			<td><%=mem_used%> MB / <%=mem_total%> MB</td>
+		</tr>
+		<tr>
+			<th><%:Load Average%></th>
+			<td><%=io.popen("cat /proc/loadavg | awk '{print $1, $2, $3}'"):read("*a")%></td>
+		</tr>
+	</table>
+</div>
+
+<style>
+.label.success { background: #5f5; color: #000; padding: 2px 8px; border-radius: 3px; }
+.label.warning { background: #ff5; color: #000; padding: 2px 8px; border-radius: 3px; }
+</style>

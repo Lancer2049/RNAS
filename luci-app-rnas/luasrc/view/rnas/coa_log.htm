@@ -1,0 +1,41 @@
+<div class="cbi-section">
+	<h3><%:CoA Operations Log%></h3>
+	
+	<div class="cbi-map-descr"><%:Recent Change of Authorization operations%></div>
+	
+	<table class="cbi-section-table">
+		<tr>
+			<th width="20%"><%:Timestamp%></th>
+			<th width="15%"><%:Operation%></th>
+			<th width="25%"><%:Username%></th>
+			<th width="40%"><%:Result%></th>
+		</tr>
+		<%
+		local fs = require("nixio.fs")
+		local log_file = "/tmp/rnas_coa_log"
+		local logs = {}
+		
+		if fs.access(log_file) then
+			for line in io.lines(log_file) do
+				table.insert(logs, line)
+			end
+		end
+		
+		if #logs == 0 then
+		%>
+		<tr>
+			<td colspan="4"><%:No CoA operations recorded%></td>
+		</tr>
+		<% else %>
+		<% for i = #logs, 1, -1 do %>
+		<% local timestamp, operation, username, result = logs[i]:match("(%S+)%s+(%S+)%s+(%S+)%s+(.+)") %>
+		<tr>
+			<td><%=timestamp or "-"%></td>
+			<td><%=operation or "-"%></td>
+			<td><%=username or "-"%></td>
+			<td><%=result or "-"%></td>
+		</tr>
+		<% end %>
+		<% end %>
+	</table>
+</div>

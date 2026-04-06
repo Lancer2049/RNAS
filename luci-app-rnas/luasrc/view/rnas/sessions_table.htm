@@ -1,0 +1,51 @@
+<div class="cbi-section">
+	<h3><%:Active Sessions%></h3>
+	
+	<table class="cbi-section-table">
+		<tr>
+			<th><%:Session ID%></th>
+			<th><%:Interface%></th>
+			<th><%:Username%></th>
+			<th><%:IP Address%></th>
+			<th><%:State%></th>
+			<th><%:Uptime%></th>
+			<th><%:RX%></th>
+			<th><%:TX%></th>
+			<th><%:Actions%></th>
+		</tr>
+		<% if #sessions == 0 then %>
+		<tr>
+			<td colspan="9"><%:No active sessions%></td>
+		</tr>
+		<% else %>
+		<% for i, sess in ipairs(sessions) do %>
+		<tr>
+			<td><%=sess.sid%></td>
+			<td><%=sess.ifname%></td>
+			<td><%=sess.username%></td>
+			<td><%=sess.ipaddr%></td>
+			<td>
+				<% if sess.state == "active" then %>
+				<span class="label success"><%:Active%></span>
+				<% else %>
+				<span class="label"><%=sess.state%></span>
+				<% end %>
+			</td>
+			<td><%=sess.uptime%></td>
+			<td><%=format_bytes(sess.rx_bytes)%></td>
+			<td><%=format_bytes(sess.tx_bytes)%></td>
+			<td>
+				<a href="<%=luci.dispatcher.build_url("admin/network/rnas/sessions/terminate")%>?sid=<%=sess.sid%>" class="btn btn-danger"><%:Terminate%></a>
+			</td>
+		</tr>
+		<% end %>
+		<% end %>
+	</table>
+</div>
+
+<style>
+.label.success { background: #5f5; color: #000; padding: 2px 8px; border-radius: 3px; }
+.btn { padding: 3px 10px; text-decoration: none; border-radius: 3px; display: inline-block; }
+.btn-danger { background: #d9534f; color: #fff; }
+.btn-danger:hover { background: #c9302c; }
+</style>
