@@ -3,6 +3,7 @@ build/
 output/
 *.tar.gz
 *.tar.xz
+/tmp/
 
 # IDE
 .vscode/

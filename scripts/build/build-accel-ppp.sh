@@ -139,7 +139,9 @@ create_package_structure() {
 
     # Copy built binaries
     cp "$INSTALL_DIR/usr/sbin/accel-pppd" "$pkg_dir/files/usr/sbin/"
-    cp "$INSTALL_DIR/usr/sbin/accel-cmd"  "$pkg_dir/files/usr/sbin/"
+    [ -f "$INSTALL_DIR/usr/sbin/accel-cmd" ] && \
+        cp "$INSTALL_DIR/usr/sbin/accel-cmd" "$pkg_dir/files/usr/sbin/" || \
+        cp "$INSTALL_DIR/usr/bin/accel-cmd" "$pkg_dir/files/usr/sbin/"
     [ -f "$INSTALL_DIR/usr/bin/radclient" ] && \
         cp "$INSTALL_DIR/usr/bin/radclient" "$pkg_dir/files/usr/sbin/"
 
