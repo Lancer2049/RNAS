@@ -1,6 +1,6 @@
 #!/bin/bash
 # RADIUS Accounting Packet Compliance Verifier
-# Validates that RADIUS accounting packets from RNAS-OpenWrt contain
+# Validates that RADIUS accounting packets from RNAS contain
 # all required attributes per RFC 2866 and RFC 2867.
 #
 # Reads from a pcap file (tshark required) or from stdin (text format).

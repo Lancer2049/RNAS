@@ -1,5 +1,5 @@
 #!/bin/bash
-# RADIUS Packet Capture Tool for RNAS-OpenWrt
+# RADIUS Packet Capture Tool for RNAS
 # Captures and optionally decodes RADIUS traffic on ports 1812/1813/3799
 #
 # Usage:

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Session Monitor for RNAS-OpenWrt
+# Session Monitor for RNAS
 
 set -e
 
@@ -24,7 +24,7 @@ monitor() {
     
     while true; do
         clear
-        echo "=== RNAS-OpenWrt Session Monitor ==="
+        echo "=== RNAS Session Monitor ==="
         echo "Time: $(date)"
         echo ""
         show_sessions

@@ -14,7 +14,7 @@ define Package/luci-app-rnas
   SECTION:=applications
   CATEGORY:=LuCI
   SUBMENU:=VPN
-  URL:=https://github.com/Lancer2049/RNAS-OpenWrt
+  URL:=https://github.com/Lancer2049/RNAS
   MAINTAINER:=Lancer2049
   DEPENDS:=$(LUCI_DEPENDS)
   PKGARCH:=$(LUCI_PKGARCH)

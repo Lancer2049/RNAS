@@ -1,5 +1,5 @@
 #!/bin/bash
-# CoA Testing Tool for RNAS-OpenWrt
+# CoA Testing Tool for RNAS
 # RADIUS Dynamic Authorization (RFC 5176) testing:
 #   - Disconnect-Request (session termination)
 #   - CoA-Request (Session-Timeout update, bandwidth modification)

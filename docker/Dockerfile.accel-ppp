@@ -1,0 +1,22 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -qq && apt-get install -y -qq \
+    build-essential cmake git \
+    libssl-dev libpcre2-dev libpam0g-dev \
+    ppp pppoe \
+    net-tools iproute2 tcpdump \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY . /build/RNAS
+
+WORKDIR /build/RNAS
+RUN bash scripts/build/build-accel-ppp.sh
+
+RUN mkdir -p /var/log/accel-ppp /var/run /etc/accel-ppp
+COPY docker/configs/accel-ppp.conf /etc/accel-ppp/accel-ppp.conf
+
+EXPOSE 3799
+CMD ["/build/RNAS/build/accel-ppp/install/usr/sbin/accel-pppd", "-c", "/etc/accel-ppp/accel-ppp.conf", "-d"]

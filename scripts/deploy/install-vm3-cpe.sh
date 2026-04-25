@@ -5,7 +5,7 @@
 # Installs all CPE (Customer Premises Equipment) client tools on VM3.
 # VM3 is a Ubuntu VM running under VMware Station on Windows 11.
 # These tools simulate end-user clients for end-to-end protocol testing
-# against the RNAS-OpenWrt NAS device.
+# against the RNAS NAS device.
 #
 # Usage:
 #   ./scripts/deploy/install-vm3-cpe.sh          # Install all clients

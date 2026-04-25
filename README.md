@@ -2,7 +2,7 @@
 
 **OpenWrt-based software NAS with accel-ppp deep integration.**
 
-[![CI](https://github.com/Lancer2049/RNAS-OpenWrt/actions/workflows/ci.yml/badge.svg)](https://github.com/Lancer2049/RNAS-OpenWrt/actions/workflows/ci.yml)
+[![CI](https://github.com/Lancer2049/RNAS/actions/workflows/ci.yml/badge.svg)](https://github.com/Lancer2049/RNAS/actions/workflows/ci.yml)
 
 A specialized OpenWrt distribution that embeds accel-ppp as a fully native service — appearing not as a third-party add-on, but as if it were built into OpenWrt from day one. Provides RADIUS AAA (Authentication, Authorization, Accounting) and CoA for PPPoE/IPoE/L2TP/PPTP access protocols.
 

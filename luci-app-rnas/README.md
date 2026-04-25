@@ -29,9 +29,9 @@ LuCI application for managing RADIUS NAS (accel-ppp) on OpenWrt.
 ### Build with OpenWrt SDK
 
 ```bash
-# Clone the RNAS-OpenWrt repository
-git clone https://github.com/Lancer2049/RNAS-OpenWrt.git
-cd RNAS-OpenWrt/luci-app-rnas
+# Clone the RNAS repository
+git clone https://github.com/Lancer2049/RNAS.git
+cd RNAS/luci-app-rnas
 
 # Copy to OpenWrt package directory
 cp -r luci-app-rnas /path/to/openwrt/package/

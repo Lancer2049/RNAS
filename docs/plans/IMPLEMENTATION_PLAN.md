@@ -1,4 +1,4 @@
-# RNAS-OpenWrt 详细开发实施计划
+# RNAS 详细开发实施计划
 
 **版本**: 1.1  
 **日期**: 2026-04-21 (更新)  
@@ -11,7 +11,7 @@
 
 ### 代码底层融合原则
 
-RNAS-OpenWrt涉及**两个独立开源项目的深度整合**：
+RNAS涉及**两个独立开源项目的深度整合**：
 
 | 项目 | 作者/来源 | 主要功能 | 整合方式 |
 |------|----------|----------|----------|
@@ -30,7 +30,7 @@ RNAS-OpenWrt涉及**两个独立开源项目的深度整合**：
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   CPE模拟器     │────►│   RNAS-OpenWrt   │────►│   FreeRADIUS   │
+│   CPE模拟器     │────►│   RNAS   │────►│   FreeRADIUS   │
 │   (VM3)        │     │   (NAS设备)      │     │   (RADIUS服务器) │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
      客户端                    NAS                    服务端
@@ -199,7 +199,7 @@ stop() {
 #### Task 1.1: 完善Acct-Start报文发送
 
 **技术实现**:
-- 检查 `/home/lancer/projects/RNAS-OpenWrt/configs/pppoe.conf` 配置
+- 检查 `/home/lancer/projects/RNAS/configs/pppoe.conf` 配置
 - 确保 `[acct]` 段存在且配置正确
 - 验证 `interim-interval=300` 已设置
 
@@ -366,7 +366,7 @@ netstat -tulpn | grep 3799
 #### Task 2.6: CoA测试工具完善
 
 **现有工具**:
-- `/home/lancer/projects/RNAS-OpenWrt/tools/coa-test.sh`
+- `/home/lancer/projects/RNAS/tools/coa-test.sh`
 
 **需要增强**:
 - 支持更多CoA场景测试
@@ -427,7 +427,7 @@ netstat -tulpn | grep 3799
 ### Task 3.6: 会话监控脚本
 
 **技术实现**:
-- 创建 `/home/lancer/projects/RNAS-OpenWrt/tools/session-monitor.sh` 增强版
+- 创建 `/home/lancer/projects/RNAS/tools/session-monitor.sh` 增强版
 
 **验收条件**:
 - 实时输出在线会话列表，支持刷新
@@ -439,7 +439,7 @@ netstat -tulpn | grep 3799
 ### Task 4.1: IPoE服务器配置
 
 **技术实现**:
-- 使用 `/home/lancer/projects/RNAS-OpenWrt/configs/ipoe.conf` 配置模板
+- 使用 `/home/lancer/projects/RNAS/configs/ipoe.conf` 配置模板
 - 确保 `[ipoe]` 段配置正确
 
 **配置文件**:
@@ -518,7 +518,7 @@ username=format=ipoe
 ### Task 5.1: OpenWrt无线配置模板
 
 **技术实现**:
-- 创建 `/home/lancer/projects/RNAS-OpenWrt/configs/wireless` 模板
+- 创建 `/home/lancer/projects/RNAS/configs/wireless` 模板
 
 **配置文件示例**:
 ```ini

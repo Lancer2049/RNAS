@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# RNAS-OpenWrt Build Script
+# RNAS Build Script
 # Builds accel-ppp with full OpenWrt integration
 # ============================================================================
 # This script builds accel-ppp for OpenWrt with all protocol support

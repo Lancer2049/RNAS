@@ -8,7 +8,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 echo ""
 echo "========================================"
-echo "  RNAS-OpenWrt Test Suite Runner"
+echo "  RNAS Test Suite Runner"
 echo "========================================"
 echo ""
 

@@ -1,13 +1,13 @@
-# FreeRADIUS Test Configuration for RNAS-OpenWrt
+# FreeRADIUS Test Configuration for RNAS
 
 This directory contains FreeRADIUS configuration files for end-to-end
-testing of RADIUS authentication, accounting, and CoA with RNAS-OpenWrt.
+testing of RADIUS authentication, accounting, and CoA with RNAS.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `clients.conf` | Authorizes RNAS-OpenWrt NAS (192.168.0.84) as a RADIUS client |
+| `clients.conf` | Authorizes RNAS NAS (192.168.0.84) as a RADIUS client |
 | `users` | Test user accounts with attributes for auth/acct testing |
 | `sites/rnas-test` | Virtual server config enabling auth/acct/CoA processing |
 | `dictionary.rnas` | (optional) Custom RADIUS attributes if needed |

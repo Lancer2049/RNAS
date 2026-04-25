@@ -1,4 +1,4 @@
-# RNAS-OpenWrt Configuration Files
+# RNAS Configuration Files
 
 This directory contains configuration templates for accel-ppp and RADIUS integration.
 

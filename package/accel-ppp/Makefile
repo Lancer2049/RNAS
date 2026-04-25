@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2024 RNAS-OpenWrt Project
+# Copyright (C) 2024 RNAS Project
 #
 # This is free software, licensed under the GNU General Public License v2.
 #
@@ -16,7 +16,7 @@ PKG_SOURCE_DATE:=2024-01-15
 PKG_SOURCE_VERSION:=HEAD
 PKG_MIRROR_HASH:=skip
 
-PKG_MAINTAINER:=RNAS-OpenWrt Project
+PKG_MAINTAINER:=RNAS Project
 PKG_LICENSE:=GPL-2.0-only
 PKG_LICENSE_FILES:=COPYING
 

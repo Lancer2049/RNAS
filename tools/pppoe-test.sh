@@ -1,5 +1,5 @@
 #!/bin/bash
-# PPPoE Test Script for RNAS-OpenWrt
+# PPPoE Test Script for RNAS
 
 set -e
 

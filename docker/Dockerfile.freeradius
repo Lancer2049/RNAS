@@ -1,0 +1,18 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -qq && apt-get install -y -qq \
+    freeradius freeradius-postgresql \
+    postgresql postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /var/run/postgresql && chown postgres:postgres /var/run/postgresql
+
+COPY tests/radius/clients.conf /etc/freeradius/3.0/clients.conf
+COPY tests/radius/users /etc/freeradius/3.0/users
+COPY tests/radius/sites/rnas-test /etc/freeradius/3.0/sites-enabled/rnas-test
+RUN chown -R freerad:freerad /etc/freeradius/3.0/
+
+EXPOSE 1812 1813 3799
+CMD service postgresql start && freeradius -f -l stdout
