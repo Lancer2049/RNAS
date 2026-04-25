@@ -1,0 +1,99 @@
+# UCI configuration for RNAS (OpenWrt-based RADIUS NAS)
+#
+# This file is the native OpenWrt UCI configuration for accel-ppp.
+# All settings are managed through standard UCI commands.
+# The init script translates this to native accel-ppp.conf format at startup.
+#
+# Usage:
+#   uci show rnas                 # View current config
+#   uci set rnas.global.thread_count=8
+#   uci commit rnas
+#   /etc/init.d/accel-ppp reload       # Apply changes
+
+config global 'global'
+	option enabled '1'
+	option thread_count '4'
+	option log_level '3'
+	option log_file '/var/log/accel-ppp.log'
+	option log_syslog '1'
+
+config ppp 'ppp'
+	option min_mtu '1280'
+	option mtu '1492'
+	option mru '1492'
+	option acf '0'
+	option pcf '0'
+	option lcp_echo_interval '30'
+	option lcp_echo_failure '3'
+
+config pppoe 'pppoe'
+	option interface 'br-lan'
+	option service_name ''
+	option ac_name 'RNAS-OpenWrt'
+	option verbose '1'
+
+config ipoe 'ipoe'
+	option enabled '1'
+	option interface 'br-lan'
+	option verbose '1'
+
+config l2tp 'l2tp'
+	option enabled '1'
+	option interface 'br-lan'
+	option port '1701'
+	option verbose '1'
+
+config pptp 'pptp'
+	option enabled '1'
+	option interface 'br-lan'
+	option verbose '1'
+
+config sstp 'sstp'
+	option enabled '0'
+	option interface 'br-lan'
+	option port '443'
+	option verbose '1'
+
+config radius 'radius'
+	option auth_server '192.168.1.1'
+	option auth_port '1812'
+	option acct_server '192.168.1.1'
+	option acct_port '1813'
+	option secret 'testing123'
+	option timeout '30'
+	option retries '3'
+	option interim_interval '300'
+	option interim_jitter '100'
+	option fail_timeout '0'
+	option max_fail '10'
+	option req_limit '50'
+	option nas_identifier 'rnas-openwrt'
+	option nas_ip_address '192.168.0.84'
+	option gw_ip_address '10.0.0.1'
+	option acct_on '0'
+	option message_authenticator '1'
+	option verbose '0'
+
+config coa 'coa'
+	option enabled '1'
+	option port '3799'
+	option secret 'testing123'
+
+config ip_pool 'ip_pool'
+	option gateway '10.0.0.1'
+	option pool '10.0.0.2-10.0.0.254'
+	option netmask '255.255.255.0'
+
+config dns 'dns'
+	option dns1 '8.8.8.8'
+	option dns2 '8.8.4.4'
+
+config mppe 'mppe'
+	option enabled '0'
+	option require '0'
+	option compression '1'
+
+config limit 'limit'
+	option max_sessions '10000'
+	option max_sessions_per_vlan '1000'
+	option concurrent_limit '0'

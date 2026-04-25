@@ -1,0 +1,19 @@
+From: RNAS-OpenWrt Project
+Date: 2024
+Subject: OpenWrt compatibility patches for accel-ppp
+
+--- a/accel-pppd/extra/memdebug.c
++++ b/accel-pppd/extra/memdebug.c
+@@ -0,0 +1,5 @@
++/* OpenWrt: disable memdebug for musl compatibility */
++#ifdef __OPENWRT__
++#include <stdlib.h>
++void *__real_malloc(size_t size) { return malloc(size); }
++#endif
+--- a/accel-pppd/ctrl/pppoe.c
++++ b/accel-pppd/ctrl/pppoe.c
+@@ -0,0 +1,5 @@
++/* OpenWrt: use procd for service management */
++#ifdef __OPENWRT__
++#define USE_PROCD 1
++#endif

@@ -1,0 +1,91 @@
+# FreeRADIUS virtual server for RNAS-OpenWrt testing
+# Copy to /etc/freeradius/3.0/sites-available/rnas-test
+# Enable: ln -s /etc/freeradius/3.0/sites-available/rnas-test /etc/freeradius/3.0/sites-enabled/
+#
+# This site configuration enables:
+#   - PAP/CHAP/MS-CHAPv2 authentication
+#   - Accounting (Start/Interim-Update/Stop)
+#   - CoA (Disconnect-Request, CoA-Request)
+
+server rnas-test {
+	# Authorization
+	authorize {
+		filter_username
+		preprocess
+		auth_log
+		suffix
+		eap {
+			ok = return
+		}
+		files
+		expiration
+		logintime
+	}
+
+	# Authentication
+	authenticate {
+		Auth-Type PAP {
+			pap
+		}
+		Auth-Type CHAP {
+			chap
+		}
+		Auth-Type MS-CHAP {
+			mschap
+		}
+		mschap
+		unix
+		eap
+	}
+
+	# Accounting
+	preacct {
+		preprocess
+		acct_counters64
+		acct_unique
+		interim
+	}
+
+	accounting {
+		detail
+		radutmp
+		sql
+		exec
+		attr_filter.accounting_response
+		# Log all accounting packets for verification
+		file
+	}
+
+	# Session management
+	session {
+		radutmp
+	}
+
+	# Post-authentication
+	post-auth {
+		reply_log
+		Post-Auth-Type REJECT {
+			attr_filter.access_reject
+			reply_log
+		}
+	}
+
+	# Pre-proxy (if proxying)
+	pre-proxy {
+		pre_proxy_log
+	}
+
+	post-proxy {
+		post_proxy_log
+	}
+}
+
+# CoA handler (Dynamic Authorization)
+coa rnas-coa {
+	coa {
+		detail
+	}
+	disconnect {
+		detail
+	}
+}

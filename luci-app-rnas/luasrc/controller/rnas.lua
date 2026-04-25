@@ -41,7 +41,7 @@ function action_coa_disconnect()
     if username then
         local uci = get_uci()
         local secret = uci:get("rnas", "radius", "secret") or "testing123"
-        local server = uci:get("rnas", "radius", "server") or "127.0.0.1"
+        local server = uci:get("rnas", "radius", "auth_server") or "127.0.0.1"
         luci.sys.exec("echo 'User-Name=" .. username .. "' | radclient " .. server .. ":3799 disconnect " .. secret)
         luci.http.redirect(luci.dispatcher.build_url("admin/network/rnas/coa"))
     end
@@ -53,7 +53,7 @@ function action_coa_timeout()
     if username then
         local uci = get_uci()
         local secret = uci:get("rnas", "radius", "secret") or "testing123"
-        local server = uci:get("rnas", "radius", "server") or "127.0.0.1"
+        local server = uci:get("rnas", "radius", "auth_server") or "127.0.0.1"
         luci.sys.exec("echo -e 'User-Name=" .. username .. "\\nSession-Timeout=" .. timeout .. "' | radclient " .. server .. ":3799 coa " .. secret)
         luci.http.redirect(luci.dispatcher.build_url("admin/network/rnas/coa"))
     end

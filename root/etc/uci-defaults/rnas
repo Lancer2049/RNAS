@@ -1,0 +1,46 @@
+#!/bin/sh
+# uci-defaults for RNAS - first-boot initial configuration
+
+uci -q get rnas.global > /dev/null && exit 0
+
+uci set rnas.global=global
+uci set rnas.global.enabled=1
+uci set rnas.global.thread_count=4
+uci set rnas.global.log_level=3
+
+uci set rnas.ppp=ppp
+uci set rnas.ppp.min_mtu=1280
+uci set rnas.ppp.mtu=1492
+uci set rnas.ppp.mru=1492
+
+uci set rnas.pppoe=pppoe
+uci set rnas.pppoe.interface=br-lan
+uci set rnas.pppoe.ac_name=RNAS
+uci set rnas.pppoe.verbose=1
+
+uci set rnas.radius=radius
+uci set rnas.radius.auth_server=192.168.1.1
+uci set rnas.radius.auth_port=1812
+uci set rnas.radius.acct_server=192.168.1.1
+uci set rnas.radius.acct_port=1813
+uci set rnas.radius.secret=testing123
+uci set rnas.radius.timeout=30
+uci set rnas.radius.retries=3
+uci set rnas.radius.interim_interval=300
+
+uci set rnas.coa=coa
+uci set rnas.coa.enabled=1
+uci set rnas.coa.port=3799
+
+uci set rnas.ip_pool=ip_pool
+uci set rnas.ip_pool.gateway=10.0.0.1
+uci set rnas.ip_pool.pool=10.0.0.2-10.0.0.254
+uci set rnas.ip_pool.netmask=255.255.255.0
+
+uci set rnas.dns=dns
+uci set rnas.dns.dns1=8.8.8.8
+uci set rnas.dns.dns2=8.8.4.4
+
+uci commit rnas
+
+exit 0

@@ -1,0 +1,43 @@
+# FreeRADIUS users file for RNAS-OpenWrt testing
+# Copy to /etc/freeradius/3.0/users or equivalent
+#
+# Test user profiles for RADIUS authentication and accounting testing.
+# Attributes assigned here are returned in Access-Accept packets.
+
+# Standard PPPoE test user
+"testuser" Cleartext-Password := "testpass123"
+	Reply-Message = "Hello, testuser",
+	Framed-Protocol = PPP,
+	Framed-Compression = Van-Jacobson-TCP-IP,
+	Framed-MTU = 1492,
+	Service-Type = Framed-User,
+	Framed-IP-Address = 10.0.0.100,
+	Idle-Timeout = 600,
+	Session-Timeout = 3600
+
+# User with bandwidth limits
+"bwtest" Cleartext-Password := "bwtest123"
+	Reply-Message = "Bandwidth limited user",
+	Framed-Protocol = PPP,
+	Service-Type = Framed-User,
+	Framed-IP-Netmask = 255.255.255.255,
+	WISPr-Bandwidth-Max-Up = 10240,
+	WISPr-Bandwidth-Max-Down = 51200,
+	Filter-Id = "bw-limited"
+
+# User with static IP assignment
+"statictest" Cleartext-Password := "statictest123"
+	Framed-Protocol = PPP,
+	Service-Type = Framed-User,
+	Framed-IP-Address = 10.0.0.200,
+	Framed-IP-Netmask = 255.255.255.255
+
+# Auth reject test (wrong password will fail; this user has no password = always reject)
+"rejecttest" Cleartext-Password := "reject"
+	Reply-Message = "This user exists but password must match"
+
+# Accounting-only test user
+"accttest" Cleartext-Password := "accttest123"
+	Reply-Message = "Accounting verification user",
+	Service-Type = Framed-User,
+	Acct-Interim-Interval = 60

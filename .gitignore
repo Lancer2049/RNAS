@@ -1,3 +1,19 @@
-# RNAS-OpenWrt
+# Build artifacts
+build/
+output/
+*.tar.gz
+*.tar.xz
 
-OpenWrt-based RADIUS NAS with full protocol support
+# IDE
+.vscode/
+.trae/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env

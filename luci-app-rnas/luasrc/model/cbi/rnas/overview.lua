@@ -30,7 +30,7 @@ s2.render = function(self, section)
     local utl = require("luci.util")
     
     local status = {
-        enabled = uci:get("rnas", "config", "enabled") or "0",
+        enabled = uci:get("rnas", "global", "enabled") or "0",
         protocol = uci:get("rnas", "config", "protocol") or "pppoe",
         uptime = "N/A",
         sessions = "0",
