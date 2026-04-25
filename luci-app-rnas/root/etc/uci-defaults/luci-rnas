@@ -2,51 +2,48 @@
 
 [ "$INIT" ] || exit 0
 
-uci set rnas.config=rnas
-uci set rnas.config.enabled=0
-uci set rnas.config.protocol=pppoe
-uci set rnas.config.interface=br-lan
-uci set rnas.config.thread_count=4
+# RNAS first-boot defaults — matches /etc/config/rnas schema and accel-ppp-uci translator
 
-uci set rnas.radius=radius
-uci set rnas.radius.server=192.168.1.1
-uci set rnas.radius.secret=testing123
-uci set rnas.radius.auth_port=1812
-uci set rnas.radius.acct_port=1813
-uci set rnas.radius.coa_port=3799
-uci set rnas.radius.timeout=30
-uci set rnas.radius.retries=3
-uci set rnas.radius.use_radius=1
-uci set rnas.radius.use_accounting=1
-uci set rnas.radius.interim_interval=300
+uci -q get rnas.global > /dev/null && exit 0
+
+uci set rnas.global=global
+uci set rnas.global.enabled=0
+uci set rnas.global.thread_count=4
+uci set rnas.global.log_level=3
+
+uci set rnas.ppp=ppp
+uci set rnas.ppp.min_mtu=1280
+uci set rnas.ppp.mtu=1492
+uci set rnas.ppp.mru=1492
 
 uci set rnas.pppoe=pppoe
-uci set rnas.pppoe.enabled=1
-uci set rnas.pppoe.mtu=1492
-uci set rnas.pppoe.mru=1492
+uci set rnas.pppoe.interface=br-lan
+uci set rnas.pppoe.ac_name=RNAS
+uci set rnas.pppoe.verbose=1
 
-uci set rnas.ipoe=ipoe
-uci set rnas.ipoe.enabled=0
-uci set rnas.ipoe.mode=L2
+uci set rnas.radius=radius
+uci set rnas.radius.auth_server=192.168.1.1
+uci set rnas.radius.auth_port=1812
+uci set rnas.radius.acct_port=1813
+uci set rnas.radius.secret=testing123
+uci set rnas.radius.timeout=30
+uci set rnas.radius.retries=3
+uci set rnas.radius.interim_interval=300
+uci set rnas.radius.interim_jitter=100
+uci set rnas.radius.nas_identifier=RNAS
 
-uci set rnas.l2tp=l2tp
-uci set rnas.l2tp.enabled=0
-uci set rnas.l2tp.port=1701
-
-uci set rnas.pptp=pptp
-uci set rnas.pptp.enabled=0
-uci set rnas.pptp.port=1723
-uci set rnas.pptp.mppe=1
-
-uci set rnas.sstp=sstp
-uci set rnas.sstp.enabled=0
-uci set rnas.sstp.port=443
+uci set rnas.coa=coa
+uci set rnas.coa.enabled=1
+uci set rnas.coa.port=3799
 
 uci set rnas.ip_pool=ip_pool
-uci add_list rnas.ip_pool.pool=10.0.0.2-10.0.0.254
-uci set rnas.ip_pool.gw_pool_address=10.0.0.1
-uci set rnas.ip_pool.dns1=8.8.8.8
-uci set rnas.ip_pool.dns2=8.8.4.4
+uci set rnas.ip_pool.gateway=10.0.0.1
+uci set rnas.ip_pool.pool=10.0.0.2-10.0.0.254
+uci set rnas.ip_pool.netmask=255.255.255.0
+
+uci set rnas.dns=dns
+uci set rnas.dns.dns1=8.8.8.8
+uci set rnas.dns.dns2=8.8.4.4
 
 uci commit rnas
 

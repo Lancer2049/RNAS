@@ -18,8 +18,8 @@ function o.write(self, section)
     local uci = require("uci").cursor()
     local username = map:formvalue("cbid.rnas.disconnect_username")
     local secret = uci:get("rnas", "radius", "secret") or "testing123"
-    local server = uci:get("rnas", "radius", "server") or "127.0.0.1"
-    local coa_port = uci:get("rnas", "radius", "coa_port") or "3799"
+    local server = uci:get("rnas", "radius", "auth_server") or "127.0.0.1"
+    local coa_port = uci:get("rnas", "coa", "port") or "3799"
     
     if username and username ~= "" then
         local cmd = string.format('echo "User-Name=%s" | radclient %s:%s disconnect %s 2>&1', 
@@ -48,8 +48,8 @@ function o.write(self, section)
     local username = map:formvalue("cbid.rnas.timeout_username")
     local timeout = map:formvalue("cbid.rnas.timeout_seconds") or "3600"
     local secret = uci:get("rnas", "radius", "secret") or "testing123"
-    local server = uci:get("rnas", "radius", "server") or "127.0.0.1"
-    local coa_port = uci:get("rnas", "radius", "coa_port") or "3799"
+    local server = uci:get("rnas", "radius", "auth_server") or "127.0.0.1"
+    local coa_port = uci:get("rnas", "coa", "port") or "3799"
     
     if username and username ~= "" then
         local cmd = string.format('echo -e "User-Name=%s\\nSession-Timeout=%s" | radclient %s:%s coa %s 2>&1',
@@ -82,8 +82,8 @@ function o.write(self, section)
     local downstream = map:formvalue("cbid.rnas.bw_downstream") or "10240"
     local upstream = map:formvalue("cbid.rnas.bw_upstream") or "5120"
     local secret = uci:get("rnas", "radius", "secret") or "testing123"
-    local server = uci:get("rnas", "radius", "server") or "127.0.0.1"
-    local coa_port = uci:get("rnas", "radius", "coa_port") or "3799"
+    local server = uci:get("rnas", "radius", "auth_server") or "127.0.0.1"
+    local coa_port = uci:get("rnas", "coa", "port") or "3799"
     
     if username and username ~= "" then
         local cmd = string.format('echo -e "User-Name=%s\\nHRc-Downstream-Rate-Limit=%s\\nHRc-Upstream-Rate-Limit=%s" | radclient %s:%s coa %s 2>&1',

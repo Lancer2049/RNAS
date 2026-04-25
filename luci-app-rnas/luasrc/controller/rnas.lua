@@ -61,7 +61,7 @@ end
 
 function get_status_data()
     local uci = get_uci()
-    local protocol = uci:get("rnas", "config", "protocol") or "pppoe"
+    local protocol = uci:get("rnas", "pppoe", "interface") and "pppoe" or "disabled"
     local sessions = {}
     
     luci.sys.exec("accel-cmd show sessions > /tmp/rnas_sessions.txt 2>/dev/null")
