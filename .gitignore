@@ -18,3 +18,7 @@ Thumbs.db
 
 # Environment
 .env
+
+# Sensitive local files (prevent token leak)
+.git/
+*.local
