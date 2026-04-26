@@ -1,0 +1,17 @@
+[Unit]
+Description=RNAS accel-ppp Access Server
+Documentation=https://github.com/Lancer2049/RNAS
+After=network-online.target
+Wants=network-online.target
+PartOf=rnas.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/rnas-config generate accel-ppp -o /var/run/rnas/accel-ppp.conf
+ExecStart=/usr/local/sbin/accel-pppd -c /var/run/rnas/accel-ppp.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=rnas.target

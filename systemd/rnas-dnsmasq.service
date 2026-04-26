@@ -1,0 +1,17 @@
+[Unit]
+Description=RNAS DHCP and DNS Server (dnsmasq)
+Documentation=https://github.com/Lancer2049/RNAS
+After=network-online.target
+Wants=network-online.target
+PartOf=rnas.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/rnas-config generate dnsmasq -o /var/run/rnas/dnsmasq.conf
+ExecStart=/usr/sbin/dnsmasq -k -C /var/run/rnas/dnsmasq.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=rnas.target

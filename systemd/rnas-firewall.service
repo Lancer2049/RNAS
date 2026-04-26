@@ -1,0 +1,13 @@
+[Unit]
+Description=RNAS Firewall Rules (nftables)
+Documentation=https://github.com/Lancer2049/RNAS
+After=network-online.target
+PartOf=rnas.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rnas-config generate firewall -o /var/run/rnas/nftables.conf && /usr/sbin/nft -f /var/run/rnas/nftables.conf
+RemainAfterExit=yes
+
+[Install]
+WantedBy=rnas.target

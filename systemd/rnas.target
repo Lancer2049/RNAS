@@ -1,0 +1,7 @@
+[Unit]
+Description=RNAS NAS Platform
+Documentation=https://github.com/Lancer2049/RNAS
+Wants=rnas-accel-ppp.service rnas-dnsmasq.service rnas-firewall.service
+
+[Install]
+WantedBy=multi-user.target
