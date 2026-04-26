@@ -24,3 +24,4 @@ Thumbs.db
 *.local
 __pycache__/
 node_modules/\ndist/\npackage-lock.json
+node_modules/

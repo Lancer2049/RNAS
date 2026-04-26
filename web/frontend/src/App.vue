@@ -18,6 +18,7 @@
       @refresh="fetchData"
     />
     <NetworkConfig v-if="tab === 'network'" />
+    <TrafficMonitor v-if="tab === 'overview'" />
   </div>
 </template>
 
@@ -26,6 +27,7 @@ import { ref, onMounted } from 'vue'
 import StatusCard from './components/StatusCard.vue'
 import SessionsTable from './components/SessionsTable.vue'
 import NetworkConfig from './components/NetworkConfig.vue'
+import TrafficMonitor from './components/TrafficMonitor.vue'
 
 const tab = ref('overview')
 const sessions = ref([])
