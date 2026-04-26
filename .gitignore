@@ -22,3 +22,4 @@ Thumbs.db
 # Sensitive local files (prevent token leak)
 .git/
 *.local
+__pycache__/
