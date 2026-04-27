@@ -74,4 +74,17 @@ test.describe('RNAS Dashboard E2E', () => {
     const saveBtn = page.locator('button:has-text("Save")');
     await expect(saveBtn).toBeVisible();
   });
+
+  test('Services tab shows QoS, VPN, Hotspot, HA config', async ({ page }) => {
+    await page.goto('/');
+    await page.click('button:has-text("Services")');
+
+    // Should show each service card
+    await expect(page.locator('h3:has-text("QoS")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('h3:has-text("IPsec")')).toBeVisible();
+    await expect(page.locator('h3:has-text("WireGuard")')).toBeVisible();
+    await expect(page.locator('h3:has-text("OpenVPN")')).toBeVisible();
+    await expect(page.locator('h3:has-text("Hotspot")')).toBeVisible();
+    await expect(page.locator('h3:has-text("High Availability")')).toBeVisible();
+  });
 });
