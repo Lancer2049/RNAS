@@ -1,8 +1,25 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Dict
 
 app = FastAPI(title="RNAS API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+_state = {
+    "config": {
+        "network.d.interface/lan": {"device": "br-lan", "proto": "static", "ipaddr": "192.168.100.1", "netmask": "255.255.255.0"},
+        "network.d.dhcp/dhcp lan": {"start": "100", "limit": "100", "leasetime": "12h"},
+        "network.d.dhcp/dhcp_option dns": {"list": "8.8.8.8,8.8.4.4"},
+        "network.d.zone/nas": {"input": "ACCEPT", "output": "ACCEPT", "forward": "REJECT", "networks": "lan"},
+        "network.d.device/br-lan": {"type": "bridge", "ports": "ens33"},
+        "access.d.server/primary": {"auth_host": "192.168.0.85", "auth_port": "1812", "secret": "testing123"},
+        "access.d.pppoe": {"interface": "ens33", "ac_name": "RNAS"},
+        "qos.global": {"enabled": "no", "algorithm": "cake", "interface": "ens33"},
+        "vpn.d.ipsec.global": {"enabled": "no", "auth": "radius"},
+        "hotspot.global": {"enabled": "no", "interface": "br-lan"},
+        "ha.global": {"enabled": "no"},
+    }
+}
 
 @app.get("/api/health")
 async def health():
@@ -35,15 +52,20 @@ async def sessions():
 
 @app.get("/api/config")
 async def config():
-    return {"config": {
-        "network.d.interface/lan": {"device": "br-lan", "proto": "static",
-            "ipaddr": "192.168.100.1", "netmask": "255.255.255.0"},
-        "network.d.dhcp/dhcp lan": {"start": "100", "limit": "100", "leasetime": "12h"},
-        "network.d.dhcp/dhcp_option dns": {"list": "8.8.8.8,8.8.4.4"},
-        "network.d.zone/nas": {"input": "ACCEPT", "output": "ACCEPT",
-            "forward": "REJECT", "networks": "lan"},
-        "network.d.device/br-lan": {"type": "bridge", "ports": "ens33"}
-    }}
+    return {"config": _state["config"]}
+
+@app.put("/api/config/{module:path}")
+async def update_config(module: str, values: Dict[str, str] = Body(...)):
+    key = module.replace("/", ".")
+    if key in _state["config"]:
+        _state["config"][key].update(values)
+    else:
+        _state["config"][key] = values
+    return {"success": True, "module": module, "updated": values}
+
+@app.post("/api/config/apply")
+async def apply_config():
+    return {"success": True, "message": "Configuration applied"}
 
 @app.post("/api/sessions/{sid}/disconnect")
 async def disconnect(sid: str):

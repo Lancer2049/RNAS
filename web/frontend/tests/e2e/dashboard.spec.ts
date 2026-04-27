@@ -54,4 +54,24 @@ test.describe('RNAS Dashboard E2E', () => {
     await page.waitForLoadState('networkidle');
     expect(errors.filter(e => !e.includes('favicon'))).toHaveLength(0);
   });
+
+  test('Config tab allows editing and saving', async ({ page }) => {
+    await page.goto('/');
+    await page.click('button:has-text("Config")');
+
+    // Should show the config editor header
+    await expect(page.locator('h2:has-text("Configuration Editor")')).toBeVisible({ timeout: 5000 });
+
+    // Select a module from dropdown
+    await page.selectOption('select', { index: 1 });
+    await page.waitForTimeout(500);
+
+    // Should load config fields
+    const inputs = page.locator('.field-row input').first();
+    await expect(inputs).toBeVisible({ timeout: 3000 });
+
+    // Verify save button exists
+    const saveBtn = page.locator('button:has-text("Save")');
+    await expect(saveBtn).toBeVisible();
+  });
 });

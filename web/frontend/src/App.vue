@@ -8,6 +8,7 @@
       <button :class="{ active: tab === 'overview' }" @click="tab = 'overview'">Overview</button>
       <button :class="{ active: tab === 'sessions' }" @click="tab = 'sessions'">Sessions</button>
       <button :class="{ active: tab === 'network' }" @click="tab = 'network'">Network</button>
+      <button :class="{ active: tab === 'config' }" @click="tab = 'config'">Config</button>
     </nav>
     <StatusCard v-if="tab === 'overview' || tab === 'sessions'" :service="service" />
     <SessionsTable
@@ -19,6 +20,7 @@
     />
     <NetworkConfig v-if="tab === 'network'" />
     <TrafficMonitor v-if="tab === 'overview'" />
+    <ConfigEditor v-if="tab === 'config'" />
   </div>
 </template>
 
@@ -28,6 +30,7 @@ import StatusCard from './components/StatusCard.vue'
 import SessionsTable from './components/SessionsTable.vue'
 import NetworkConfig from './components/NetworkConfig.vue'
 import TrafficMonitor from './components/TrafficMonitor.vue'
+import ConfigEditor from './components/ConfigEditor.vue'
 
 const tab = ref('overview')
 const service = ref({ uptime: '--', cpu: '--', mem: '--' })
