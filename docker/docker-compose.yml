@@ -1,16 +1,21 @@
-# RNAS + FreeRADIUS Test Environment
+# RNAS Full-Stack Test Environment
 #
 # Usage:
 #   docker compose up -d
-#   docker compose logs -f accel-ppp
+#   docker compose logs -f
 #   docker compose down
 #
-# Prerequisites:
-#   - Linux host with PPP kernel modules (CONFIG_PPP=m, CONFIG_PPPOE=m)
-#   - Docker Engine 20.10+
+# Services:
+#   accel-ppp    — PPPoE/IPoE/L2TP access server (port 3799 CoA)
+#   freeradius   — RADIUS auth/acct + PostgreSQL
+#   rnas-api     — FastAPI management API (port 8099)
+#   rnas-web     — Vue.js dashboard dev server (port 5173)
+#   dnsmasq      — DHCP/DNS (optional, disabled by default)
 #
 # Test flow:
-#   PPPoE Client → accel-ppp:lo → RADIUS → freeradius:1812/1813 → PostgreSQL
+#   PPPoE Client → accel-ppp → RADIUS → freeradius:1812/1813 → PostgreSQL
+#   Web Console → rnas-api:8099 → accel-cmd → accel-ppp
+#   CoA → accel-ppp:3799 (from freeradius or API)
 
 services:
   accel-ppp:
@@ -18,8 +23,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.accel-ppp
     container_name: rnas-accel-ppp
-    privileged: true          # Required for kernel PPP modules
-    network_mode: host        # Use host network for PPPoE Discovery (L2)
+    privileged: true
+    network_mode: host
     cap_add:
       - NET_ADMIN
       - NET_RAW
@@ -34,11 +39,6 @@ services:
     command: >
       accel-pppd -c /etc/accel-ppp/accel-ppp.conf -d
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "pgrep", "accel-pppd"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
 
   freeradius:
     build:
@@ -52,17 +52,41 @@ services:
       - POSTGRES_PASSWORD=radius
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./tests/radius/clients.conf:/etc/freeradius/3.0/clients.conf:ro
-      - ./tests/radius/users:/etc/freeradius/3.0/users:ro
-      - ./tests/radius/sites/rnas-test:/etc/freeradius/3.0/sites-enabled/rnas-test:ro
+      - ../tests/radius/clients.conf:/etc/freeradius/3.0/clients.conf:ro
+      - ../tests/radius/users:/etc/freeradius/3.0/users:ro
     command: >
       freeradius -f -l stdout
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "radtest", "testuser", "testpass", "127.0.0.1", "0", "testing123"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+
+  rnas-api:
+    image: python:3.12-slim
+    container_name: rnas-api
+    network_mode: host
+    working_dir: /app
+    volumes:
+      - ../web/api:/app
+      - ../cmd/rnas-config:/rnas-config
+      - ../configs:/etc/rnas:ro
+    environment:
+      - PYTHONPATH=/app:/rnas-config
+    command: >
+      sh -c "pip install -q fastapi uvicorn && uvicorn main:app --host 0.0.0.0 --port 8099"
+    restart: unless-stopped
+    depends_on:
+      - accel-ppp
+
+  rnas-web:
+    image: node:22-slim
+    container_name: rnas-web
+    network_mode: host
+    working_dir: /app
+    volumes:
+      - ../web/frontend:/app
+    command: >
+      sh -c "npm install -q && npx vite --host 0.0.0.0 --port 5173"
+    restart: unless-stopped
+    depends_on:
+      - rnas-api
 
 volumes:
   accel-ppp-logs:
