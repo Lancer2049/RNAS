@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""RNAS Web Server — serves API + static frontend using only stdlib."""
+import json, os, re, subprocess, sys
+from pathlib import Path
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+
+STATIC_DIR = Path(__file__).parent / "static"
+API_ONLY = False
+
+
+def run_accel_cmd(*args):
+    try:
+        return subprocess.run(["/usr/bin/accel-cmd"] + list(args),
+                              capture_output=True, text=True, timeout=5).stdout
+    except Exception:
+        return ""
+
+
+def parse_sessions(raw):
+    rows = []
+    body = False
+    for line in raw.splitlines():
+        if not body:
+            if line.strip().startswith("ifname") or line.strip().startswith("---"):
+                body = True
+            continue
+        cols = line.split()
+        if len(cols) >= 9:
+            rows.append(dict(sid=cols[0], ifname=cols[1], username=cols[2],
+                             ip=cols[3], type=cols[4], state=cols[5],
+                             uptime_raw=cols[6], rx_bytes_raw=int(cols[7]) if cols[7].isdigit() else 0,
+                             tx_bytes_raw=int(cols[8]) if cols[8].isdigit() else 0))
+    return rows
+
+
+def parse_stat(raw):
+    stat = dict(uptime="N/A", cpu="0%", mem="N/A", sessions_active=0, radius_state="unknown",
+                radius_fail_count=0, auth_sent=0, acct_sent=0)
+    for key, pat in [("uptime", r"uptime:\s*(\S+)"), ("cpu", r"cpu:\s*(\S+)"),
+                     ("mem", r"mem\(rss/virt\):\s*(\S+)"),
+                     ("sessions_active", r"sessions:.*?active:\s*(\d+)"),
+                     ("radius_state", r"state:\s*(\S+)"),
+                     ("radius_fail_count", r"fail count:\s*(\d+)"),
+                     ("auth_sent", r"auth sent:\s*(\d+)"),
+                     ("acct_sent", r"acct sent:\s*(\d+)")]:
+        m = re.search(pat, raw, re.DOTALL)
+        if m:
+            val = m.group(1)
+            stat[key] = int(val) if val.isdigit() else val
+    return stat
+
+
+class RNASHandler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
+
+    def do_GET(self):
+        path = urlparse(self.path).path
+        if path.startswith("/api/"):
+            self.handle_api(path)
+        else:
+            super().do_GET()
+
+    def do_POST(self):
+        path = urlparse(self.path).path
+        if path.startswith("/api/"):
+            self.handle_api(path)
+        else:
+            self.send_error(404)
+
+    def handle_api(self, path):
+        if path == "/api/health":
+            self.json(dict(status="ok", version="2.0.0"))
+        elif path == "/api/status":
+            raw_stat = run_accel_cmd("show", "stat")
+            raw_sess = run_accel_cmd("show", "sessions",
+                                     "sid,ifname,username,ip,type,state,uptime-raw,rx-bytes-raw,tx-bytes-raw")
+            sessions = parse_sessions(raw_sess)
+            self.json(dict(service=parse_stat(raw_stat), sessions=sessions, sessions_count=len(sessions)))
+        elif path == "/api/sessions":
+            raw = run_accel_cmd("show", "sessions",
+                                "sid,ifname,username,ip,type,state,uptime-raw,rx-bytes-raw,tx-bytes-raw")
+            self.json(parse_sessions(raw))
+        elif path.startswith("/api/sessions/") and path.endswith("/disconnect"):
+            sid = path.split("/")[3]
+            out = run_accel_cmd("terminate", "sid", sid, "hard")
+            self.json(dict(success=True, message=f"Session {sid} terminated"))
+        else:
+            self.send_error(404)
+
+    def json(self, data):
+        body = json.dumps(data).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, fmt, *args):
+        print(f"[rnas-web] {args[0]}", flush=True)
+
+
+if __name__ == "__main__":
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8099
+    print(f"RNAS Web Server on http://0.0.0.0:{port}")
+    HTTPServer(("0.0.0.0", port), RNASHandler).serve_forever()
