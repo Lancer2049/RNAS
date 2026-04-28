@@ -1,7 +1,19 @@
 # RNAS Development State
 
 **Session Date**: 2026-04-28
-**Status**: QoS deployed, Network+Services editable, 7-tab dashboard live
+**Status**: QoS+Network+Services all done, SNMP next
+
+## VM3 Running
+- accel-ppp ✅ | rnas-web ✅ | dnsmasq ✅ | nftables ✅ | cake QoS ✅
+
+## Pending
+- SNMP: install snmpd + deploy
+- VPN: strongSwan / WireGuard
+- HA: keepalived
+
+## Access
+- Dashboard: http://192.168.0.203:8099
+- SSH: root@192.168.0.203 (123456)
 
 ## VM3 Running Services
 | Service | Status |
