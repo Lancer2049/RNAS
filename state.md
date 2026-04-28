@@ -1,7 +1,38 @@
 # RNAS Development State
 
 **Session Date**: 2026-04-28
-**Status**: RNAS v2 on Ubuntu — 4 services running, web dashboard live, AAA+CoA verified
+**Status**: QoS deployed, Network+Services editable, 7-tab dashboard live
+
+## VM3 Running Services
+| Service | Status |
+|---------|--------|
+| rnas-accel-ppp (DAE:3799) | ✅ active |
+| rnas-dnsmasq (DNS:53/DHCP:67) | ✅ running |
+| nftables (firewall) | ✅ rules loaded |
+| rnas-web (dashboard:8099) | ✅ active |
+| tc/cake QoS (ens33, 100Mbit) | ✅ applied |
+
+## Today's Progress
+- ✅ QoS: cake qdisc deployed on VM3 ens33
+- ✅ NetworkConfig: editable inline fields + Save per section + Apply
+- ✅ ServicesConfig: editable inline + Save
+- ✅ PUT /api/config/ endpoint working (writes to /etc/rnas/)
+- ✅ POST /api/config/apply regenerates + reloads services
+- ✅ System page: service status + logs + memory/disk
+- ✅ Tools page: Ping/Traceroute/RADIUS/CoA
+
+## Access
+- Dashboard: http://192.168.0.203:8099
+- SSH: root@192.168.0.203 (123456)
+
+## Pending Commits
+- 07fb04d: editable NetworkConfig + PUT API + QoS (pushed ✅)
+
+## Next Session
+1. Install snmpd + deploy monitoring
+2. Try install strongSwan/WireGuard for VPN
+3. Deploy keepalived for HA
+4. Per-user QoS with iptables MARK + tc classes
 
 ## Current Architecture
 ```
