@@ -112,6 +112,27 @@ class RNASHandler(SimpleHTTPRequestHandler):
                 f"echo 'User-Name={user}' | radclient -r 1 -t 5 127.0.0.1:3799 disconnect testing123",
                 shell=True, capture_output=True, text=True, timeout=10).stdout
             self.json(dict(output=out))
+        elif path == "/api/system/status":
+            svcs = []
+            for name, desc in [("rnas-accel-ppp", "PPPoE/L2TP Access Server"),
+                              ("rnas-dnsmasq", "DHCP/DNS Server"),
+                              ("rnas-web", "Web Dashboard")]:
+                try:
+                    active = subprocess.run(["systemctl", "is-active", name],
+                                            capture_output=True, text=True, timeout=3).stdout.strip()
+                except:
+                    active = "unknown"
+                svcs.append(dict(name=name, active=active, desc=desc))
+            mem = subprocess.run(["free", "-h"], capture_output=True, text=True).stdout.splitlines()[1]
+            disk = subprocess.run(["df", "-h", "/"], capture_output=True, text=True).stdout.splitlines()[1]
+            self.json(dict(services=svcs, memory=mem.split()[1] + "/" + mem.split()[0], disk=disk.split()[2] + "/" + disk.split()[1]))
+        elif path == "/api/system/logs":
+            try:
+                out = subprocess.run(["journalctl", "-u", "rnas-accel-ppp", "--no-pager", "-n", "30"],
+                                     capture_output=True, text=True, timeout=5).stdout
+            except:
+                out = "Logs unavailable"
+            self.json(dict(logs=out))
         else:
             self.send_error(404)
 

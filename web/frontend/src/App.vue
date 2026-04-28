@@ -11,6 +11,7 @@
       <button :class="{ active: tab === 'config' }" @click="tab = 'config'">Config</button>
       <button :class="{ active: tab === 'services' }" @click="tab = 'services'">Services</button>
       <button :class="{ active: tab === 'tools' }" @click="tab = 'tools'">Tools</button>
+      <button :class="{ active: tab === 'system' }" @click="tab = 'system'">System</button>
     </nav>
     <StatusCard v-if="tab === 'overview' || tab === 'sessions'" :service="service" />
     <SessionsTable
@@ -25,6 +26,7 @@
     <ConfigEditor v-if="tab === 'config'" />
     <ServicesConfig v-if="tab === 'services'" />
     <ToolsPage v-if="tab === 'tools'" />
+    <SystemPage v-if="tab === 'system'" />
   </div>
 </template>
 
@@ -37,6 +39,7 @@ import TrafficMonitor from './components/TrafficMonitor.vue'
 import ConfigEditor from './components/ConfigEditor.vue'
 import ServicesConfig from './components/ServicesConfig.vue'
 import ToolsPage from './components/ToolsPage.vue'
+import SystemPage from './components/SystemPage.vue'
 
 const tab = ref('overview')
 const service = ref({ uptime: '--', cpu: '--', mem: '--' })
