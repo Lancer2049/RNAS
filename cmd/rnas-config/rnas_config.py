@@ -182,6 +182,7 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
         if pconf.get("called_sid"): w(f"called-sid={pconf['called_sid']}")
         if pconf.get("port"): w(f"port={pconf['port']}")
         if pconf.get("accept"): w(f"accept={pconf['accept']}")
+        if pconf.get("ssl_pemfile"): w(f"ssl-pemfile={pconf['ssl_pemfile']}")
         if proto[0] == "l2tp": w("dictionary=/usr/share/accel-ppp/l2tp/dictionary")
         w()
 
