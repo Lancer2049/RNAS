@@ -167,8 +167,8 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
     if pool.get("gateway"): w(f"gw-ip-address={pool['gateway']}")
     if pool.get("attr"): w(f"attr={pool['attr']}")
     if pool.get("range"):
+        w(pool["range"])
         w(f"{pool['range']},name=default")
-    w()
 
     # Protocols
     for proto in [("pppoe", "pppoe"), ("pptp", "pptp"), ("l2tp", "l2tp"), ("sstp", "sstp"), ("ipoe", "ipoe")]:
