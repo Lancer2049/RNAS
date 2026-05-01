@@ -166,7 +166,8 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
     w("[ip-pool]")
     if pool.get("gateway"): w(f"gw-ip-address={pool['gateway']}")
     if pool.get("attr"): w(f"attr={pool['attr']}")
-    if pool.get("range"): w(pool["range"])
+    if pool.get("range"):
+        w(f"{pool['range']},name=default")
     w()
 
     # Protocols
@@ -183,6 +184,8 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
         if pconf.get("port"): w(f"port={pconf['port']}")
         if pconf.get("accept"): w(f"accept={pconf['accept']}")
         if pconf.get("ssl_pemfile"): w(f"ssl-pemfile={pconf['ssl_pemfile']}")
+        if pconf.get("ip_pool"): w(f"ip-pool={pconf['ip_pool']}")
+        if pconf.get("opt_src"): w(f"opt-src={pconf['opt_src']}")
         if proto[0] == "l2tp": w("dictionary=/usr/share/accel-ppp/l2tp/dictionary")
         w()
 
