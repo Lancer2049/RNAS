@@ -113,7 +113,7 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
     ppp = get_section("access.d.ppp")
     w("[ppp]")
     w("verbose=1")
-    for k in ("min_mtu", "mtu", "mru", "acf", "pcf", "lcp_echo_interval", "lcp_echo_failure"):
+    for k in ("min_mtu", "mtu", "mru", "acf", "pcf", "lcp_echo_interval", "lcp_echo_failure", "iprange"):
         if k in ppp: w(f"{k.replace('_', '-')}={ppp[k]}")
     if ppp.get("ipv4") == "require": w("ipv4=require")
     if ppp.get("ipv6") == "deny": w("ipv6=deny")
