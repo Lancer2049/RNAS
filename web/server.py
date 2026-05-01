@@ -134,9 +134,16 @@ class RNASHandler(SimpleHTTPRequestHandler):
             self.json(dict(output=out))
         elif path == "/api/system/status":
             svcs = []
-            for name, desc in [("rnas-accel-ppp", "PPPoE/L2TP Access Server"),
-                              ("rnas-dnsmasq", "DHCP/DNS Server"),
-                              ("rnas-web", "Web Dashboard")]:
+            for name, desc in [
+                ("rnas-accel-ppp", "PPPoE/PPTP/L2TP/SSTP/IPoE Access Server"),
+                ("dnsmasq", "DHCP/DNS Server"),
+                ("rnas-web", "Web Dashboard"),
+                ("strongswan-starter", "IPsec VPN"),
+                ("wg-quick@wg0", "WireGuard VPN"),
+                ("openvpn-server@server", "OpenVPN Server"),
+                ("keepalived", "HA (VRRP)"),
+                ("snmpd", "SNMP Monitoring"),
+            ]:
                 try:
                     active = subprocess.run(["systemctl", "is-active", name],
                                             capture_output=True, text=True, timeout=3).stdout.strip()
