@@ -177,10 +177,14 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
             continue
         w(f"[{proto[1]}]")
         w("verbose=1")
-        if pconf.get("interface"): w(f"interface={pconf['interface']}")
+        if pconf.get("interface"):
+            iface = pconf['interface']
+            if proto[0] == "ipoe" and pconf.get("interface_opts"):
+                iface += pconf['interface_opts']
+            w(f"interface={iface}")
+        if pconf.get("verbose"): w(f"verbose={pconf['verbose']}")
         if pconf.get("ac_name"): w(f"ac-name={pconf['ac_name']}")
         if pconf.get("service_name"): w(f"service-name={pconf['service_name']}")
-        if pconf.get("called_sid"): w(f"called-sid={pconf['called_sid']}")
         if pconf.get("port"): w(f"port={pconf['port']}")
         if pconf.get("accept"): w(f"accept={pconf['accept']}")
         if pconf.get("ssl_pemfile"): w(f"ssl-pemfile={pconf['ssl_pemfile']}")
