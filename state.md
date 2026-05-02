@@ -1,7 +1,21 @@
 # RNAS Development State
 
-**Session Date**: 2026-04-28
-**Status**: QoS+Network+Services all done, SNMP next
+**Session Date**: 2026-05-02
+**Status**: All 5 protocols verified, 10 services running, 11/11 regression
+
+## ⚠️ VM TOPOLOGY (READ FIRST — NEVER CHANGE THESE)
+
+```
+VM1: CPE Client      192.168.0.201   Ubuntu 24.04 (pppoe/pptp/l2tp/sstp client)
+VM2: RADIUS Server   192.168.0.202   Ubuntu (FreeRADIUS :1812/1813 + AIRadius :8000)
+VM3: RNAS Server     192.168.0.203   Ubuntu 24.04 (accel-ppp + /etc/rnas/ + dashboard :8099)
+```
+
+- VM1 = CPE role, runs pppd/xl2tpd/pptp/sstpc clients
+- VM2 = RADIUS role, NEVER install client tools here
+- VM3 = RNAS NAS platform, all services deploy here
+- ALL passwords: root/123456
+- OLD IPs (.84/.85/.82) are DEPRECATED — never use them
 
 ## VM3 Running
 - accel-ppp ✅ | rnas-web ✅ | dnsmasq ✅ | nftables ✅ | cake QoS ✅
