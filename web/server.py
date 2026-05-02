@@ -122,8 +122,13 @@ class RNASHandler(SimpleHTTPRequestHandler):
             qs = parse_qs(urlparse(self.path).query)
             user, passwd = qs.get("user", ["testuser"])[0], qs.get("pass", ["testpass"])[0]
             out = subprocess.run(
-                f"echo '{passwd}' | radclient -r 1 -t 3 192.168.0.202:1812 auth testing123 <<< 'User-Name={user}'",
-                shell=True, capture_output=True, text=True, timeout=10).stdout
+                ["radclient", "-r", "1", "-t", "3", "192.168.0.202:1812", "auth", "testing123"],
+                input=f"User-Name={user},User-Password={passwd}",
+                capture_output=True, text=True, timeout=10).stdout + "\n" + \
+                subprocess.run(
+                ["radclient", "-r", "1", "-t", "3", "192.168.0.202:1812", "auth", "testing123"],
+                input=f"User-Name={user},User-Password={passwd}",
+                capture_output=True, text=True, timeout=10).stderr
             self.json(dict(output=out))
         elif path == "/api/tools/coa":
             qs = parse_qs(urlparse(self.path).query)
@@ -160,6 +165,14 @@ class RNASHandler(SimpleHTTPRequestHandler):
             except:
                 out = "Logs unavailable"
             self.json(dict(logs=out))
+        elif path == "/api/airos/status":
+            import urllib.request
+            try:
+                req = urllib.request.Request("http://192.168.0.202:8000/docs", method="GET")
+                urllib.request.urlopen(req, timeout=3)
+                self.json(dict(online=True, url="http://192.168.0.202:8000", freeradius_port=1812))
+            except:
+                self.json(dict(online=False, url="http://192.168.0.202:8000"))
         elif path == "/api/config":
             config = walk_config_tree(Path("/etc/rnas"))
             self.json(dict(success=True, config=config))
