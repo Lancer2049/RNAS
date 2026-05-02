@@ -3,6 +3,9 @@
     <header>
       <h1>RNAS Dashboard</h1>
       <span class="version">v2.0</span>
+      <a class="airos-link" :href="airosUrl" target="_blank" :class="{ offline: !airosOnline }">
+        {{ airosOnline ? 'AirOS ↗' : 'AirOS ⚠' }}
+      </a>
     </header>
     <nav class="tabs">
       <button :class="{ active: tab === 'overview' }" @click="tab = 'overview'">Overview</button>
@@ -45,6 +48,8 @@ const tab = ref('overview')
 const service = ref({ uptime: '--', cpu: '--', mem: '--' })
 const sessions = ref([])
 const loading = ref(true)
+const airosOnline = ref(false)
+const airosUrl = ref('http://192.168.0.202:8000')
 
 async function fetchData() {
   loading.value = true
@@ -59,6 +64,16 @@ async function fetchData() {
   loading.value = false
 }
 
+async function checkAirOS() {
+  try {
+    const res = await fetch('/api/airos/status')
+    const data = await res.json()
+    airosOnline.value = data.online || false
+  } catch (e) {
+    airosOnline.value = false
+  }
+}
+
 async function handleDisconnect(sid) {
   await fetch(`/api/sessions/${sid}/disconnect`, { method: 'POST' })
   fetchData()
@@ -68,6 +83,7 @@ let refreshTimer = null
 
 onMounted(() => {
   fetchData()
+  checkAirOS()
   refreshTimer = setInterval(fetchData, 5000)
 })
 
