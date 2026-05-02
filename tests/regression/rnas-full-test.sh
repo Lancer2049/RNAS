@@ -38,8 +38,8 @@ OUT=$($S root@192.168.0.201 "timeout 15 pppd call rnas-sstp 2>&1")
 echo "$OUT" | grep -q "PAP authentication succeeded" && pass "SSTP auth" || fail "SSTP"
 
 # IPoE
-OUT=$($S root@192.168.0.201 "python3 /tmp/dhcp_test.py 2>&1")
-echo "$OUT" | grep -q "192.168.100" && pass "IPoE DHCP" || fail "IPoE"
+OUT=$($S root@192.168.0.201 "python3 /tmp/dhcp_full.py 2>&1")
+echo "$OUT" | grep -q "SUCCESS" && pass "IPoE DORA" || fail "IPoE"
 
 # Dashboard
 HTTP=$(curl -s -o /dev/null -w '%{http_code}' http://192.168.0.203:8099/)
