@@ -20,7 +20,7 @@ test('Sessions tab shows disconnect buttons', async ({ page }) => {
   await page.click('button:has-text("Sessions")');
   await page.waitForTimeout(1000);
   // Just verify the page loaded the sessions tab
-  await expect(page.locator('.sessions-section, table')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('.sessions-section, table').first()).toBeVisible({ timeout: 5000 });
 });
 
 test('Network tab loads', async ({ page }) => {
