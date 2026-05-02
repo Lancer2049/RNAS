@@ -4,7 +4,7 @@ import json, os, re, subprocess, sys
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from rnas_config import write_config_section
+from rnas_config import write_config_section, walk_config_tree
 
 STATIC_DIR = Path(__file__).parent / "static"
 API_ONLY = False
@@ -160,6 +160,9 @@ class RNASHandler(SimpleHTTPRequestHandler):
             except:
                 out = "Logs unavailable"
             self.json(dict(logs=out))
+        elif path == "/api/config":
+            config = walk_config_tree(Path("/etc/rnas"))
+            self.json(dict(success=True, config=config))
         elif path == "/api/config/apply":
             for svc, sub in [("accel-ppp", "accel-ppp"), ("dnsmasq", "dnsmasq"), ("firewall", "firewall"), ("snmp", "snmp")]:
                 subprocess.run(["python3", "/usr/bin/rnas-config", "--root", "/etc/rnas",
