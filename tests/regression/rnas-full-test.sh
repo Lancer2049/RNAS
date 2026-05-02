@@ -22,8 +22,8 @@ echo "$OUT" | grep -q "local  IP address" && pass "PPPoE IP" || fail "PPPoE IP"
 OUT=$($S root@192.168.0.201 "timeout 8 pppd call rnas-pptp 2>&1")
 echo "$OUT" | grep -q "PAP authentication succeeded" && pass "PPTP auth" || fail "PPTP"
 
-# L2TP
-$S root@192.168.0.201 "systemctl stop xl2tpd 2>/dev/null; sleep 1; systemctl start xl2tpd; sleep 4; echo 'c rnas' > /var/run/xl2tpd/l2tp-control; sleep 12" 2>/dev/null
+$S root@192.168.0.201 "systemctl stop xl2tpd 2>/dev/null; pkill -9 xl2tpd 2>/dev/null; sleep 4; systemctl start xl2tpd; sleep 5; echo 'c rnas' > /var/run/xl2tpd/l2tp-control" 2>/dev/null
+sleep 15
 IP=$($S root@192.168.0.201 "ip addr show dev ppp0 2>&1 | grep 'inet '" 2>/dev/null | awk '{print $2}')
 [ -n "$IP" ] && pass "L2TP: $IP" || fail "L2TP"
 
