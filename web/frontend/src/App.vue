@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import StatusCard from './components/StatusCard.vue'
 import SessionsTable from './components/SessionsTable.vue'
 import NetworkConfig from './components/NetworkConfig.vue'
@@ -64,7 +64,16 @@ async function handleDisconnect(sid) {
   fetchData()
 }
 
-onMounted(fetchData)
+let refreshTimer = null
+
+onMounted(() => {
+  fetchData()
+  refreshTimer = setInterval(fetchData, 5000)
+})
+
+onUnmounted(() => {
+  clearInterval(refreshTimer)
+})
 </script>
 
 <style>
