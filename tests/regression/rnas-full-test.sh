@@ -22,10 +22,10 @@ echo "$OUT" | grep -q "local  IP address" && pass "PPPoE IP" || fail "PPPoE IP"
 OUT=$($S root@192.168.0.201 "timeout 8 pppd call rnas-pptp 2>&1")
 echo "$OUT" | grep -q "PAP authentication succeeded" && pass "PPTP auth" || fail "PPTP"
 
-$S root@192.168.0.201 "systemctl stop xl2tpd 2>/dev/null; pkill -9 xl2tpd 2>/dev/null" 2>/dev/null
-$S root@192.168.0.203 "/home/lancer/projects/RNAS/build/accel-ppp/install/usr/bin/accel-cmd terminate all 2>/dev/null" 2>/dev/null
-sleep 3
-$S root@192.168.0.201 "systemctl start xl2tpd; sleep 5; echo 'c rnas' > /var/run/xl2tpd/l2tp-control" 2>/dev/null
+$S root@192.168.0.201 "pkill -9 pppd 2>/dev/null; systemctl stop xl2tpd 2>/dev/null; pkill -9 xl2tpd 2>/dev/null" 2>/dev/null
+$S root@192.168.0.203 "systemctl restart rnas-accel-ppp" 2>/dev/null
+sleep 5
+$S root@192.168.0.201 "systemctl start xl2tpd; sleep 6; echo 'c rnas' > /var/run/xl2tpd/l2tp-control" 2>/dev/null
 for i in 1 2 3 4 5; do
   sleep 4
   IP=$($S root@192.168.0.201 "ip addr show dev ppp0 2>&1 | grep 'inet '" 2>/dev/null | awk '{print $2}')
