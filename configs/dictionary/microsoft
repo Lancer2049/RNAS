@@ -1,0 +1,29 @@
+# Microsoft RADIUS VSA Dictionary
+# Vendor ID: 311
+# Reference: RFC 2548 / MS-CHAP / NPS
+
+VENDOR          Microsoft       311
+
+BEGIN-VENDOR    Microsoft
+
+ATTRIBUTE       MS-CHAP-Response                        1       octets
+ATTRIBUTE       MS-CHAP-Error                           2       octets
+ATTRIBUTE       MS-CHAP-CPW-1                           3       octets
+ATTRIBUTE       MS-CHAP-CPW-2                           4       octets
+ATTRIBUTE       MS-CHAP-LM-Enc-PW                       5       octets
+ATTRIBUTE       MS-CHAP-NT-Enc-PW                       6       octets
+ATTRIBUTE       MS-MPPE-Encryption-Policy                7       integer
+ATTRIBUTE       MS-MPPE-Encryption-Type                  8       integer
+ATTRIBUTE       MS-MPPE-Send-Key                         16      octets
+ATTRIBUTE       MS-MPPE-Recv-Key                         17      octets
+ATTRIBUTE       MS-Primary-DNS-Server                   28      ipaddr
+ATTRIBUTE       MS-Secondary-DNS-Server                 29      ipaddr
+ATTRIBUTE       MS-Primary-NBNS-Server                  30      ipaddr
+ATTRIBUTE       MS-Secondary-NBNS-Server                31      ipaddr
+ATTRIBUTE       MS-ARAP-Challenge                       33      octets
+ATTRIBUTE       MS-RAS-Version                          34      integer
+ATTRIBUTE       MS-Filter                                11      string
+ATTRIBUTE       MS-Acct-Auth-Type                       12      integer
+ATTRIBUTE       MS-Acct-EAP-Type                        13      integer
+
+END-VENDOR      Microsoft

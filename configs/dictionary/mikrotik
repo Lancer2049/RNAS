@@ -1,0 +1,45 @@
+# MikroTik RouterOS RADIUS VSA Dictionary
+# Vendor ID: 14988
+# Reference: MikroTik User Manager / RouterOS RADIUS
+
+VENDOR          Mikrotik        14988
+
+BEGIN-VENDOR    Mikrotik
+
+ATTRIBUTE       Mikrotik-Wireless-Forward             1       integer
+ATTRIBUTE       Mikrotik-Wireless-Skip-Dot1x          2       integer
+ATTRIBUTE       Mikrotik-Wireless-Enc-Algo            3       integer
+ATTRIBUTE       Mikrotik-Wireless-Enc-Key             4       string
+ATTRIBUTE       Mikrotik-Rate-Limit                   8       string
+ATTRIBUTE       Mikrotik-Realm                       9       string
+ATTRIBUTE       Mikrotik-Host-IP                     10      ipaddr
+ATTRIBUTE       Mikrotik-Mark-Id                     11      string
+ATTRIBUTE       Mikrotik-Advertise-Interval          12      integer
+ATTRIBUTE       Mikrotik-Recv-Interval               13     integer
+ATTRIBUTE       Mikrotik-Group                       14      string
+ATTRIBUTE       Mikrotik-Address-List                15      string
+ATTRIBUTE       Mikrotik-Bridge                      16      string
+ATTRIBUTE       Mikrotik-Delegated-IPv6-Pool          17      string
+ATTRIBUTE       Mikrotik-DHCP-Option-Set             18      string
+ATTRIBUTE       Mikrotik-DHCPv6-Option-Set           19      string
+ATTRIBUTE       Mikrotik-IPv6-Rate-Limit             20      string
+ATTRIBUTE       Mikrotik-MAC-Auth-Mode               21      string
+ATTRIBUTE       Mikrotik-IPv6-Address                22      ipv6addr
+ATTRIBUTE       Mikrotik-IPv6-Pool                   23      string
+ATTRIBUTE       Mikrotik-IPv6-Route                  24      string
+ATTRIBUTE       Mikrotik-MAC-Auth-Password           25      string
+ATTRIBUTE       Mikrotik-Queue-Type                  26      string
+ATTRIBUTE       Mikrotik-Wireless-PSK                100     string
+ATTRIBUTE       Mikrotik-Wireless-VLAN-ID            101     integer
+ATTRIBUTE       Mikrotik-Wireless-VLAN-ID-Type       102     integer
+ATTRIBUTE       Mikrotik-Wireless-MPKey              103     string
+ATTRIBUTE       Mikrotik-Wireless-Comment            104     string
+ATTRIBUTE       Mikrotik-Wireless-Disable-11n        105     integer
+ATTRIBUTE       Mikrotik-Ascend-Data-Rate            201     integer
+ATTRIBUTE       Mikrotik-Ascend-Xmit-Rate            202     integer
+ATTRIBUTE       Mikrotik-Ascend-Client-Gateway        203     ipaddr
+ATTRIBUTE       Mikrotik-Ascend-Client-Assign-DNS    204     ipaddr
+ATTRIBUTE       Mikrotik-Ascend-Idle-Limit           205     integer
+ATTRIBUTE       Mikrotik-Ascend-Session-Timeout      206     integer
+
+END-VENDOR      Mikrotik

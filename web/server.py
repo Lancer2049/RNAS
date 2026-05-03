@@ -5,6 +5,9 @@ from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from rnas_config import write_config_section, walk_config_tree
+from rnas_dict.dictionary import load_all, search as dict_search
+
+DICT_DIR = Path("/etc/rnas/dictionary")
 
 STATIC_DIR = Path(__file__).parent / "static"
 API_ONLY = False
@@ -176,6 +179,14 @@ class RNASHandler(SimpleHTTPRequestHandler):
         elif path == "/api/config":
             config = walk_config_tree(Path("/etc/rnas"))
             self.json(dict(success=True, config=config))
+        elif path == "/api/dictionary":
+            entries = load_all(str(DICT_DIR))
+            self.json(dict(success=True, vendors=list(set(e["vendor"] for e in entries.values())), count=len(entries), attributes=entries))
+        elif path.startswith("/api/dictionary/search"):
+            qs = parse_qs(urlparse(self.path).query)
+            q = qs.get("q", [""])[0]
+            results = dict_search(q, str(DICT_DIR))
+            self.json(dict(success=True, query=q, count=len(results), results=results))
         elif path == "/api/config/apply":
             for svc, sub in [("accel-ppp", "accel-ppp"), ("dnsmasq", "dnsmasq"), ("firewall", "firewall"), ("snmp", "snmp")]:
                 subprocess.run(["python3", "/usr/bin/rnas-config", "--root", "/etc/rnas",

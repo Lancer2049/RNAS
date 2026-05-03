@@ -1,0 +1,24 @@
+# WISPr (Wireless ISP Roaming) RADIUS VSA Dictionary
+# Vendor ID: 14122
+# Reference: Wi-Fi Alliance Hotspot 2.0 / Passpoint
+
+VENDOR          WISPr           14122
+
+BEGIN-VENDOR    WISPr
+
+ATTRIBUTE       WISPr-Location-ID                       1       string
+ATTRIBUTE       WISPr-Location-Name                     2       string
+ATTRIBUTE       WISPr-Logoff-URL                        3       string
+ATTRIBUTE       WISPr-Redirection-URL                   4       string
+ATTRIBUTE       WISPr-Bandwidth-Max-Up                  5       integer
+ATTRIBUTE       WISPr-Bandwidth-Max-Down                6       integer
+ATTRIBUTE       WISPr-Bandwidth-Min-Up                  7       integer
+ATTRIBUTE       WISPr-Bandwidth-Min-Down                8       integer
+ATTRIBUTE       WISPr-Session-Terminate-Time            9       string
+ATTRIBUTE       WISPr-Session-Terminate-End-Of-Day      10      string
+ATTRIBUTE       WISPr-Billing-Class-Of-Service          11      string
+ATTRIBUTE       WISPr-Visited-Location-Id               12      string
+ATTRIBUTE       WISPr-Access-Network-Type               13      integer
+ATTRIBUTE       WISPr-Cellular-Network-Info             14      string
+
+END-VENDOR      WISPr

@@ -1,0 +1,60 @@
+# Huawei RADIUS VSA Dictionary
+# Vendor ID: 2011
+# Reference: Huawei ME60/NE40E BRAS
+
+VENDOR          Huawei  2011
+
+BEGIN-VENDOR    Huawei
+
+ATTRIBUTE       Huawei-Input-Peak-Rate              1       integer
+ATTRIBUTE       Huawei-Output-Peak-Rate             2       integer
+ATTRIBUTE       Huawei-Input-Average-Rate            3       integer
+ATTRIBUTE       Huawei-Output-Average-Rate           4       integer
+ATTRIBUTE       Huawei-QOS-Profile-Name              7       string
+ATTRIBUTE       Huawei-Policy-Route                  9       string
+ATTRIBUTE       Huawei-VPN-Instance                  10      string
+ATTRIBUTE       Huawei-Domain-Name                   12      string
+ATTRIBUTE       Huawei-User-Priority                 17      integer
+ATTRIBUTE       Huawei-Service-Type                  19      integer
+ATTRIBUTE       Huawei-Framed-Route                  22      string
+ATTRIBUTE       Huawei-Input-Committed-Burst-Size    25      integer
+ATTRIBUTE       Huawei-Output-Committed-Burst-Size   26      integer
+ATTRIBUTE       Huawei-LI-ID                         27      string
+ATTRIBUTE       Huawei-LI-Session-ID                 28      string
+ATTRIBUTE       Huawei-Multicast-Profile             40      string
+ATTRIBUTE       Huawei-DNS-Server-Primary             61      ipaddr
+ATTRIBUTE       Huawei-DNS-Server-Secondary           62      ipaddr
+ATTRIBUTE       Huawei-User-ACL                       70      string
+ATTRIBUTE       Huawei-NAT-IP-Address                 80      ipaddr
+ATTRIBUTE       Huawei-NAT-Start-Port                 81      integer
+ATTRIBUTE       Huawei-NAT-End-Port                   82      integer
+ATTRIBUTE       Huawei-Command-String                 100     string
+ATTRIBUTE       Huawei-Exec-Privilege                 101     integer
+ATTRIBUTE       Huawei-FTP-Directory                  102     string
+ATTRIBUTE       Huawei-Idle-Cut                       103     integer
+ATTRIBUTE       Huawei-IP-Address                     120     ipaddr
+ATTRIBUTE       Huawei-IP-Pool                        121     string
+ATTRIBUTE       Huawei-Primary-DNS                    130     ipaddr
+ATTRIBUTE       Huawei-Secondary-DNS                  131     ipaddr
+ATTRIBUTE       Huawei-User-Group                     140     string
+ATTRIBUTE       Huawei-AVPair                         141     string
+ATTRIBUTE       Huawei-Version                        142     string
+ATTRIBUTE       Huawei-Product-ID                     143     string
+ATTRIBUTE       Huawei-Up-Priority                    150     integer
+ATTRIBUTE       Huawei-Down-Priority                  151     integer
+ATTRIBUTE       Huawei-User-Password                  200     string
+ATTRIBUTE       Huawei-Access-Limit                   210     integer
+ATTRIBUTE       Huawei-Input-Interface                220     string
+ATTRIBUTE       Huawei-Output-Interface               221     string
+ATTRIBUTE       Huawei-Acct-Update-IP                 230     ipaddr
+ATTRIBUTE       Huawei-Acct-Terminate-Subcause        231     integer
+ATTRIBUTE       Huawei-VPN-Index                      232     integer
+ATTRIBUTE       Huawei-Gateway-Address                240     ipaddr
+ATTRIBUTE       Huawei-Max-Session-Time                250     integer
+ATTRIBUTE       Huawei-Acct-IPv6-Input-Octets         260     integer
+ATTRIBUTE       Huawei-Acct-IPv6-Output-Octets        261     integer
+ATTRIBUTE       Huawei-Delegated-IPv6-Prefix           262     ipv6prefix
+ATTRIBUTE       Huawei-IPv6-DNS-Primary                263     ipv6addr
+ATTRIBUTE       Huawei-IPv6-DNS-Secondary              264     ipv6addr
+
+END-VENDOR      Huawei

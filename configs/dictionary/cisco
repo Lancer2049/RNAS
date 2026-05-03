@@ -1,0 +1,36 @@
+# Cisco RADIUS VSA Dictionary
+# Vendor ID: 9
+# Reference: Cisco IOS/IOS-XE BRAS
+
+VENDOR          Cisco   9
+
+BEGIN-VENDOR    Cisco
+
+ATTRIBUTE       Cisco-AVPair                            1       string
+ATTRIBUTE       Cisco-NAS-Port                          2       string
+ATTRIBUTE       Cisco-Service-Info                      250     string
+ATTRIBUTE       Cisco-Command-Code                      251     integer
+ATTRIBUTE       Cisco-Control-Info                      252     string
+ATTRIBUTE       Cisco-Command-String                    253     string
+ATTRIBUTE       Cisco-SSG-Service-Info                  254     string
+ATTRIBUTE       Cisco-SSG-Command-Code                  255     string
+ATTRIBUTE       Cisco-SSG-Control-Info                  256     string
+ATTRIBUTE       Cisco-SSG-Account-Info                  257     string
+ATTRIBUTE       Cisco-SSG-Service-Profile               258     string
+ATTRIBUTE       Cisco-SSG-Service-Profile-Info          259     string
+ATTRIBUTE       Cisco-IP-Address-Pool                   260     string
+ATTRIBUTE       Cisco-VPN-IP-Address                    261     ipaddr
+ATTRIBUTE       Cisco-VPN-IP-Netmask                    262     ipaddr
+ATTRIBUTE       Cisco-VPN-Filter                        263     string
+ATTRIBUTE       Cisco-VPN-DNS-Server                    264     ipaddr
+ATTRIBUTE       Cisco-VPN-Domain-Name                   265     string
+ATTRIBUTE       Cisco-VPN-WINS-Server                   266     ipaddr
+ATTRIBUTE       Cisco-VPN-Split-Tunnel                  267     string
+ATTRIBUTE       Cisco-VPN-NBAR-Application              268     string
+ATTRIBUTE       Cisco-Input-Acl                         269     string
+ATTRIBUTE       Cisco-Output-Acl                        270     string
+ATTRIBUTE       Cisco-Subscriber-QoS-Policy             271     string
+ATTRIBUTE       Cisco-Accounting-Input-Gigawords        272     integer
+ATTRIBUTE       Cisco-Accounting-Output-Gigawords       273     integer
+
+END-VENDOR      Cisco

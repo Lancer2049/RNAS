@@ -1,0 +1,35 @@
+# H3C (Huawei-3Com) RADIUS VSA Dictionary
+# Vendor ID: 25506
+# Reference: H3C vBRAS / Comware
+
+VENDOR          H3C             25506
+
+BEGIN-VENDOR    H3C
+
+ATTRIBUTE       H3C-Input-Peak-Rate                     1       integer
+ATTRIBUTE       H3C-Output-Peak-Rate                    2       integer
+ATTRIBUTE       H3C-Input-Average-Rate                  3       integer
+ATTRIBUTE       H3C-Output-Average-Rate                 4       integer
+ATTRIBUTE       H3C-NAS-Profile-Name                    5       string
+ATTRIBUTE       H3C-Domain-Name                         6       string
+ATTRIBUTE       H3C-User-Priority                       7       integer
+ATTRIBUTE       H3C-IP-Pool-Name                        8       string
+ATTRIBUTE       H3C-User-ACL                            9       string
+ATTRIBUTE       H3C-Primary-DNS                         10      ipaddr
+ATTRIBUTE       H3C-Secondary-DNS                       11      ipaddr
+ATTRIBUTE       H3C-Idle-Cut                            15      integer
+ATTRIBUTE       H3C-Session-Timeout                     16      integer
+ATTRIBUTE       H3C-User-Group                          20      string
+ATTRIBUTE       H3C-VPN-Instance                        25      string
+ATTRIBUTE       H3C-Multicast-Profile                   30      string
+ATTRIBUTE       H3C-IPv6-Pool                           40      string
+ATTRIBUTE       H3C-IPv6-DNS-Primary                    41      ipv6addr
+ATTRIBUTE       H3C-IPv6-DNS-Secondary                  42      ipv6addr
+ATTRIBUTE       H3C-Delegated-IPv6-Prefix               43      ipv6prefix
+ATTRIBUTE       H3C-Command-Accounting                   60      integer
+ATTRIBUTE       H3C-Remanent-Volume                     61      integer
+ATTRIBUTE       H3C-Service-Type                        70      integer
+ATTRIBUTE       H3C-Service-Command                     71      string
+ATTRIBUTE       H3C-MAC-Authentication                  80      integer
+
+END-VENDOR      H3C
