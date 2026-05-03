@@ -5,11 +5,11 @@ test('Dashboard loads and shows header', async ({ page }) => {
   await expect(page.locator('header h1')).toHaveText('RNAS Dashboard', { timeout: 10000 });
 });
 
-test('7 tabs are present', async ({ page }) => {
+test('8 tabs are present', async ({ page }) => {
   await page.goto('http://192.168.0.203:8099');
   const tabs = page.locator('nav.tabs button');
-  await expect(tabs).toHaveCount(7);
-  const names = ['Overview', 'Sessions', 'Network', 'Config', 'Services', 'Tools', 'System'];
+  await expect(tabs).toHaveCount(8);
+  const names = ['Overview', 'Sessions', 'Network', 'Config', 'Services', 'Tools', 'Dictionary', 'System'];
   for (let i = 0; i < names.length; i++) {
     await expect(tabs.nth(i)).toHaveText(names[i]);
   }

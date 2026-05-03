@@ -14,6 +14,7 @@
       <button :class="{ active: tab === 'config' }" @click="tab = 'config'">Config</button>
       <button :class="{ active: tab === 'services' }" @click="tab = 'services'">Services</button>
       <button :class="{ active: tab === 'tools' }" @click="tab = 'tools'">Tools</button>
+      <button :class="{ active: tab === 'dictionary' }" @click="tab = 'dictionary'">Dictionary</button>
       <button :class="{ active: tab === 'system' }" @click="tab = 'system'">System</button>
     </nav>
     <StatusCard v-if="tab === 'overview' || tab === 'sessions'" :service="service" />
@@ -29,6 +30,7 @@
     <ConfigEditor v-if="tab === 'config'" />
     <ServicesConfig v-if="tab === 'services'" />
     <ToolsPage v-if="tab === 'tools'" />
+    <DictionaryBrowser v-if="tab === 'dictionary'" />
     <SystemPage v-if="tab === 'system'" />
   </div>
 </template>
@@ -42,6 +44,7 @@ import TrafficMonitor from './components/TrafficMonitor.vue'
 import ConfigEditor from './components/ConfigEditor.vue'
 import ServicesConfig from './components/ServicesConfig.vue'
 import ToolsPage from './components/ToolsPage.vue'
+import DictionaryBrowser from './components/DictionaryBrowser.vue'
 import SystemPage from './components/SystemPage.vue'
 
 const tab = ref('overview')
@@ -102,4 +105,8 @@ header h1 { font-size: 24px; color: #1a1a2e; }
 nav.tabs { display: flex; gap: 4px; margin-bottom: 24px; }
 nav.tabs button { padding: 8px 20px; border: none; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 14px; background: #e5e7eb; color: #555; }
 nav.tabs button.active { background: #fff; color: #1a1a2e; font-weight: 600; box-shadow: 0 -2px 4px rgba(0,0,0,0.05); }
+
+.airos-link { font-size: 13px; color: #3b82f6; text-decoration: none; margin-left: 16px; padding: 2px 10px; border-radius: 4px; border: 1px solid #3b82f6; }
+.airos-link:hover { background: #3b82f6; color: #fff; }
+.airos-link.offline { color: #999; border-color: #ccc; }
 </style>
