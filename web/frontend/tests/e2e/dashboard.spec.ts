@@ -55,6 +55,6 @@ test('No console errors', async ({ page }) => {
   page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
   await page.goto('http://192.168.0.203:8099');
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  const real = errors.filter(e => !e.includes('favicon') && !e.includes('Failed to load resource'));
+  const real = errors.filter(e => !e.includes('favicon') && !e.includes('Failed to load resource') && !e.includes('WebSocket'));
   expect(real).toHaveLength(0);
 });

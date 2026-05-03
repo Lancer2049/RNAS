@@ -83,11 +83,33 @@ async function handleDisconnect(sid) {
 }
 
 let refreshTimer = null
+let ws = null
+
+async function startWS() {
+  try {
+    ws = new WebSocket(`ws://${location.host}/api/ws`)
+    ws.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data)
+        service.value = data.service || {}
+        sessions.value = data.sessions || []
+      } catch {}
+    }
+    ws.onclose = () => { ws = null }
+    ws.onerror = () => { ws?.close(); ws = null }
+  } catch { ws = null }
+}
 
 onMounted(() => {
   fetchData()
   checkAirOS()
   refreshTimer = setInterval(fetchData, 5000)
+  startWS()
+})
+
+onUnmounted(() => {
+  clearInterval(refreshTimer)
+  ws?.close()
 })
 
 onUnmounted(() => {

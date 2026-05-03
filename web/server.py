@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """RNAS Web Server — serves API + static frontend using only stdlib."""
-import json, os, re, subprocess, sys, time
+import json, os, re, subprocess, sys, time, hashlib, base64, struct, threading
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -61,7 +61,9 @@ class RNASHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
-        if path.startswith("/api/"):
+        if path == "/api/ws":
+            self.handle_websocket()
+        elif path.startswith("/api/"):
             self.handle_api(path)
         else:
             super().do_GET()
@@ -85,6 +87,28 @@ class RNASHandler(SimpleHTTPRequestHandler):
         if path.startswith("/api/config/snapshot/"):
             self.command = "DELETE"
             self.handle_api(path)
+
+    def handle_websocket(self):
+        key = self.headers.get("Sec-WebSocket-Key", "")
+        if not key:
+            self.send_error(400)
+            return
+        accept = base64.b64encode(hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+        self.send_response(101)
+        self.send_header("Upgrade", "websocket")
+        self.send_header("Connection", "Upgrade")
+        self.send_header("Sec-WebSocket-Accept", accept)
+        self.end_headers()
+        while True:
+            try:
+                raw_stat = run_accel_cmd("show", "stat")
+                raw_sess = run_accel_cmd("show", "sessions", "sid,ifname,username,ip,type,state,uptime-raw,rx-bytes-raw,tx-bytes-raw")
+                msg = json.dumps({"service": parse_stat(raw_stat), "sessions": parse_sessions(raw_sess)})
+                frame = b'\x81' + bytes([min(len(msg), 125)]) + msg.encode()
+                self.wfile.write(frame)
+                time.sleep(3)
+            except:
+                break
 
     def handle_config_put(self, path):
         content_len = int(self.headers.get('Content-Length', 0))
