@@ -124,15 +124,18 @@ class RNASHandler(SimpleHTTPRequestHandler):
         elif path == "/api/tools/radius-test":
             qs = parse_qs(urlparse(self.path).query)
             user, passwd = qs.get("user", ["testuser"])[0], qs.get("pass", ["testpass"])[0]
+            attrs = qs.get("attrs", [""])[0]
+            attr_pairs = [f"User-Name={user},User-Password={passwd}"]
+            if attrs:
+                attr_pairs.append(attrs)
+            payload = ",".join(attr_pairs)
             out = subprocess.run(
                 ["radclient", "-r", "1", "-t", "3", "192.168.0.202:1812", "auth", "testing123"],
-                input=f"User-Name={user},User-Password={passwd}",
-                capture_output=True, text=True, timeout=10).stdout + "\n" + \
+                input=payload, capture_output=True, text=True, timeout=10).stdout + "\n" + \
                 subprocess.run(
                 ["radclient", "-r", "1", "-t", "3", "192.168.0.202:1812", "auth", "testing123"],
-                input=f"User-Name={user},User-Password={passwd}",
-                capture_output=True, text=True, timeout=10).stderr
-            self.json(dict(output=out))
+                input=payload, capture_output=True, text=True, timeout=10).stderr
+            self.json(dict(output=out.strip(), payload=payload))
         elif path == "/api/tools/coa":
             qs = parse_qs(urlparse(self.path).query)
             user = qs.get("user", [""])[0]
