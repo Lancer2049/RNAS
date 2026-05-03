@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """RNAS Web Server — serves API + static frontend using only stdlib."""
-import json, os, re, subprocess, sys
+import json, os, re, subprocess, sys, time
 from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -79,6 +79,12 @@ class RNASHandler(SimpleHTTPRequestHandler):
             self.handle_config_put(path)
         else:
             self.send_error(404)
+
+    def do_DELETE(self):
+        path = urlparse(self.path).path
+        if path.startswith("/api/config/snapshot/"):
+            self.command = "DELETE"
+            self.handle_api(path)
 
     def handle_config_put(self, path):
         content_len = int(self.headers.get('Content-Length', 0))
@@ -197,6 +203,53 @@ class RNASHandler(SimpleHTTPRequestHandler):
                                capture_output=True, timeout=5)
             subprocess.run(["systemctl", "reload-or-restart", "rnas-accel-ppp", "rnas-dnsmasq"], capture_output=True, timeout=10)
             self.json(dict(success=True, message="Configuration applied"))
+        elif path == "/api/config/export":
+            config = walk_config_tree(Path("/etc/rnas"))
+            data = {"rnas_version": "3.0", "exported_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "config": {k: dict(v) for k, v in config.items()}}
+            self.json(data)
+        elif path == "/api/config/import":
+            content_len = int(self.headers.get("Content-Length", 0))
+            data = json.loads(self.rfile.read(content_len))
+            imported = data.get("config", {})
+            applied = 0
+            for section_name, values in imported.items():
+                if write_config_section(Path("/etc/rnas"), section_name.replace(".", "/", 1) if "." in section_name else section_name, values):
+                    applied += 1
+            self.json(dict(success=True, imported=applied, total=len(imported)))
+        elif path == "/api/config/snapshots":
+            snap_dir = Path("/var/lib/rnas/snapshots")
+            snap_dir.mkdir(parents=True, exist_ok=True)
+            snaps = []
+            for f in sorted(snap_dir.glob("*.json"), reverse=True):
+                snaps.append({"id": f.stem, "date": time.strftime("%Y-%m-%d %H:%M", time.localtime(f.stat().st_mtime)), "size": f.stat().st_size})
+            self.json(dict(snapshots=snaps[:10]))
+        elif path == "/api/config/snapshot":
+            snap_dir = Path("/var/lib/rnas/snapshots")
+            snap_dir.mkdir(parents=True, exist_ok=True)
+            config = walk_config_tree(Path("/etc/rnas"))
+            snap_name = f"snap-{time.strftime('%Y%m%d-%H%M%S')}"
+            data = {"rnas_version": "3.0", "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "config": {k: dict(v) for k, v in config.items()}}
+            (snap_dir / f"{snap_name}.json").write_text(json.dumps(data, indent=2))
+            self.json(dict(success=True, id=snap_name))
+        elif path.startswith("/api/config/snapshot/") and path.endswith("/restore"):
+            snap_id = path.split("/")[4]
+            snap_file = Path(f"/var/lib/rnas/snapshots/{snap_id}.json")
+            if not snap_file.exists():
+                self.send_error(404, "Snapshot not found")
+                return
+            data = json.loads(snap_file.read_text())
+            imported = data.get("config", {})
+            restored = 0
+            for section_name, values in imported.items():
+                if write_config_section(Path("/etc/rnas"), section_name.replace(".", "/", 1) if "." in section_name else section_name, values):
+                    restored += 1
+            self.json(dict(success=True, restored=restored, message=f"Restored {restored} sections from {snap_id}"))
+        elif path.startswith("/api/config/snapshot/") and self.command == "DELETE":
+            snap_id = path.split("/")[4]
+            snap_file = Path(f"/var/lib/rnas/snapshots/{snap_id}.json")
+            if snap_file.exists():
+                snap_file.unlink()
+            self.json(dict(success=True))
         else:
             self.send_error(404)
 
