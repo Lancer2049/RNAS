@@ -74,7 +74,7 @@ def test_vendor(vendor):
     return passed, failed, skipped
 
 def main():
-    vendors = ["Huawei", "Cisco", "H3C", "Mikrotik", "Microsoft", "WISPr"]
+    vendors = ["Huawei", "Cisco", "H3C", "ZTE", "Juniper", "Aruba", "Ericsson", "Arista", "NVIDIA", "Ruijie", "Mikrotik", "Microsoft", "WISPr"]
     total_pass = 0
     total_fail = 0
     total_skip = 0
