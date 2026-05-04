@@ -51,6 +51,9 @@ API=$(curl -s http://192.168.0.203:8099/api/health | grep -c '"ok"')
 COUNT=$($S root@192.168.0.202 "PGPASSWORD=radpass psql -h localhost -U radius -d radius -t -c \"SELECT count(*) FROM radpostauth WHERE authdate > now() - interval '5 minutes'\"" 2>/dev/null | tr -d ' ')
 [ "${COUNT:-0}" -gt 0 ] && pass "RADIUS DB: $COUNT auths" || fail "RADIUS DB"
 
+# VSA Smoke
+$S root@192.168.0.203 "python3 /tmp/vsa-smoke-test.py 2>&1 | grep -c '✅'" 2>/dev/null | xargs -I{} sh -c '[ {} -ge 10 ] && exit 0 || exit 1' && pass "VSA smoke (13 vendors)" || fail "VSA smoke"
+
 # Summary
 ELAPSED=$(( $(date +%s) - START ))
 echo ""
