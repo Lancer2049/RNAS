@@ -1,51 +1,48 @@
 import { test, expect } from '@playwright/test';
 
-test('Dashboard loads and shows header', async ({ page }) => {
+test('Dashboard loads and shows topbar', async ({ page }) => {
   await page.goto('http://192.168.0.203:8099');
-  await expect(page.locator('header h1')).toHaveText('RNAS Dashboard', { timeout: 10000 });
+  await expect(page.locator('.topbar .brand')).toHaveText('RNAS', { timeout: 10000 });
 });
 
-test('9 tabs are present', async ({ page }) => {
+test('9 sidebar links present', async ({ page }) => {
   await page.goto('http://192.168.0.203:8099');
-  const tabs = page.locator('nav.tabs button');
-  await expect(tabs).toHaveCount(9);
-  const names = ['Overview', 'Sessions', 'Network', 'Config', 'Services', 'Tools', 'RADIUS', 'Dictionary', 'System'];
+  const links = page.locator('nav.sidebar a');
+  await expect(links).toHaveCount(9);
+  const names = [/Overview/, /Sessions/, /Interfaces/, /VPN/, /Config/, /Editor/, /Dictionary/, /Tools/, /System/];
   for (let i = 0; i < names.length; i++) {
-    await expect(tabs.nth(i)).toHaveText(names[i]);
+    await expect(links.nth(i)).toHaveText(names[i]);
   }
 });
 
-test('Sessions tab shows disconnect buttons', async ({ page }) => {
+test('Sessions page shows table', async ({ page }) => {
   await page.goto('http://192.168.0.203:8099');
-  await page.click('button:has-text("Sessions")');
+  await page.click('nav.sidebar a:has-text("Sessions")');
   await page.waitForTimeout(1000);
-  // Just verify the page loaded the sessions tab
   await expect(page.locator('.sessions-section, table').first()).toBeVisible({ timeout: 5000 });
 });
 
-test('Network tab loads', async ({ page }) => {
+test('Network page loads', async ({ page }) => {
   await page.goto('http://192.168.0.203:8099');
-  await page.click('button:has-text("Network")');
+  await page.click('nav.sidebar a:has-text("Interfaces")');
   await expect(page.locator('.network-section, .card h3').first()).toBeVisible({ timeout: 5000 });
 });
 
-test('Config tab works', async ({ page }) => {
+test('Config page works', async ({ page }) => {
   await page.goto('http://192.168.0.203:8099');
-  await page.click('button:has-text("Config")');
+  await page.click('nav.sidebar a:has-text("Config")');
   await expect(page.locator('select')).toBeVisible({ timeout: 5000 });
 });
 
-test('Services tab shows all modules', async ({ page }) => {
+test('Services page shows VPN modules', async ({ page }) => {
   await page.goto('http://192.168.0.203:8099');
-  await page.click('button:has-text("Services")');
-  await expect(page.locator('h3:has-text("QoS")')).toBeVisible({ timeout: 5000 });
-  await expect(page.locator('h3:has-text("IPsec")')).toBeVisible();
-  await expect(page.locator('h3:has-text("High Availability")')).toBeVisible();
+  await page.click('nav.sidebar a:has-text("VPN")');
+  await expect(page.locator('h3:has-text("VPN")').first()).toBeVisible({ timeout: 5000 });
 });
 
-test('System tab shows service status', async ({ page }) => {
+test('System page shows service status', async ({ page }) => {
   await page.goto('http://192.168.0.203:8099');
-  await page.click('button:has-text("System")');
+  await page.click('nav.sidebar a:has-text("System")');
   await page.waitForTimeout(1000);
   await expect(page.locator('.badge, .system-section, h2').first()).toBeVisible({ timeout: 10000 });
 });

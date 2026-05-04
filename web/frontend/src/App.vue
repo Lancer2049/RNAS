@@ -1,44 +1,68 @@
 <template>
-  <div class="dashboard">
-    <header>
-      <h1>RNAS Dashboard</h1>
-      <span class="version">v2.0</span>
-      <a class="airos-link" :href="airosUrl" target="_blank" :class="{ offline: !airosOnline }">
-        {{ airosOnline ? 'AirOS ↗' : 'AirOS ⚠' }}
+  <div class="luci-layout">
+    <div class="topbar">
+      <span class="brand">RNAS</span>
+      <span class="hostname">192.168.0.203</span>
+      <span class="uptime">{{ service.uptime || '--' }}</span>
+      <span class="spacer" />
+      <a :href="airosUrl" target="_blank" class="airos-link" :class="{offline: !airosOnline}">
+        {{ airosOnline ? 'AirOS' : 'AirOS ⚠' }}
       </a>
-    </header>
-    <nav class="tabs">
-      <button :class="{ active: tab === 'overview' }" @click="tab = 'overview'">Overview</button>
-      <button :class="{ active: tab === 'sessions' }" @click="tab = 'sessions'">Sessions</button>
-      <button :class="{ active: tab === 'network' }" @click="tab = 'network'">Network</button>
-      <button :class="{ active: tab === 'config' }" @click="tab = 'config'">Config</button>
-      <button :class="{ active: tab === 'services' }" @click="tab = 'services'">Services</button>
-      <button :class="{ active: tab === 'tools' }" @click="tab = 'tools'">Tools</button>
-      <button :class="{ active: tab === 'radius-editor' }" @click="tab = 'radius-editor'">RADIUS</button>
-      <button :class="{ active: tab === 'dictionary' }" @click="tab = 'dictionary'">Dictionary</button>
-      <button :class="{ active: tab === 'system' }" @click="tab = 'system'">System</button>
-    </nav>
-    <StatusCard v-if="tab === 'overview' || tab === 'sessions'" :service="service" />
-    <SessionsTable
-      v-if="tab === 'sessions' || tab === 'overview'"
-      :sessions="sessions"
-      :loading="loading"
-      @disconnect="handleDisconnect"
-      @refresh="fetchData"
-    />
-    <NetworkConfig v-if="tab === 'network'" />
-    <TrafficMonitor v-if="tab === 'overview'" />
-    <ConfigEditor v-if="tab === 'config'" />
-    <ServicesConfig v-if="tab === 'services'" />
-    <ToolsPage v-if="tab === 'tools'" />
-    <RADIUSEditor v-if="tab === 'radius-editor'" />
-    <DictionaryBrowser v-if="tab === 'dictionary'" />
-    <SystemPage v-if="tab === 'system'" />
+    </div>
+    <div class="main-area">
+      <nav class="sidebar">
+        <div class="menu-section">
+          <div class="section-title">Status</div>
+          <a :class="{active:page==='overview'}" @click="page='overview'">📊 Overview</a>
+          <a :class="{active:page==='sessions'}" @click="page='sessions'">
+            📋 Sessions
+            <span class="badge" v-if="sessions.length">{{ sessions.length }}</span>
+          </a>
+        </div>
+        <div class="menu-section">
+          <div class="section-title">Network</div>
+          <a :class="{active:page==='network'}" @click="page='network'">🌐 Interfaces</a>
+        </div>
+        <div class="menu-section">
+          <div class="section-title">Services</div>
+          <a :class="{active:page==='services'}" @click="page='services'">⚙️ VPN</a>
+          <a :class="{active:page==='config'}" @click="page='config'">📝 Config</a>
+        </div>
+        <div class="menu-section">
+          <div class="section-title">RADIUS</div>
+          <a :class="{active:page==='radius-editor'}" @click="page='radius-editor'">🔧 Editor</a>
+          <a :class="{active:page==='dictionary'}" @click="page='dictionary'">📖 Dictionary</a>
+          <a :class="{active:page==='tools'}" @click="page='tools'">🛠 Tools</a>
+        </div>
+        <div class="menu-section">
+          <div class="section-title">System</div>
+          <a :class="{active:page==='system'}" @click="page='system'">💻 System</a>
+        </div>
+        <div class="sidebar-footer">
+          <small>RNAS v3.0</small>
+        </div>
+      </nav>
+      <div class="content">
+        <div class="breadcrumb">
+          {{ breadcrumb }}
+        </div>
+        <StatusCard v-if="page==='overview'||page==='sessions'" :service="service" />
+        <SessionsTable v-if="page==='sessions'||page==='overview'" :sessions="sessions" :loading="loading" @disconnect="handleDisconnect" @refresh="fetchData" />
+        <TrafficMonitor v-if="page==='overview'" />
+        <NetworkConfig v-if="page==='network'" />
+        <ConfigEditor v-if="page==='config'" />
+        <ServicesConfig v-if="page==='services'" />
+        <ToolsPage v-if="page==='tools'" />
+        <RADIUSEditor v-if="page==='radius-editor'" />
+        <DictionaryBrowser v-if="page==='dictionary'" />
+        <SystemPage v-if="page==='system'" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import StatusCard from './components/StatusCard.vue'
 import SessionsTable from './components/SessionsTable.vue'
 import NetworkConfig from './components/NetworkConfig.vue'
@@ -50,88 +74,58 @@ import RADIUSEditor from './components/RADIUSEditor.vue'
 import DictionaryBrowser from './components/DictionaryBrowser.vue'
 import SystemPage from './components/SystemPage.vue'
 
-const tab = ref('overview')
+const page = ref('overview')
 const service = ref({ uptime: '--', cpu: '--', mem: '--' })
 const sessions = ref([])
 const loading = ref(true)
 const airosOnline = ref(false)
 const airosUrl = ref('http://192.168.0.202:8000')
 
+const breadcrumb = computed(() => {
+  const m = { overview: 'Status / Overview', sessions: 'Status / Sessions', network: 'Network / Interfaces', services: 'Services / VPN', config: 'Services / Configuration', 'radius-editor': 'RADIUS / Editor', dictionary: 'RADIUS / Dictionary', tools: 'RADIUS / Tools', system: 'System' }
+  return m[page.value] || page.value
+})
+
 async function fetchData() {
   loading.value = true
-  try {
-    const res = await fetch('/api/status')
-    const data = await res.json()
-    service.value = data.service || {}
-    sessions.value = data.sessions || []
-  } catch (e) {
-    console.error('API error:', e)
-  }
+  try { const res = await fetch('/api/status'); const d = await res.json(); service.value = d.service||{}; sessions.value = d.sessions||[] } catch(e){}
   loading.value = false
 }
-
 async function checkAirOS() {
-  try {
-    const res = await fetch('/api/airos/status')
-    const data = await res.json()
-    airosOnline.value = data.online || false
-  } catch (e) {
-    airosOnline.value = false
-  }
+  try { const res = await fetch('/api/airos/status'); airosOnline.value = (await res.json()).online||false } catch { airosOnline.value = false }
 }
+async function handleDisconnect(sid) { await fetch(`/api/sessions/${sid}/disconnect`,{method:'POST'}); fetchData() }
 
-async function handleDisconnect(sid) {
-  await fetch(`/api/sessions/${sid}/disconnect`, { method: 'POST' })
-  fetchData()
-}
-
-let refreshTimer = null
-let ws = null
-
+let refreshTimer = null, ws = null
 async function startWS() {
-  try {
-    ws = new WebSocket(`ws://${location.host}/api/ws`)
-    ws.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data)
-        service.value = data.service || {}
-        sessions.value = data.sessions || []
-      } catch {}
-    }
-    ws.onclose = () => { ws = null }
-    ws.onerror = () => { ws?.close(); ws = null }
-  } catch { ws = null }
+  try { ws=new WebSocket(`ws://${location.host}/api/ws`); ws.onmessage=e=>{ try{ const d=JSON.parse(e.data); service.value=d.service||{}; sessions.value=d.sessions||[] }catch{} }; ws.onclose=()=>ws=null; ws.onerror=()=>{ws?.close();ws=null} } catch{ws=null}
 }
-
-onMounted(() => {
-  fetchData()
-  checkAirOS()
-  refreshTimer = setInterval(fetchData, 5000)
-  startWS()
-})
-
-onUnmounted(() => {
-  clearInterval(refreshTimer)
-  ws?.close()
-})
-
-onUnmounted(() => {
-  clearInterval(refreshTimer)
-})
+onMounted(()=>{ fetchData(); checkAirOS(); refreshTimer=setInterval(fetchData,5000); startWS() })
+onUnmounted(()=>{ clearInterval(refreshTimer); ws?.close() })
 </script>
 
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f2f5; color: #333; }
-.dashboard { max-width: 1200px; margin: 0 auto; padding: 24px; }
-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
-header h1 { font-size: 24px; color: #1a1a2e; }
-.version { font-size: 14px; color: #888; }
-nav.tabs { display: flex; gap: 4px; margin-bottom: 24px; }
-nav.tabs button { padding: 8px 20px; border: none; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 14px; background: #e5e7eb; color: #555; }
-nav.tabs button.active { background: #fff; color: #1a1a2e; font-weight: 600; box-shadow: 0 -2px 4px rgba(0,0,0,0.05); }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f2f5; color: #333; overflow: hidden; }
+.luci-layout { display: flex; flex-direction: column; height: 100vh; }
+.topbar { display: flex; align-items: center; gap: 16px; padding: 0 20px; height: 44px; background: #1a1a2e; color: #fff; font-size: 13px; flex-shrink: 0; }
+.topbar .brand { font-weight: 700; font-size: 15px; letter-spacing: 1px; }
+.topbar .hostname { color: #8ab4f8; }
+.topbar .uptime { color: #888; font-size: 12px; }
+.topbar .spacer { flex: 1; }
+.topbar .airos-link { color: #8ab4f8; text-decoration: none; font-size: 12px; }
+.topbar .airos-link.offline { color: #666; }
 
-.airos-link { font-size: 13px; color: #3b82f6; text-decoration: none; margin-left: 16px; padding: 2px 10px; border-radius: 4px; border: 1px solid #3b82f6; }
-.airos-link:hover { background: #3b82f6; color: #fff; }
-.airos-link.offline { color: #999; border-color: #ccc; }
+.main-area { display: flex; flex: 1; overflow: hidden; }
+.sidebar { width: 200px; background: #2b2d42; color: #ccc; overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column; font-size: 13px; }
+.sidebar .menu-section { padding: 8px 0; }
+.sidebar .section-title { padding: 6px 16px; font-size: 10px; text-transform: uppercase; color: #666; letter-spacing: 1px; }
+.sidebar a { display: flex; align-items: center; gap: 8px; padding: 8px 20px; color: #bbb; text-decoration: none; cursor: pointer; transition: background .15s; }
+.sidebar a:hover { background: #3a3d56; color: #fff; }
+.sidebar a.active { background: #3b82f6; color: #fff; font-weight: 600; }
+.sidebar .badge { margin-left: auto; background: #ef4444; color: #fff; padding: 1px 6px; border-radius: 8px; font-size: 11px; min-width: 18px; text-align: center; }
+.sidebar-footer { margin-top: auto; padding: 10px 16px; color: #555; font-size: 11px; }
+
+.content { flex: 1; overflow-y: auto; padding: 16px 24px; }
+.breadcrumb { font-size: 11px; color: #999; margin-bottom: 12px; }
 </style>
