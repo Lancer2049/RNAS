@@ -1,0 +1,15 @@
+{
+  "name": "Enterprise VPN",
+  "description": "L2TP + IPsec for remote workers, 802.1X ready",
+  "config": {
+    "access.d.core": {"pppoe": "no", "ipoe": "no", "l2tp": "yes", "pptp": "no", "sstp": "no"},
+    "access.d.l2tp": {"enabled": "yes", "interface": "ens33", "port": "1701"},
+    "access.d.radius": {"nas_identifier": "rnas-vpn"},
+    "access.d.ppp": {"mtu": "1400", "mru": "1400"},
+    "vpn.d.ipsec": {"enabled": "yes", "auth": "psk"},
+    "vpn.d.wireguard": {"enabled": "no"},
+    "vpn.d.openvpn": {"enabled": "no"},
+    "wireless.d.dot1x": {"enabled": "yes", "eap_methods": "peap,tls", "auth_server": "192.168.0.202"},
+    "qos.global": {"enabled": "no"}
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Hotel WiFi",
+  "description": "Captive portal with MAC auth, guest isolation",
+  "config": {
+    "access.d.core": {"pppoe": "no", "ipoe": "yes", "l2tp": "no", "pptp": "no", "sstp": "no"},
+    "access.d.radius": {"nas_identifier": "rnas-hotel"},
+    "qos.global": {"enabled": "yes", "algorithm": "cake", "interface": "ens33"},
+    "qos.per_user": {"enabled": "yes", "default_rate": "5mbit", "default_ceil": "10mbit"},
+    "vpn.d.ipsec": {"enabled": "no"},
+    "vpn.d.wireguard": {"enabled": "no"},
+    "vpn.d.openvpn": {"enabled": "no"}
+  }
+}

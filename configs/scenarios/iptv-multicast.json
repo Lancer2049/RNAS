@@ -1,0 +1,14 @@
+{
+  "name": "IPTV Multicast",
+  "description": "IPoE with bandwidth guarantee for video streaming",
+  "config": {
+    "access.d.core": {"pppoe": "no", "ipoe": "yes", "l2tp": "no", "pptp": "no", "sstp": "no"},
+    "access.d.ipoe": {"enabled": "yes", "interface": "ens33"},
+    "access.d.radius": {"nas_identifier": "rnas-iptv"},
+    "qos.global": {"enabled": "yes", "algorithm": "htb", "interface": "ens33"},
+    "qos.per_user": {"enabled": "yes", "default_rate": "50mbit", "default_ceil": "100mbit"},
+    "vpn.d.ipsec": {"enabled": "no"},
+    "vpn.d.wireguard": {"enabled": "no"},
+    "vpn.d.openvpn": {"enabled": "no"}
+  }
+}

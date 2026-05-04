@@ -225,6 +225,31 @@ class RNASHandler(SimpleHTTPRequestHandler):
         elif path == "/api/config":
             config = walk_config_tree(Path("/etc/rnas"))
             self.json(dict(success=True, config=config))
+        elif path == "/api/scenarios":
+            scenario_dir = Path("/etc/rnas/scenarios")
+            scenario_dir.mkdir(parents=True, exist_ok=True)
+            scenarios = []
+            for f in sorted(scenario_dir.glob("*.json")):
+                try:
+                    data = json.loads(f.read_text())
+                    scenarios.append({"id": f.stem, "name": data.get("name", f.stem), "description": data.get("description", ""), "sections": len(data.get("config", {}))})
+                except:
+                    pass
+            self.json(dict(scenarios=scenarios))
+        elif path.startswith("/api/scenarios/") and path.endswith("/load"):
+            scenario_id = path.split("/")[3]
+            scenario_file = Path(f"/etc/rnas/scenarios/{scenario_id}.json")
+            if not scenario_file.exists():
+                self.send_error(404)
+                return
+            data = json.loads(scenario_file.read_text())
+            imported = data.get("config", {})
+            applied = 0
+            for section_name, values in imported.items():
+                section = section_name.rsplit(".", 1)[-1] if "." in section_name else section_name
+                if write_config_section(Path("/etc/rnas"), section, values):
+                    applied += 1
+            self.json(dict(success=True, scenario=data.get("name", scenario_id), applied=applied, total=len(imported)))
         elif path == "/api/dictionary":
             entries = load_all(str(DICT_DIR))
             self.json(dict(success=True, vendors=list(set(e["vendor"] for e in entries.values())), count=len(entries), attributes=entries))
@@ -250,7 +275,8 @@ class RNASHandler(SimpleHTTPRequestHandler):
             imported = data.get("config", {})
             applied = 0
             for section_name, values in imported.items():
-                if write_config_section(Path("/etc/rnas"), section_name.replace(".", "/", 1) if "." in section_name else section_name, values):
+                section = section_name.rsplit(".", 1)[-1] if "." in section_name else section_name
+                if write_config_section(Path("/etc/rnas"), section, values):
                     applied += 1
             self.json(dict(success=True, imported=applied, total=len(imported)))
         elif path == "/api/config/snapshots":

@@ -1,0 +1,14 @@
+{
+  "name": "Full Load Test",
+  "description": "All 5 protocols enabled, all services running for stress testing",
+  "config": {
+    "access.d.core": {"pppoe": "yes", "ipoe": "yes", "l2tp": "yes", "pptp": "yes", "sstp": "yes"},
+    "access.d.radius": {"nas_identifier": "rnas-load"},
+    "qos.global": {"enabled": "yes", "algorithm": "cake", "interface": "ens33"},
+    "qos.per_user": {"enabled": "yes", "default_rate": "10mbit"},
+    "vpn.d.ipsec": {"enabled": "yes", "auth": "psk"},
+    "vpn.d.wireguard": {"enabled": "yes", "listen_port": "51820"},
+    "vpn.d.openvpn": {"enabled": "yes", "port": "1194"},
+    "wireless.d.dot1x": {"enabled": "yes", "eap_methods": "md5,tls"}
+  }
+}
