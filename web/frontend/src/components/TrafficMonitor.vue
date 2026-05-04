@@ -2,9 +2,7 @@
   <div class="traffic-section">
     <div class="section-header">
       <h2>Traffic Monitor</h2>
-      <button class="btn-refresh" @click="fetchTraffic" :disabled="loading">
-        {{ loading ? 'Loading...' : 'Refresh' }}
-      </button>
+      <span class="refresh-hint">Auto-updating via WebSocket</span>
     </div>
     <div class="charts-grid">
       <div class="card">
@@ -12,21 +10,20 @@
         <canvas ref="sessionsChart"></canvas>
       </div>
       <div class="card">
-        <h3>RADIUS Auth Requests</h3>
-        <div class="stat-grid">
-          <div class="stat">
-            <span class="stat-label">Auth Sent</span>
-            <span class="stat-value">{{ traffic.auth_sent || 0 }}</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Acct Sent</span>
-            <span class="stat-value">{{ traffic.acct_sent || 0 }}</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Fail Count</span>
-            <span class="stat-value" :class="{ 'text-red': traffic.radius_fail_count > 0 }">{{ traffic.radius_fail_count || 0 }}</span>
-          </div>
-        </div>
+        <h3>Per-Session Bandwidth</h3>
+        <table v-if="bwList.length" class="bw-table">
+          <thead><tr><th>User</th><th>IP</th><th>RX</th><th>TX</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr v-for="b in bwList" :key="b.ip">
+              <td>{{ b.username }}</td>
+              <td class="mono">{{ b.ip }}</td>
+              <td class="mono">{{ formatBps(b.rx_bps) }}</td>
+              <td class="mono">{{ formatBps(b.tx_bps) }}</td>
+              <td class="mono">{{ formatBps(b.rx_bps + b.tx_bps) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="empty">No active sessions</div>
       </div>
     </div>
   </div>
@@ -36,18 +33,24 @@
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { Chart } from 'chart.js/auto'
 
-const loading = ref(false)
 const sessionsChart = ref(null)
-const traffic = reactive({ auth_sent: 0, acct_sent: 0, radius_fail_count: 0 })
-
+const bwList = reactive([])
+const prevRx = reactive({})
+const prevTx = reactive({})
 let chartInstance = null
 let refreshTimer = null
 let history = []
 
+function formatBps(bps) {
+  if (!bps || bps === 0) return '0 bps'
+  if (bps < 1000) return bps + ' bps'
+  if (bps < 1e6) return (bps / 1e3).toFixed(1) + ' Kbps'
+  return (bps / 1e6).toFixed(1) + ' Mbps'
+}
+
 function buildChart() {
   if (!sessionsChart.value) return
-  const ctx = sessionsChart.value.getContext('2d')
-  chartInstance = new Chart(ctx, {
+  chartInstance = new Chart(sessionsChart.value, {
     type: 'line',
     data: { labels: [], datasets: [{ label: 'Sessions', data: [], borderColor: '#3b82f6', tension: 0.3 }] },
     options: { responsive: true, scales: { y: { beginAtZero: true } } }
@@ -55,33 +58,43 @@ function buildChart() {
 }
 
 async function fetchTraffic() {
-  loading.value = true
   try {
     const res = await fetch('/api/status')
     const data = await res.json()
     const svc = data.service || {}
-    traffic.auth_sent = svc.auth_sent
-    traffic.acct_sent = svc.acct_sent
-    traffic.radius_fail_count = svc.radius_fail_count
+    const sessions = data.sessions || []
 
-    const count = data.sessions_count || 0
-    history.push(count)
+    history.push(sessions.length)
     if (history.length > 20) history.shift()
-
     if (chartInstance) {
       chartInstance.data.labels = history.map((_, i) => `T-${history.length - i}`)
       chartInstance.data.datasets[0].data = [...history]
       chartInstance.update()
     }
+
+    const now = Date.now()
+    bwList.length = 0
+    for (const s of sessions) {
+      const rx = parseInt(s.rx_bytes_raw) || 0
+      const tx = parseInt(s.tx_bytes_raw) || 0
+      const ip = s.ip || s.sid
+      const lastRx = prevRx[ip] || { val: rx, ts: now }
+      const lastTx = prevTx[ip] || { val: tx, ts: now }
+      const dt = Math.max((now - lastRx.ts) / 1000, 0.1)
+      const rxBps = Math.max(0, (rx - lastRx.val) * 8 / dt)
+      const txBps = Math.max(0, (tx - lastTx.val) * 8 / dt)
+      prevRx[ip] = { val: rx, ts: now }
+      prevTx[ip] = { val: tx, ts: now }
+      bwList.push({ username: s.username || '-', ip, rx_bps: rxBps, tx_bps: txBps })
+    }
   } catch (e) { console.error(e) }
-  loading.value = false
 }
 
 onMounted(async () => {
   await nextTick()
   buildChart()
   fetchTraffic()
-  refreshTimer = setInterval(fetchTraffic, 10000)
+  refreshTimer = setInterval(fetchTraffic, 5000)
 })
 
 onUnmounted(() => { clearInterval(refreshTimer); chartInstance?.destroy() })
@@ -91,13 +104,13 @@ onUnmounted(() => { clearInterval(refreshTimer); chartInstance?.destroy() })
 .traffic-section { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; }
 .section-header h2 { font-size: 18px; }
-.btn-refresh { padding: 6px 16px; background: #3b82f6; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+.refresh-hint { color: #3b82f6; font-size: 12px; }
 .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
 .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 .card h3 { font-size: 15px; margin-bottom: 12px; color: #555; }
-.stat-grid { display: flex; flex-direction: column; gap: 16px; }
-.stat { display: flex; justify-content: space-between; align-items: center; }
-.stat-label { font-size: 13px; color: #888; }
-.stat-value { font-size: 22px; font-weight: 600; }
-.text-red { color: #ef4444; }
+.bw-table { width: 100%; border-collapse: collapse; }
+.bw-table th, .bw-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+.bw-table th { color: #666; font-weight: 600; font-size: 11px; text-transform: uppercase; }
+.mono { font-family: monospace; font-size: 12px; }
+.empty { text-align: center; color: #999; padding: 20px; }
 </style>
