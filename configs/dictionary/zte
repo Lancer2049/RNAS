@@ -123,13 +123,13 @@ ATTRIBUTE       ZTE-IPSEC-Local-Address             242     ipaddr
 ATTRIBUTE       ZTE-IPSEC-Remote-Address            243     ipaddr
 ATTRIBUTE       ZTE-IPSEC-Pre-Shared-Key            244     string
 ATTRIBUTE       ZTE-Remote-Access-Profile           250     string
-ATTRIBUTE       ZTE-Device-Class                   300     integer
-ATTRIBUTE       ZTE-Device-Model                    301     string
-ATTRIBUTE       ZTE-Software-Version                302     string
-ATTRIBUTE       ZTE-License-Key                     310     string
-ATTRIBUTE       ZTE-License-Feature                 311     string
-ATTRIBUTE       ZTE-AVPair                         1000    string
-ATTRIBUTE       ZTE-Product-ID                     1001    string
-ATTRIBUTE       ZTE-Version                        1002    string
+ATTRIBUTE       ZTE-Device-Class                   200     integer
+ATTRIBUTE       ZTE-Device-Model                    201     string
+ATTRIBUTE   ZTE-Software-Version                202     string
+ATTRIBUTE        ZTE-License-Key                     204     string
+ATTRIBUTE    ZTE-License-Feature                 205     string
+ATTRIBUTE            ZTE-AVPair                          250     string
+ATTRIBUTE        ZTE-Product-ID                      251     string
+ATTRIBUTE           ZTE-Version                         252     string
 
 END-VENDOR      ZTE
