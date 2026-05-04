@@ -11,10 +11,12 @@ RNAS deep-integrates **accel-ppp** with standard Linux networking (dnsmasq, nfta
 ## 📊 Project Status
 
 ```
-Phase 1 (Core Platform)  ████████████████████ 100%  Config engine + API + Dashboard
-Phase 2 (Network + QoS)  ░░░░░░░░░░░░░░░░░░░░   0%  dnsmasq/nftables/tc generators
-Phase 3 (VPN + Hotspot)  ░░░░░░░░░░░░░░░░░░░░   0%  strongSwan/WireGuard/CoovaChilli
-Phase 4 (HA + Packaging) ░░░░░░░░░░░░░░░░░░░░   0%  keepalived + deb packages
+Phase 1 (Core Platform)   ████████████████████ 100%  Config engine + API + Dashboard
+Phase 2 (Network + QoS)   ████████████████████ 100%  dnsmasq/nftables/tc/SNMP/DHCP relay
+Phase 3 (VPN + Hotspot)   ████████████████████ 100%  strongSwan/WireGuard/OpenVPN/802.1X
+Phase 4 (HA + Packaging)  ████████████████████ 100%  keepalived/logrotate/CI pipeline
+
+v3 Extensions             ████████████████████ 100%  13 vendor dicts, LAC/LNS, scenarios, fault inject
 ```
 
 ---
@@ -140,10 +142,12 @@ bash tests/integration/test-config-to-daemon.sh
 | ✅ v2 P1 | `/etc/rnas/` unified config + rnas-config engine | Complete |
 | ✅ v2 P1 | FastAPI backend + Vue.js dashboard | Complete |
 | ✅ v2 P1 | systemd units + install script | Complete |
-| 🟡 v2 P1 | dnsmasq/nftables config generators | Next |
-| 🟡 v2 P2 | tc/SQM QoS integration | Planned |
-| 🟡 v2 P2 | strongSwan / WireGuard / OpenVPN | Planned |
-| 🟢 v2 P3 | CoovaChilli hotspot + keepalived HA | Planned |
+| ✅ v2 P1 | dnsmasq/nftables config generators | Complete |
+| ✅ v2 P2 | tc/SQM QoS integration | Complete |
+| ✅ v2 P2 | strongSwan / WireGuard / OpenVPN | Complete |
+| ✅ v2 P3 | keepalived HA + SNMP monitoring | Complete |
+| ✅ v3 | DHCP relay, RADIUS dicts (13 vendors), 802.1X, LAC/LNS | Complete |
+| ✅ v3 | Fault injection, compatibility test, scenarios, WebSocket | Complete |
 
 ---
 
