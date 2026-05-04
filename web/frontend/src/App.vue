@@ -14,6 +14,7 @@
       <button :class="{ active: tab === 'config' }" @click="tab = 'config'">Config</button>
       <button :class="{ active: tab === 'services' }" @click="tab = 'services'">Services</button>
       <button :class="{ active: tab === 'tools' }" @click="tab = 'tools'">Tools</button>
+      <button :class="{ active: tab === 'radius-editor' }" @click="tab = 'radius-editor'">RADIUS</button>
       <button :class="{ active: tab === 'dictionary' }" @click="tab = 'dictionary'">Dictionary</button>
       <button :class="{ active: tab === 'system' }" @click="tab = 'system'">System</button>
     </nav>
@@ -30,6 +31,7 @@
     <ConfigEditor v-if="tab === 'config'" />
     <ServicesConfig v-if="tab === 'services'" />
     <ToolsPage v-if="tab === 'tools'" />
+    <RADIUSEditor v-if="tab === 'radius-editor'" />
     <DictionaryBrowser v-if="tab === 'dictionary'" />
     <SystemPage v-if="tab === 'system'" />
   </div>
@@ -44,6 +46,7 @@ import TrafficMonitor from './components/TrafficMonitor.vue'
 import ConfigEditor from './components/ConfigEditor.vue'
 import ServicesConfig from './components/ServicesConfig.vue'
 import ToolsPage from './components/ToolsPage.vue'
+import RADIUSEditor from './components/RADIUSEditor.vue'
 import DictionaryBrowser from './components/DictionaryBrowser.vue'
 import SystemPage from './components/SystemPage.vue'
 

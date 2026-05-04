@@ -166,6 +166,19 @@ class RNASHandler(SimpleHTTPRequestHandler):
                 ["radclient", "-r", "1", "-t", "3", "192.168.0.202:1812", "auth", "testing123"],
                 input=payload, capture_output=True, text=True, timeout=10).stderr
             self.json(dict(output=out.strip(), payload=payload))
+        elif path == "/api/tools/radius-send":
+            content_len = int(self.headers.get("Content-Length", 0))
+            data = json.loads(self.rfile.read(content_len))
+            server = data.get("server", "192.168.0.202:1812")
+            secret = data.get("secret", "testing123")
+            port_type = data.get("type", "auth")
+            attributes = data.get("attributes", [])
+            pairs = [f"{a['name']}={a['value']}" for a in attributes if a.get('name') and a.get('value')]
+            payload = ",".join(pairs)
+            result = subprocess.run(
+                ["radclient", "-r", "1", "-t", "3", server, port_type, secret],
+                input=payload, capture_output=True, text=True, timeout=10)
+            self.json(dict(success=True, output=result.stdout + "\n" + result.stderr, payload=payload, code=result.returncode))
         elif path == "/api/tools/coa":
             qs = parse_qs(urlparse(self.path).query)
             user = qs.get("user", [""])[0]
