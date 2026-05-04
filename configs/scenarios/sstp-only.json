@@ -1,0 +1,1 @@
+{"name":"SSTP Only","description":"Microsoft SSTP VPN for Windows clients","config":{"access.d.core":{"pppoe":"no","ipoe":"no","l2tp":"no","pptp":"no","sstp":"yes"},"access.d.sstp":{"enabled":"yes","interface":"ens33","port":"443","accept":"ssl"},"vpn.d.ipsec":{"enabled":"no"},"vpn.d.wireguard":{"enabled":"no"},"vpn.d.openvpn":{"enabled":"no"}}}

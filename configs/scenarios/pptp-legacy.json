@@ -1,0 +1,1 @@
+{"name":"PPTP Legacy","description":"Legacy PPTP VPN for older clients","config":{"access.d.core":{"pppoe":"no","ipoe":"no","l2tp":"no","pptp":"yes","sstp":"no"},"access.d.pptp":{"enabled":"yes","interface":"ens33"},"vpn.d.ipsec":{"enabled":"no"},"vpn.d.wireguard":{"enabled":"no"},"vpn.d.openvpn":{"enabled":"no"}}}

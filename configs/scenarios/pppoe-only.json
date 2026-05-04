@@ -1,0 +1,1 @@
+{"name":"PPPoE Only","description":"Minimal PPPoE setup for basic auth testing","config":{"access.d.core":{"pppoe":"yes","ipoe":"no","l2tp":"no","pptp":"no","sstp":"no"},"qos.global":{"enabled":"no"},"vpn.d.ipsec":{"enabled":"no"},"vpn.d.wireguard":{"enabled":"no"},"vpn.d.openvpn":{"enabled":"no"}}}
