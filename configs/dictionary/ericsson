@@ -1,0 +1,40 @@
+# Ericsson RADIUS VSA Dictionary
+# Vendor ID: 193
+# Reference: Ericsson SSR (Smart Services Router), Ericsson BNG
+
+VENDOR          Ericsson        193
+
+BEGIN-VENDOR    Ericsson
+
+ATTRIBUTE       Ericsson-Packet-Service-Profile      1       string
+ATTRIBUTE       Ericsson-QoS-Profile                 2       string
+ATTRIBUTE       Ericsson-Service-Bundle              3       string
+ATTRIBUTE       Ericsson-Access-Loop-Rate-Down       4       integer
+ATTRIBUTE       Ericsson-Access-Loop-Rate-Up         5       integer
+ATTRIBUTE       Ericsson-Actual-Rate-Down            6       integer
+ATTRIBUTE       Ericsson-Actual-Rate-Up              7       integer
+ATTRIBUTE       Ericsson-Minimum-Rate-Down           8       integer
+ATTRIBUTE       Ericsson-Minimum-Rate-Up             9       integer
+ATTRIBUTE       Ericsson-Attainable-Rate-Down        10      integer
+ATTRIBUTE       Ericsson-Attainable-Rate-Up          11      integer
+ATTRIBUTE       Ericsson-ANCP-Port-Up                12      integer
+ATTRIBUTE       Ericsson-ANCP-Port-Down              13      integer
+ATTRIBUTE       Ericsson-Subscriber-Id               14      string
+ATTRIBUTE       Ericsson-Access-Node-Id              15      string
+ATTRIBUTE       Ericsson-Service-Activate            20      string
+ATTRIBUTE       Ericsson-Service-Deactivate          21      string
+ATTRIBUTE       Ericsson-IPv6-Service-Profile        22      string
+ATTRIBUTE       Ericsson-IPv6-Address-Pool           23      string
+ATTRIBUTE       Ericsson-IPv6-Delegated-Prefix-Pool  24      string
+ATTRIBUTE       Ericsson-IPv6-DNS-Primary            25      ipv6addr
+ATTRIBUTE       Ericsson-IPv6-DNS-Secondary          26      ipv6addr
+ATTRIBUTE       Ericsson-Subscriber-Redirect-URL     30      string
+ATTRIBUTE       Ericsson-Subscriber-Redirect-Profile 31      string
+ATTRIBUTE       Ericsson-LI-Action                   40      integer
+ATTRIBUTE       Ericsson-LI-Intercept-Id             41      string
+ATTRIBUTE       Ericsson-LI-Session-Id               42      string
+ATTRIBUTE       Ericsson-NAT-Profile                 50      string
+ATTRIBUTE       Ericsson-Firewall-Profile            51      string
+ATTRIBUTE       Ericsson-HTTP-Enrichment             60      string
+
+END-VENDOR      Ericsson

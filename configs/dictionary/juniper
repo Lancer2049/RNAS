@@ -1,0 +1,50 @@
+# Juniper Networks RADIUS VSA Dictionary
+# Vendor ID: 2636
+# Reference: Juniper MX/EX/SRX, Junos OS, Steel-Belted RADIUS
+
+VENDOR          Juniper         2636
+
+BEGIN-VENDOR    Juniper
+
+ATTRIBUTE       Juniper-Local-User-Name            1       string
+ATTRIBUTE       Juniper-Allow-Commands              2       string
+ATTRIBUTE       Juniper-Deny-Commands               3       string
+ATTRIBUTE       Juniper-Allow-Configuration          4       string
+ATTRIBUTE       Juniper-Deny-Configuration           5       string
+ATTRIBUTE       Juniper-Interactive-Timeout          6       integer
+ATTRIBUTE       Juniper-Idle-Timeout                 7       integer
+ATTRIBUTE       Juniper-Configuration-Change         8       string
+ATTRIBUTE       Juniper-Role-Name                    9       string
+ATTRIBUTE       Juniper-CTP-Group                    10      string
+ATTRIBUTE       Juniper-CTP-Parameter                11      string
+ATTRIBUTE       Juniper-Virtual-Router               12      string
+ATTRIBUTE       Juniper-User-Permissions             13      string
+ATTRIBUTE       Juniper-Primary-DNS                  14      ipaddr
+ATTRIBUTE       Juniper-Secondary-DNS                15      ipaddr
+ATTRIBUTE       Juniper-Primary-WINS                 16      ipaddr
+ATTRIBUTE       Juniper-Secondary-WINS               17      ipaddr
+ATTRIBUTE       Juniper-Ingress-Policy-Name          18      string
+ATTRIBUTE       Juniper-Egress-Policy-Name           19      string
+ATTRIBUTE       Juniper-Ingress-Stat-Name            20      string
+ATTRIBUTE       Juniper-Egress-Stat-Name             21      string
+ATTRIBUTE       Juniper-Input-Gigapackets            22      integer
+ATTRIBUTE       Juniper-Output-Gigapackets           23      integer
+ATTRIBUTE       Juniper-VPN-Name                     24      string
+ATTRIBUTE       Juniper-Service-Activate             25      string
+ATTRIBUTE       Juniper-Service-Deactivate           26      string
+ATTRIBUTE       Juniper-Service-Volume               27      integer
+ATTRIBUTE       Juniper-IPv6-Primary-DNS             28      ipv6addr
+ATTRIBUTE       Juniper-IPv6-Secondary-DNS           29      ipv6addr
+ATTRIBUTE       Juniper-IPv6-Ingress-Policy          30      string
+ATTRIBUTE       Juniper-IPv6-Egress-Policy           31      string
+ATTRIBUTE       Juniper-VLAN-ID                      32      integer
+ATTRIBUTE       Juniper-VLAN-Name                    33      string
+ATTRIBUTE       Juniper-L2TP-Local-IP                34      ipaddr
+ATTRIBUTE       Juniper-L2TP-Remote-IP               35      ipaddr
+ATTRIBUTE       Juniper-L2TP-Tunnel-Password         36      string
+ATTRIBUTE       Juniper-COS-Shaping-Rate             37      integer
+ATTRIBUTE       Juniper-COS-Scheduler-Pmap           38      string
+ATTRIBUTE       Juniper-Framed-IPv6-Pool             39      string
+ATTRIBUTE       Juniper-Delegated-IPv6-Prefix        40      ipv6prefix
+
+END-VENDOR      Juniper

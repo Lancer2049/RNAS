@@ -1,0 +1,28 @@
+# NVIDIA Networking (Mellanox/Cumulus) RADIUS VSA Dictionary
+# Vendor ID: 33049 (Mellanox legacy)
+# Reference: NVIDIA Spectrum switches, Cumulus Linux, Mellanox Onyx
+
+VENDOR          NVIDIA          33049
+
+BEGIN-VENDOR    NVIDIA
+
+ATTRIBUTE       NVIDIA-User-Role                    1       string
+ATTRIBUTE       NVIDIA-Admin-Privilege              2       integer
+ATTRIBUTE       NVIDIA-CLI-Command                  3       string
+ATTRIBUTE       NVIDIA-AVPair                       4       string
+ATTRIBUTE       NVIDIA-ACL-Policy-In                 10      string
+ATTRIBUTE       NVIDIA-ACL-Policy-Out               11      string
+ATTRIBUTE       NVIDIA-QoS-Profile                  12      string
+ATTRIBUTE       NVIDIA-VLAN-ID                      13      integer
+ATTRIBUTE       NVIDIA-VRF-Name                     14      string
+ATTRIBUTE       NVIDIA-Interface-Name               15      string
+ATTRIBUTE       NVIDIA-PTP-Profile                  20      string
+ATTRIBUTE       NVIDIA-Buffer-Profile               21      string
+ATTRIBUTE       NVIDIA-RoCE-Priority                22      integer
+ATTRIBUTE       NVIDIA-ECN-Profile                  23      string
+ATTRIBUTE       NVIDIA-WHAT-Just-Enough-Telemetry   24      string
+ATTRIBUTE       NVIDIA-SFLOW-Profile                30      string
+ATTRIBUTE       NVIDIA-Telemetry-Profile            31      string
+ATTRIBUTE       NVIDIA-MLX-OS-Role                  100     string
+
+END-VENDOR      NVIDIA

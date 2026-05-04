@@ -1,0 +1,31 @@
+# Arista Networks RADIUS VSA Dictionary
+# Vendor ID: 30065
+# Reference: Arista EOS, Arista CloudVision
+
+VENDOR          Arista          30065
+
+BEGIN-VENDOR    Arista
+
+ATTRIBUTE       Arista-User-Role                    1       string
+ATTRIBUTE       Arista-Privilege-Level              2       integer
+ATTRIBUTE       Arista-Command-String               3       string
+ATTRIBUTE       Arista-Shell-Command                4       string
+ATTRIBUTE       Arista-AVPair                       5       string
+ATTRIBUTE       Arista-CLI-Command                  6       string
+ATTRIBUTE       Arista-Login-Timeout                7       integer
+ATTRIBUTE       Arista-Session-Timeout              8       integer
+ATTRIBUTE       Arista-VRF-Name                     10      string
+ATTRIBUTE       Arista-Source-IP                    11      ipaddr
+ATTRIBUTE       Arista-MAC-Security                 20      integer
+ATTRIBUTE       Arista-Dot1x-Reauth                 21      integer
+ATTRIBUTE       Arista-Dot1x-Timeout                22      integer
+ATTRIBUTE       Arista-VLAN-ID                      30      integer
+ATTRIBUTE       Arista-VLAN-Name                    31      string
+ATTRIBUTE       Arista-QoS-Profile                  40      string
+ATTRIBUTE       Arista-ACL-Name                     41      string
+ATTRIBUTE       Arista-ACL-Direction                42      integer
+ATTRIBUTE       Arista-Sflow-Rate                   50      integer
+ATTRIBUTE       Arista-Tap-Aggregation              51      string
+ATTRIBUTE       Arista-Mirror-Session               52      integer
+
+END-VENDOR      Arista

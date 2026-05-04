@@ -1,0 +1,50 @@
+# Ruijie Networks (锐捷网络) RADIUS VSA Dictionary
+# Vendor ID: 4881
+# Reference: Ruijie RG-S series switches, RG-WLAN, RG-EG gateways
+
+VENDOR          Ruijie          4881
+
+BEGIN-VENDOR    Ruijie
+
+ATTRIBUTE       Ruijie-User-Role                    1       string
+ATTRIBUTE       Ruijie-User-Privilege               2       integer
+ATTRIBUTE       Ruijie-ACL-Number                    3       string
+ATTRIBUTE       Ruijie-ACL-Name                      4       string
+ATTRIBUTE       Ruijie-User-Group                   5       string
+ATTRIBUTE       Ruijie-Max-Session-Time             6       integer
+ATTRIBUTE       Ruijie-Idle-Cut-Time                7       integer
+ATTRIBUTE       Ruijie-Flow-Id                      8       integer
+ATTRIBUTE       Ruijie-User-Profile                 9       string
+ATTRIBUTE       Ruijie-Command-Account-Switch       10      integer
+ATTRIBUTE       Ruijie-Exec-Privilege               11      integer
+ATTRIBUTE       Ruijie-NAS-Port-Name                12      string
+ATTRIBUTE       Ruijie-User-IP-Address              13      ipaddr
+ATTRIBUTE       Ruijie-User-MAC-Address             14      string
+ATTRIBUTE       Ruijie-VLAN-ID                      20      integer
+ATTRIBUTE       Ruijie-VLAN-Name                    21      string
+ATTRIBUTE       Ruijie-Port-VLAN-ID                 22      integer
+ATTRIBUTE       Ruijie-Voice-VLAN-ID                23      integer
+ATTRIBUTE       Ruijie-Guest-VLAN-ID                24      integer
+ATTRIBUTE       Ruijie-Port-Security                30      integer
+ATTRIBUTE       Ruijie-MAC-Auth-Mode                31      integer
+ATTRIBUTE       Ruijie-Dot1x-ReAuth                 32      integer
+ATTRIBUTE       Ruijie-Dot1x-ReAuth-Period          33      integer
+ATTRIBUTE       Ruijie-Portal-URL                   40      string
+ATTRIBUTE       Ruijie-Portal-User-Logout           41      integer
+ATTRIBUTE       Ruijie-Portal-Force-URL             42      string
+ATTRIBUTE       Ruijie-Bandwidth-Input-Limit        50      integer
+ATTRIBUTE       Ruijie-Bandwidth-Output-Limit       51      integer
+ATTRIBUTE       Ruijie-QoS-Policy-Name              52      string
+ATTRIBUTE       Ruijie-User-Priority                53      integer
+ATTRIBUTE       Ruijie-Service-Type                 60      string
+ATTRIBUTE       Ruijie-Primary-DNS                  61      ipaddr
+ATTRIBUTE       Ruijie-Secondary-DNS                62      ipaddr
+ATTRIBUTE       Ruijie-IPv6-Address                 70      ipv6addr
+ATTRIBUTE       Ruijie-IPv6-DNS-Primary             71      ipv6addr
+ATTRIBUTE       Ruijie-IPv6-DNS-Secondary           72      ipv6addr
+ATTRIBUTE       Ruijie-IPv6-Pool-Name               73      string
+ATTRIBUTE       Ruijie-SAM-Account-Info             100     string
+ATTRIBUTE       Ruijie-SAM-Control-Info             101     string
+ATTRIBUTE       Ruijie-SAM-Session-Info             102     string
+
+END-VENDOR      Ruijie

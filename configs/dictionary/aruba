@@ -1,0 +1,41 @@
+# Aruba Networks (HPE) RADIUS VSA Dictionary
+# Vendor ID: 14823
+# Reference: ArubaOS, Aruba ClearPass, Aruba Central
+
+VENDOR          Aruba           14823
+
+BEGIN-VENDOR    Aruba
+
+ATTRIBUTE       Aruba-User-Role                     1       string
+ATTRIBUTE       Aruba-User-Vlan                     2       integer
+ATTRIBUTE       Aruba-User-Profile                  3       string
+ATTRIBUTE       Aruba-AP-Group                      4       string
+ATTRIBUTE       Aruba-AP-Name                       5       string
+ATTRIBUTE       Aruba-ESSID-Name                    6       string
+ATTRIBUTE       Aruba-Location-Id                   7       string
+ATTRIBUTE       Aruba-Port-Identifier               8       string
+ATTRIBUTE       Aruba-Device-Type                   9       string
+ATTRIBUTE       Aruba-NAS-Filter-Rule               10      string
+ATTRIBUTE       Aruba-Admin-Role                    11      string
+ATTRIBUTE       Aruba-Tunneled-Node                 12      string
+ATTRIBUTE       Aruba-Mdps-Device-Name              13      string
+ATTRIBUTE       Aruba-Mdps-Device-Product           14      string
+ATTRIBUTE       Aruba-Mdps-Device-Category          15      string
+ATTRIBUTE       Aruba-Mdps-Device-Profile           16      string
+ATTRIBUTE       Aruba-Mdps-Provision-Profile        17      string
+ATTRIBUTE       Aruba-CPPM-Role                     18      string
+ATTRIBUTE       Aruba-CPPM-Posture-Token            19      string
+ATTRIBUTE       Aruba-CPPM-Enforcement-Profile      20      string
+ATTRIBUTE       Aruba-CPPM-Audit-Name               21      string
+ATTRIBUTE       Aruba-CPPM-Audit-Secret             22      string
+ATTRIBUTE       Aruba-NAS-IP-Address                23      ipaddr
+ATTRIBUTE       Aruba-Ingress-ACL                   24      string
+ATTRIBUTE       Aruba-Egress-ACL                    25      string
+ATTRIBUTE       Aruba-Session-Timeout               26      integer
+ATTRIBUTE       Aruba-Reauth-Interval               27      integer
+ATTRIBUTE       Aruba-Dead-Time                     28      integer
+ATTRIBUTE       Aruba-POE-Priority                  29      integer
+ATTRIBUTE       Aruba-Bandwidth-Contract            30      string
+ATTRIBUTE       Aruba-Wired-Auth-Profile            31      string
+
+END-VENDOR      Aruba
