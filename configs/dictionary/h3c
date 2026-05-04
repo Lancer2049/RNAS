@@ -1,4 +1,4 @@
-# H3C (Huawei-3Com) RADIUS VSA Dictionary
+# H3C RADIUS VSA Dictionary (FreeRADIUS official + RNAS extensions)
 # Vendor ID: 25506
 # Reference: H3C vBRAS / Comware
 
@@ -6,30 +6,48 @@ VENDOR          H3C             25506
 
 BEGIN-VENDOR    H3C
 
+# ── Official FreeRADIUS attributes ──
 ATTRIBUTE       H3C-Input-Peak-Rate                     1       integer
-ATTRIBUTE       H3C-Output-Peak-Rate                    2       integer
-ATTRIBUTE       H3C-Input-Average-Rate                  3       integer
-ATTRIBUTE       H3C-Output-Average-Rate                 4       integer
-ATTRIBUTE       H3C-NAS-Profile-Name                    5       string
-ATTRIBUTE       H3C-Domain-Name                         6       string
-ATTRIBUTE       H3C-User-Priority                       7       integer
-ATTRIBUTE       H3C-IP-Pool-Name                        8       string
-ATTRIBUTE       H3C-User-ACL                            9       string
-ATTRIBUTE       H3C-Primary-DNS                         10      ipaddr
-ATTRIBUTE       H3C-Secondary-DNS                       11      ipaddr
-ATTRIBUTE       H3C-Idle-Cut                            15      integer
-ATTRIBUTE       H3C-Session-Timeout                     16      integer
-ATTRIBUTE       H3C-User-Group                          20      string
-ATTRIBUTE       H3C-VPN-Instance                        25      string
-ATTRIBUTE       H3C-Multicast-Profile                   30      string
-ATTRIBUTE       H3C-IPv6-Pool                           40      string
-ATTRIBUTE       H3C-IPv6-DNS-Primary                    41      ipv6addr
-ATTRIBUTE       H3C-IPv6-DNS-Secondary                  42      ipv6addr
-ATTRIBUTE       H3C-Delegated-IPv6-Prefix               43      ipv6prefix
-ATTRIBUTE       H3C-Command-Accounting                   60      integer
-ATTRIBUTE       H3C-Remanent-Volume                     61      integer
-ATTRIBUTE       H3C-Service-Type                        70      integer
-ATTRIBUTE       H3C-Service-Command                     71      string
-ATTRIBUTE       H3C-MAC-Authentication                  80      integer
+ATTRIBUTE       H3C-Input-Average-Rate                  2       integer
+ATTRIBUTE       H3C-Input-Basic-Rate                    3       integer
+ATTRIBUTE       H3C-Output-Peak-Rate                    4       integer
+ATTRIBUTE       H3C-Output-Average-Rate                 5       integer
+ATTRIBUTE       H3C-Output-Basic-Rate                   6       integer
+ATTRIBUTE       H3C-Remanent-Volume                     15      integer
+ATTRIBUTE       H3C-ISP-ID                              17      string
+ATTRIBUTE       H3C-Command                             20      integer
+ATTRIBUTE       H3C-Control-Identifier                  24      integer
+ATTRIBUTE       H3C-Result-Code                         25      integer
+ATTRIBUTE       H3C-Connect-Id                          26      integer
+ATTRIBUTE       H3C-Portal-URL                          27      string
+ATTRIBUTE       H3C-Ftp-Directory                       28      string
+ATTRIBUTE       H3C-Exec-Privilege                      29      integer
+ATTRIBUTE       H3C-NAT-IP-Address                      32      ipaddr
+ATTRIBUTE       H3C-NAT-Start-Port                      33      integer
+ATTRIBUTE       H3C-NAT-End-Port                        34      integer
+ATTRIBUTE       H3C-NAS-Startup-Timestamp               59      integer
+ATTRIBUTE       H3C-Ip-Host-Addr                        60      string
+
+# ── RNAS extended BRAS attributes ──
+ATTRIBUTE       H3C-User-Priority                       70      integer
+ATTRIBUTE       H3C-NAS-Profile-Name                    71      string
+ATTRIBUTE       H3C-Domain-Name                         72      string
+ATTRIBUTE       H3C-IP-Pool-Name                        73      string
+ATTRIBUTE       H3C-User-ACL                            74      string
+ATTRIBUTE       H3C-Primary-DNS                         75      ipaddr
+ATTRIBUTE       H3C-Secondary-DNS                       76      ipaddr
+ATTRIBUTE       H3C-Idle-Cut                            77      integer
+ATTRIBUTE       H3C-Session-Timeout                     78      integer
+ATTRIBUTE       H3C-User-Group                          79      string
+ATTRIBUTE       H3C-VPN-Instance                        80      string
+ATTRIBUTE       H3C-Multicast-Profile                   81      string
+ATTRIBUTE       H3C-IPv6-Pool                           82      string
+ATTRIBUTE       H3C-IPv6-DNS-Primary                    83      ipv6addr
+ATTRIBUTE       H3C-IPv6-DNS-Secondary                  84      ipv6addr
+ATTRIBUTE       H3C-Delegated-IPv6-Prefix               85      ipv6prefix
+ATTRIBUTE       H3C-Command-Accounting                  86      integer
+ATTRIBUTE       H3C-Service-Type                        87      integer
+ATTRIBUTE       H3C-Service-Command                     88      string
+ATTRIBUTE       H3C-MAC-Authentication                  89      integer
 
 END-VENDOR      H3C

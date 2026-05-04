@@ -1,4 +1,4 @@
-# Cisco RADIUS VSA Dictionary
+# Cisco RADIUS VSA Dictionary (FreeRADIUS official + RNAS extensions)
 # Vendor ID: 9
 # Reference: Cisco IOS/IOS-XE BRAS
 
@@ -6,8 +6,11 @@ VENDOR          Cisco   9
 
 BEGIN-VENDOR    Cisco
 
+# ── Official FreeRADIUS attributes ──
 ATTRIBUTE       Cisco-AVPair                            1       string
 ATTRIBUTE       Cisco-NAS-Port                          2       string
+
+# ── RNAS extended BRAS attributes ──
 ATTRIBUTE       Cisco-Service-Info                      250     string
 ATTRIBUTE       Cisco-Command-Code                      251     integer
 ATTRIBUTE       Cisco-Control-Info                      252     string
@@ -26,7 +29,6 @@ ATTRIBUTE       Cisco-VPN-DNS-Server                    264     ipaddr
 ATTRIBUTE       Cisco-VPN-Domain-Name                   265     string
 ATTRIBUTE       Cisco-VPN-WINS-Server                   266     ipaddr
 ATTRIBUTE       Cisco-VPN-Split-Tunnel                  267     string
-ATTRIBUTE       Cisco-VPN-NBAR-Application              268     string
 ATTRIBUTE       Cisco-Input-Acl                         269     string
 ATTRIBUTE       Cisco-Output-Acl                        270     string
 ATTRIBUTE       Cisco-Subscriber-QoS-Policy             271     string

@@ -15,8 +15,8 @@ def test_vsa(name, value="test"):
 
 smoke_tests = {
     "Huawei":   "Huawei-QOS-Profile-Name=gold",
-    "H3C":      "H3C-NAS-Profile-Name=test",
-    "Cisco":    "Cisco-AVPair=test=value",
+    "H3C":      "H3C-Exec-Privilege=3",
+    "Cisco":    "Cisco-AVPair=test-value",
     "ZTE":      "ZTE-CAR-Profile-Name=premium",
     "Juniper":  "Juniper-Role-Name=super-user",
     "Aruba":    "Aruba-User-Role=guest",
