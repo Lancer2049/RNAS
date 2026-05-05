@@ -5,11 +5,11 @@ test('Dashboard loads and shows topbar', async ({ page }) => {
   await expect(page.locator('.topbar .brand')).toHaveText('RNAS', { timeout: 10000 });
 });
 
-test('9 sidebar links present', async ({ page }) => {
+test('11 sidebar links present', async ({ page }) => {
   await page.goto('http://192.168.0.203:8099');
   const links = page.locator('nav.sidebar a');
-  await expect(links).toHaveCount(9);
-  const names = [/Overview/, /Sessions/, /Interfaces/, /VPN/, /Config/, /Editor/, /Dictionary/, /Tools/, /System/];
+  await expect(links).toHaveCount(11);
+  const names = [/Overview/, /Sessions/, /Interfaces/, /Users/, /Auth/, /VPN/, /Config/, /Editor/, /Dictionary/, /Tools/, /System/];
   for (let i = 0; i < names.length; i++) {
     await expect(links.nth(i)).toHaveText(names[i]);
   }
