@@ -3,6 +3,7 @@
     <h2>Accounting Records</h2>
     <p class="hint">RADIUS accounting data (radacct) — session history</p>
     <button class="btn-refresh" @click="load" :disabled="loading">{{ loading ? '...' : 'Refresh' }}</button>
+    <button class="btn-export" @click="exportCSV" v-if="records.length">📥 CSV</button>
     <div class="table-wrap">
       <table v-if="records.length">
         <thead><tr><th>ID</th><th>User</th><th>NAS</th><th>Start</th><th>Stop</th><th>Dur</th><th>IP</th><th>RX</th><th>TX</th><th>Cause</th></tr></thead>
@@ -26,6 +27,12 @@ import { ref, onMounted } from 'vue'
 const records = ref([])
 const loading = ref(false)
 async function load() { loading=true; try{const r=await fetch('/api/aaa/acct');records.value=(await r.json()).records||[]}catch{};loading=false }
+function exportCSV() {
+  const hdr = 'ID,User,NAS,Start,Stop,Duration,IP,RX,TX,Cause\n'
+  const rows = records.value.map(r => [r.id,r.username,r.nas,r.start,r.stop,r.duration,r.ip,r.rx,r.tx,r.cause].join(',')).join('\n')
+  const blob = new Blob([hdr+rows],{type:'text/csv'})
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='radacct.csv'; a.click()
+}
 function fmtTime(t){return t?(t.split('.')[0]||t):'-'}
 function fmtDur(s){if(!s||s==='0')return'-';const n=parseInt(s);if(n<60)return n+'s';if(n<3600)return Math.floor(n/60)+'m';if(n<86400)return Math.floor(n/3600)+'h';return Math.floor(n/86400)+'d'}
 function fmtBytes(b){if(!b||b==='0')return'-';const n=parseInt(b);if(n<1024)return n+'B';if(n<1e6)return (n/1024).toFixed(1)+'K';return (n/1e6).toFixed(1)+'M'}
