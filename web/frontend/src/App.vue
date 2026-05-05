@@ -15,13 +15,20 @@
           <div class="section-title">Status</div>
           <a :class="{active:page==='overview'}" @click="page='overview'">📊 Overview</a>
           <a :class="{active:page==='sessions'}" @click="page='sessions'">
-            📋 Sessions
-            <span class="badge" v-if="sessions.length">{{ sessions.length }}</span>
+            📋 Sessions <span class="badge" v-if="sessions.length">{{ sessions.length }}</span>
           </a>
         </div>
         <div class="menu-section">
           <div class="section-title">Network</div>
           <a :class="{active:page==='network'}" @click="page='network'">🌐 Interfaces</a>
+        </div>
+        <div class="menu-section">
+          <div class="section-title">AAA</div>
+          <a :class="{active:page==='aaa-users'}" @click="page='aaa-users'">👥 Users</a>
+          <a :class="{active:page==='auth-logs'}" @click="page='auth-logs'">📜 Auth Logs</a>
+          <a :class="{active:page==='acct-records'}" @click="page='acct-records'">📊 Accounting</a>
+          <a :class="{active:page==='user-groups'}" @click="page='user-groups'">👥 Groups</a>
+          <a :class="{active:page==='nas-list'}" @click="page='nas-list'">🖥 NAS</a>
         </div>
         <div class="menu-section">
           <div class="section-title">Services</div>
@@ -55,6 +62,11 @@
         <ToolsPage v-if="page==='tools'" />
         <RADIUSEditor v-if="page==='radius-editor'" />
         <DictionaryBrowser v-if="page==='dictionary'" />
+        <AAAUsers v-if="page==='aaa-users'" />
+        <AuthLogs v-if="page==='auth-logs'" />
+        <AcctRecords v-if="page==='acct-records'" />
+        <UserGroups v-if="page==='user-groups'" />
+        <NASClients v-if="page==='nas-list'" />
         <SystemPage v-if="page==='system'" />
       </div>
     </div>
@@ -72,6 +84,11 @@ import ServicesConfig from './components/ServicesConfig.vue'
 import ToolsPage from './components/ToolsPage.vue'
 import RADIUSEditor from './components/RADIUSEditor.vue'
 import DictionaryBrowser from './components/DictionaryBrowser.vue'
+import AAAUsers from './components/AAAUsers.vue'
+import AuthLogs from './components/AuthLogs.vue'
+import AcctRecords from './components/AcctRecords.vue'
+import UserGroups from './components/UserGroups.vue'
+import NASClients from './components/NASClients.vue'
 import SystemPage from './components/SystemPage.vue'
 
 const page = ref('overview')
@@ -82,7 +99,7 @@ const airosOnline = ref(false)
 const airosUrl = ref('http://192.168.0.202:8000')
 
 const breadcrumb = computed(() => {
-  const m = { overview: 'Status / Overview', sessions: 'Status / Sessions', network: 'Network / Interfaces', services: 'Services / VPN', config: 'Services / Configuration', 'radius-editor': 'RADIUS / Editor', dictionary: 'RADIUS / Dictionary', tools: 'RADIUS / Tools', system: 'System' }
+  const m = { overview:'Status / Overview', sessions:'Status / Sessions', network:'Network / Interfaces', services:'Services / VPN', config:'Services / Configuration', 'radius-editor':'RADIUS / Editor', dictionary:'RADIUS / Dictionary', tools:'RADIUS / Tools', system:'System', 'aaa-users':'AAA / Users', 'auth-logs':'AAA / Auth Logs', 'acct-records':'AAA / Accounting', 'user-groups':'AAA / Groups', 'nas-list':'AAA / NAS Clients' }
   return m[page.value] || page.value
 })
 

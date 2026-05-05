@@ -223,6 +223,56 @@ class RNASHandler(SimpleHTTPRequestHandler):
                     interfaces.append({"name": parts[0], "state": parts[1], "ip": parts[2]})
             routes = subprocess.run(["ip", "route"], capture_output=True, text=True, timeout=3).stdout.strip()
             self.json(dict(interfaces=interfaces, routes=routes))
+        elif path == "/api/aaa/users":
+            result = subprocess.run(
+                "sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'PGPASSWORD=radpass psql -h localhost -U radius -d radius -t -c \"SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50\"'",
+                shell=True, capture_output=True, text=True, timeout=15).stdout
+            users = []
+            for line in result.splitlines():
+                parts = line.strip().split("|")
+                if len(parts) >= 3:
+                    users.append({"username": parts[0].strip(), "attribute": parts[1].strip(), "value": parts[2].strip()})
+            self.json(dict(users=users))
+        elif path == "/api/aaa/logs":
+            result = subprocess.run(
+                "sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'PGPASSWORD=radpass psql -h localhost -U radius -d radius -t -c \"SELECT id, username, reply, authdate FROM radpostauth ORDER BY id DESC LIMIT 50\"'",
+                shell=True, capture_output=True, text=True, timeout=15).stdout
+            logs = []
+            for line in result.splitlines():
+                parts = line.strip().split("|")
+                if len(parts) >= 4:
+                    logs.append({"id": parts[0].strip(), "username": parts[1].strip(), "reply": parts[2].strip(), "authdate": parts[3].strip()})
+            self.json(dict(logs=logs))
+        elif path == "/api/aaa/acct":
+            result = subprocess.run(
+                "sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'PGPASSWORD=radpass psql -h localhost -U radius -d radius -t -c \"SELECT radacctid, username, nasipaddress, acctstarttime, acctstoptime, acctsessiontime, framedipaddress, acctinputoctets, acctoutputoctets, acctterminatecause FROM radacct ORDER BY radacctid DESC LIMIT 100\"'",
+                shell=True, capture_output=True, text=True, timeout=15).stdout
+            records = []
+            for line in result.splitlines():
+                parts = [p.strip() for p in line.split("|")]
+                if len(parts) >= 10:
+                    records.append({"id":parts[0],"username":parts[1],"nas":parts[2],"start":parts[3],"stop":parts[4],"duration":parts[5],"ip":parts[6],"rx":parts[7],"tx":parts[8],"cause":parts[9]})
+            self.json(dict(records=records))
+        elif path == "/api/aaa/groups":
+            result = subprocess.run(
+                "sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'PGPASSWORD=radpass psql -h localhost -U radius -d radius -t -c \"SELECT id, username, groupname, priority FROM radusergroup ORDER BY priority, username LIMIT 100\"'",
+                shell=True, capture_output=True, text=True, timeout=15).stdout
+            groups = []
+            for line in result.splitlines():
+                parts = [p.strip() for p in line.split("|")]
+                if len(parts) >= 4:
+                    groups.append({"id":parts[0],"username":parts[1],"groupname":parts[2],"priority":parts[3]})
+            self.json(dict(groups=groups))
+        elif path == "/api/aaa/nas":
+            result = subprocess.run(
+                "sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'PGPASSWORD=radpass psql -h localhost -U radius -d radius -t -c \"SELECT id, nasname, shortname, type, ports, secret, server FROM nas ORDER BY id\"'",
+                shell=True, capture_output=True, text=True, timeout=15).stdout
+            nas_list = []
+            for line in result.splitlines():
+                parts = [p.strip() for p in line.split("|")]
+                if len(parts) >= 7:
+                    nas_list.append({"id":parts[0],"nasname":parts[1],"shortname":parts[2],"type":parts[3],"ports":parts[4],"secret":parts[5],"server":parts[6]})
+            self.json(dict(nas=nas_list))
         elif path.startswith("/api/system/service/"):
             parts = path.split("/")
             svc = parts[4] if len(parts) > 4 else ""
