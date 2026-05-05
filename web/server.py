@@ -214,6 +214,24 @@ class RNASHandler(SimpleHTTPRequestHandler):
             except:
                 out = "Logs unavailable"
             self.json(dict(logs=out))
+        elif path == "/api/network/status":
+            interfaces = []
+            out = subprocess.run(["ip", "-br", "addr"], capture_output=True, text=True, timeout=3).stdout
+            for line in out.splitlines():
+                parts = line.split()
+                if len(parts) >= 3:
+                    interfaces.append({"name": parts[0], "state": parts[1], "ip": parts[2]})
+            routes = subprocess.run(["ip", "route"], capture_output=True, text=True, timeout=3).stdout.strip()
+            self.json(dict(interfaces=interfaces, routes=routes))
+        elif path.startswith("/api/system/service/"):
+            parts = path.split("/")
+            svc = parts[4] if len(parts) > 4 else ""
+            action = parts[5] if len(parts) > 5 else "status"
+            if svc and action in ("start", "stop", "restart"):
+                out = subprocess.run(["systemctl", action, svc], capture_output=True, text=True, timeout=10)
+                self.json(dict(success=out.returncode==0, service=svc, action=action, output=out.stdout+out.stderr))
+            else:
+                self.json(dict(success=False, error="Invalid service or action"))
         elif path == "/api/airos/status":
             import urllib.request
             try:
