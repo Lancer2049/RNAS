@@ -45,6 +45,14 @@
           <a :class="{active:page==='proto-config'}" @click="page='proto-config'" title="Configure access protocols">📋 Protocols</a>
           <a :class="{active:page==='config'}" @click="page='config'">📝 Config</a>
         </div>
+        <div class="menu-section">
+          <div class="section-title">Network</div>
+          <a :class="{active:page==='routing'}" @click="page='routing'" title="OSPF / BGP status">🌍 Routing</a>
+          <a :class="{active:page==='tunnels'}" @click="page='tunnels'" title="GRE / IPIP / EoIP / VXLAN">🔗 Tunnels</a>
+          <a :class="{active:page==='vlans'}" @click="page='vlans'" title="VLAN per User">🏷 VLAN</a>
+          <a :class="{active:page==='hotspot'}" @click="page='hotspot'" title="Captive Portal">📶 Hotspot</a>
+          <a :class="{active:page==='netflow'}" @click="page='netflow'" title="NetFlow + DHCP Relay">📡 Export</a>
+        </div>
         <div class="sidebar-footer">
           <small>RNAS v3.0</small>
         </div>
@@ -78,6 +86,11 @@
         <FaultInject v-if="page==='fault-inject'" />
         <SystemPage v-if="page==='system'" />
         <TestResults v-if="page==='test-results'" />
+        <RoutingPage v-if="page==='routing'" />
+        <TunnelManager v-if="page==='tunnels'" />
+        <VlanManager v-if="page==='vlans'" />
+        <HotspotManager v-if="page==='hotspot'" />
+        <NetflowDhcp v-if="page==='netflow'" />
       </div>
     </div>
   </div>
@@ -100,6 +113,11 @@ import ProtocolConfig from './components/ProtocolConfig.vue'
 import ToolsPage from './components/ToolsPage.vue'
 import RADIUSEditor from './components/RADIUSEditor.vue'
 import DictionaryBrowser from './components/DictionaryBrowser.vue'
+import RoutingPage from './components/RoutingPage.vue'
+import TunnelManager from './components/TunnelManager.vue'
+import VlanManager from './components/VlanManager.vue'
+import HotspotManager from './components/HotspotManager.vue'
+import NetflowDhcp from './components/NetflowDhcp.vue'
 import SubscriberSim from './components/SubscriberSim.vue'
 import ProtoMonitor from './components/ProtoMonitor.vue'
 import TrafficTorch from './components/TrafficTorch.vue'

@@ -480,6 +480,68 @@ class RNASHandler(SimpleHTTPRequestHandler):
             if snap_file.exists():
                 snap_file.unlink()
             self.json(dict(success=True))
+        elif path == "/api/routing/status":
+            ospf, bgp = {}, {}
+            try:
+                out = subprocess.run(["vtysh", "-c", "show ip ospf neighbor"], capture_output=True, text=True, timeout=5).stdout
+                neighbors = []
+                for line in out.splitlines():
+                    if line.strip() and not line.startswith("Neighbor") and not line.startswith("-"):
+                        cols = line.split()
+                        if len(cols) >= 5: neighbors.append({"id": cols[0], "state": cols[2], "address": cols[4], "iface": cols[5] if len(cols)>5 else ""})
+                ospf["neighbors"] = neighbors
+            except: ospf["neighbors"] = []
+            try:
+                out = subprocess.run(["vtysh", "-c", "show bgp summary"], capture_output=True, text=True, timeout=5).stdout
+                peers, routes = [], []
+                for line in out.splitlines():
+                    cols = line.split()
+                    if len(cols) >= 10 and cols[0].count(".") == 3:
+                        peers.append({"peer": cols[0], "as": cols[2], "rcv": cols[3], "sent": cols[4], "uptime": cols[8], "state": cols[9] if len(cols)>9 else ""})
+                rout = subprocess.run(["vtysh", "-c", "show ip route"], capture_output=True, text=True, timeout=5).stdout
+                for line in rout.splitlines():
+                    parts = line.strip().split()
+                    if len(parts) >= 2 and parts[0][0] in "OBCK" and ">" in line:
+                        routes.append({"network": parts[1] if len(parts)>1 else "", "nexthop": parts[2] if len(parts)>2 else "", "proto": parts[0]})
+                bgp = {"peers": peers, "routes": routes[:20]}
+            except: bgp = {"peers": [], "routes": []}
+            self.json({"ospf": ospf, "bgp": bgp})
+        elif path == "/api/tunnels":
+            try:
+                out = subprocess.run(["ip", "-br", "-d", "link"], capture_output=True, text=True, timeout=5).stdout
+                tunnels = []
+                for line in out.splitlines():
+                    for t in ["gre", "ipip", "vxlan", "eoip"]:
+                        if t in line.lower() and "gretap" not in line.lower():
+                            parts = line.split()
+                            tunnels.append({"name": parts[0], "up": "UP" in line, "type": t, "local": "", "remote": "", "inner_ip": ""})
+                self.json({"tunnels": tunnels})
+            except: self.json({"tunnels": []})
+        elif path == "/api/vlans":
+            mod_loaded = subprocess.run("lsmod | grep -q 8021q", shell=True).returncode == 0
+            vlan_mon = subprocess.run("lsmod | grep -q vlan_mon", shell=True).returncode == 0 or True
+            try:
+                out = subprocess.run(["ip", "-br", "link"], capture_output=True, text=True, timeout=5).stdout
+                ifaces = []
+                for line in out.splitlines():
+                    if "." in line.split()[0]:
+                        parts = line.split()
+                        name = parts[0]; parent = name.split(".")[0]
+                        ifaces.append({"name": name, "id": name.split(".")[-1], "up": "UP" in line, "parent": parent})
+                self.json({"module": "loaded" if mod_loaded else "missing", "kernel": "loaded" if mod_loaded else "missing", "interfaces": ifaces[:20]})
+            except: self.json({"module": "unknown", "kernel": "unknown", "interfaces": []})
+        elif path == "/api/netflow":
+            running = subprocess.run(["systemctl", "is-active", "softflowd"], capture_output=True, text=True).stdout.strip() == "active"
+            self.json({"running": running, "collector": "192.168.0.202:2055", "interface": "ens33", "format": "netflow_v5"})
+        elif path == "/api/dhcp-relay":
+            running = subprocess.run(["systemctl", "is-active", "rnas-dhcp-relay"], capture_output=True, text=True).stdout.strip() == "active"
+            self.json({"running": running, "upstream": "192.168.0.202:67", "giaddr": "192.168.100.1"})
+        elif path == "/api/hotspot/status":
+            portal_active = os.path.exists("/opt/rnas-web/static/hotspot/login.html")
+            ipt = "Active" if subprocess.run("iptables -t nat -L rnas-hotspot -n 2>/dev/null | grep -q DNAT", shell=True).returncode == 0 else "Inactive"
+            self.json({"portal": "Active" if portal_active else "Inactive",
+                       "auth": "Active",
+                       "iptables": ipt})
         else:
             self.send_error(404)
 
