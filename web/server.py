@@ -6,16 +6,18 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from rnas_config import write_config_section, walk_config_tree
 from rnas_dict.dictionary import load_all, search as dict_search
+from rnas_env import get_env
 
-DICT_DIR = Path("/etc/rnas/dictionary")
+_env = get_env()
 
-STATIC_DIR = Path(__file__).parent / "static"
+DICT_DIR = _env.dict_dir
+STATIC_DIR = _env.static_dir
 API_ONLY = False
 
 
 def run_accel_cmd(*args):
     try:
-        return subprocess.run(["/usr/bin/accel-cmd"] + list(args),
+        return subprocess.run([_env.accel_cmd_bin] + list(args),
                               capture_output=True, text=True, timeout=5).stdout
     except Exception:
         return ""
@@ -160,17 +162,17 @@ class RNASHandler(SimpleHTTPRequestHandler):
                 attr_pairs.append(attrs)
             payload = ",".join(attr_pairs)
             out = subprocess.run(
-                ["radclient", "-r", "1", "-t", "3", "192.168.0.202:1812", "auth", "testing123"],
+                ["radclient", "-r", "1", "-t", "3", f"{_env.radius_host}:{_env.radius_auth_port}", "auth", _env.radius_secret],
                 input=payload, capture_output=True, text=True, timeout=10).stdout + "\n" + \
                 subprocess.run(
-                ["radclient", "-r", "1", "-t", "3", "192.168.0.202:1812", "auth", "testing123"],
+                ["radclient", "-r", "1", "-t", "3", f"{_env.radius_host}:{_env.radius_auth_port}", "auth", _env.radius_secret],
                 input=payload, capture_output=True, text=True, timeout=10).stderr
             self.json(dict(output=out.strip(), payload=payload))
         elif path == "/api/tools/radius-send":
             content_len = int(self.headers.get("Content-Length", 0))
             data = json.loads(self.rfile.read(content_len))
-            server = data.get("server", "192.168.0.202:1812")
-            secret = data.get("secret", "testing123")
+            server = data.get("server", f"{_env.radius_host}:{_env.radius_auth_port}")
+            secret = data.get("secret", _env.radius_secret)
             port_type = data.get("type", "auth")
             attributes = data.get("attributes", [])
             pairs = [f"{a['name']}={a['value']}" for a in attributes if a.get('name') and a.get('value')]
@@ -183,7 +185,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
             qs = parse_qs(urlparse(self.path).query)
             user = qs.get("user", [""])[0]
             out = subprocess.run(
-                f"echo 'User-Name={user}' | radclient -r 1 -t 5 127.0.0.1:3799 disconnect testing123",
+                f"echo 'User-Name={user}' | radclient -r 1 -t 5 127.0.0.1:{_env.radius_coa_port} disconnect {_env.radius_secret}",
                 shell=True, capture_output=True, text=True, timeout=10).stdout
             self.json(dict(output=out))
         elif path == "/api/system/status":
@@ -234,8 +236,8 @@ class RNASHandler(SimpleHTTPRequestHandler):
             self.json(dict(interfaces=interfaces, routes=routes, arp=arp, leases=leases, firewall=firewall))
         elif path == "/api/aaa/users":
             result = subprocess.run(
-                "sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'PGPASSWORD=radpass psql -h localhost -U radius -d radius -t -c \"SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50\"'",
-                shell=True, capture_output=True, text=True, timeout=15).stdout
+                _env.db_query("SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50"),
+                capture_output=True, text=True, timeout=15).stdout
             users = []
             for line in result.splitlines():
                 parts = line.strip().split("|")
@@ -272,16 +274,19 @@ class RNASHandler(SimpleHTTPRequestHandler):
             user = qs.get("user", ["testuser"])[0]
             passwd = qs.get("pass", ["testpass"])[0]
             if proto == "l2tp":
-                subprocess.run("sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.201 'systemctl start xl2tpd 2>/dev/null; sleep 4; echo c rnas > /var/run/xl2tpd/l2tp-control'", shell=True, timeout=15)
+                subprocess.run(_env.ssh_cmd(_env.cpe_host,
+                    'systemctl start xl2tpd 2>/dev/null; sleep 4; echo c rnas > /var/run/xl2tpd/l2tp-control'), timeout=15)
                 time.sleep(8)
-                out2 = subprocess.run("sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.201 'ip addr show dev ppp0 2>&1 | grep inet'", shell=True, capture_output=True, text=True, timeout=10)
+                out2 = subprocess.run(_env.ssh_cmd(_env.cpe_host,
+                    'ip addr show dev ppp0 2>&1 | grep inet'), capture_output=True, text=True, timeout=10)
                 ip = out2.stdout.strip().split()[-1].split('/')[0] if 'inet' in out2.stdout else None
                 self.json(dict(success=ip is not None, ip=ip, protocol=proto))
             else:
                 peer_map = {"pppoe":"rnas-pppoe","pptp":"rnas-pptp","sstp":"rnas-sstp"}
                 peer = peer_map.get(proto, "rnas-pppoe")
-                cmd = f"sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.201 \"timeout 12 pppd call {peer} user {user} password {passwd} nodetach 2>&1\""
-                out = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=20)
+                cmd = _env.ssh_cmd(_env.cpe_host,
+                    f"timeout 12 pppd call {peer} user {user} password {passwd} nodetach 2>&1")
+                out = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
                 ip = None
                 for line in out.stdout.splitlines():
                     if 'local  IP address' in line:
@@ -290,11 +295,13 @@ class RNASHandler(SimpleHTTPRequestHandler):
                 ok = 'PAP authentication succeeded' in out.stdout
                 self.json(dict(success=ok, ip=ip, protocol=proto))
         elif path == "/api/sim/stop":
-            subprocess.run("sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.201 'pkill pppd; pkill xl2tpd; pkill sstpc'", shell=True, timeout=10)
-            subprocess.run("/home/lancer/projects/RNAS/build/accel-ppp/install/usr/bin/accel-cmd terminate all 2>/dev/null", shell=True, timeout=5)
+            subprocess.run(_env.ssh_cmd(_env.cpe_host,
+                'pkill pppd; pkill xl2tpd; pkill sstpc'), timeout=10)
+            subprocess.run(_env.ssh_cmd(_env.cpe_host, 'accel-cmd terminate all 2>/dev/null'), timeout=5)
             self.json(dict(success=True))
         elif path == "/api/sim/fault/radius-timeout":
-            subprocess.run("sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'iptables -A INPUT -p udp --dport 1812 -j DROP'", shell=True, timeout=10)
+            subprocess.run(_env.ssh_cmd(_env.radius_host,
+                'iptables -A INPUT -p udp --dport 1812 -j DROP'), timeout=10)
             self.json(dict(success=True))
         elif path == "/api/sim/fault/radius-reject":
             self.json(dict(success=True, info="Use wrong password in Subscriber Sim"))
@@ -305,12 +312,13 @@ class RNASHandler(SimpleHTTPRequestHandler):
             subprocess.run("tc qdisc add dev ens33 root netem loss 10% 2>/dev/null", shell=True, timeout=5)
             self.json(dict(success=True))
         elif path == "/api/sim/fault/clear":
-            subprocess.run("sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'iptables -D INPUT -p udp --dport 1812 -j DROP 2>/dev/null'", shell=True, timeout=10)
+            subprocess.run(_env.ssh_cmd(_env.radius_host,
+                'iptables -D INPUT -p udp --dport 1812 -j DROP 2>/dev/null'), timeout=10)
             subprocess.run("tc qdisc del dev ens33 root 2>/dev/null", shell=True, timeout=5)
             self.json(dict(success=True))
         elif path == "/api/aaa/acct":
             result = subprocess.run(
-                "sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'PGPASSWORD=radpass psql -h localhost -U radius -d radius -t -c \"SELECT radacctid, username, nasipaddress, acctstarttime, acctstoptime, acctsessiontime, framedipaddress, acctinputoctets, acctoutputoctets, acctterminatecause FROM radacct ORDER BY radacctid DESC LIMIT 100\"'",
+                _env.db_query_str("SELECT radacctid, username, nasipaddress, acctstarttime, acctstoptime, acctsessiontime, framedipaddress, acctinputoctets, acctoutputoctets, acctterminatecause FROM radacct ORDER BY radacctid DESC LIMIT 100"),
                 shell=True, capture_output=True, text=True, timeout=15).stdout
             records = []
             for line in result.splitlines():
@@ -320,7 +328,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
             self.json(dict(records=records))
         elif path == "/api/aaa/groups":
             result = subprocess.run(
-                "sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'PGPASSWORD=radpass psql -h localhost -U radius -d radius -t -c \"SELECT id, username, groupname, priority FROM radusergroup ORDER BY priority, username LIMIT 100\"'",
+                _env.db_query_str("SELECT id, username, groupname, priority FROM radusergroup ORDER BY priority, username LIMIT 100"),
                 shell=True, capture_output=True, text=True, timeout=15).stdout
             groups = []
             for line in result.splitlines():
@@ -330,7 +338,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
             self.json(dict(groups=groups))
         elif path == "/api/aaa/nas":
             result = subprocess.run(
-                "sshpass -p 123456 ssh -o StrictHostKeyChecking=no root@192.168.0.202 'PGPASSWORD=radpass psql -h localhost -U radius -d radius -t -c \"SELECT id, nasname, shortname, type, ports, secret, server FROM nas ORDER BY id\"'",
+                _env.db_query_str("SELECT id, nasname, shortname, type, ports, secret, server FROM nas ORDER BY id"),
                 shell=True, capture_output=True, text=True, timeout=15).stdout
             nas_list = []
             for line in result.splitlines():
@@ -350,11 +358,11 @@ class RNASHandler(SimpleHTTPRequestHandler):
         elif path == "/api/airos/status":
             import urllib.request
             try:
-                req = urllib.request.Request("http://192.168.0.202:8000/docs", method="GET")
+                req = urllib.request.Request(f"{_env.airos_url}/docs", method="GET")
                 urllib.request.urlopen(req, timeout=3)
-                self.json(dict(online=True, url="http://192.168.0.202:8000", freeradius_port=1812))
+                self.json(dict(online=True, url=_env.airos_url, freeradius_port=_env.radius_auth_port))
             except:
-                self.json(dict(online=False, url="http://192.168.0.202:8000"))
+                self.json(dict(online=False, url=_env.airos_url))
         elif path == "/api/config":
             config = walk_config_tree(Path("/etc/rnas"))
             self.json(dict(success=True, config=config))

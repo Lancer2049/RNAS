@@ -90,7 +90,7 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
     # Modules
     w("[modules]")
     mod_list = ["pppoe", "ipoe", "l2tp", "pptp", "sstp", "auth_pap", "auth_chap_md5",
-                "auth_mschap_v1", "auth_mschap_v2", "radius", "ippool", "connlimit", "pppd_compat", "log_file"]
+                "auth_mschap_v1", "auth_mschap_v2", "radius", "ippool", "connlimit", "pppd_compat", "log_file", "vlan-mon"]
     for m in mod_list:
         if modules.get(m, "no") == "yes" or core.get(m, "no") == "yes":
             w(m)
@@ -156,13 +156,17 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
     if acct.get("message_authenticator") == "yes": w("message-authenticator=1")
     w()
 
+    # Client IP Range (for L2TP/PPTP/SSTP tunnel source filtering)
+    cr = get_section("access.d.client_range")
+    w("[client-ip-range]")
+    if cr.get("subnet"):
+        w(f"{cr['subnet']}")
+    else:
+        w("0.0.0.0/0")
+    w()
+
     # IP Pool
     pool = get_section("access.d.pool/default")
-    cr = get_section("access.d.client_range")
-    if cr.get("subnet"):
-        w("[client-ip-range]")
-        w(f"{cr['subnet']}")
-        w()
     w("[ip-pool]")
     if pool.get("gateway"): w(f"gw-ip-address={pool['gateway']}")
     if pool.get("attr"): w(f"attr={pool['attr']}")
@@ -186,6 +190,7 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
             w(f"interface={iface}")
         if pconf.get("ac_name"): w(f"ac-name={pconf['ac_name']}")
         if pconf.get("service_name"): w(f"service-name={pconf['service_name']}")
+        if pconf.get("bind"): w(f"bind={pconf['bind']}")
         if pconf.get("port"): w(f"port={pconf['port']}")
         if pconf.get("accept"): w(f"accept={pconf['accept']}")
         if pconf.get("ssl_pemfile"): w(f"ssl-pemfile={pconf['ssl_pemfile']}")
