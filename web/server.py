@@ -7,6 +7,7 @@ from urllib.parse import urlparse, parse_qs
 from rnas_config import write_config_section, walk_config_tree
 from rnas_dict.dictionary import load_all, search as dict_search
 from rnas_env import get_env
+from rnas_env import get_env
 
 _env = get_env()
 
@@ -65,6 +66,9 @@ class RNASHandler(SimpleHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/api/ws":
             self.handle_websocket()
+        elif path.startswith("/hotspot"):
+            self.path = "/hotspot/login.html"
+            super().do_GET()
         elif path.startswith("/api/"):
             self.handle_api(path)
         else:
@@ -72,10 +76,32 @@ class RNASHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path.startswith("/api/"):
+        if path == "/hotspot/login":
+            self._handle_hotspot_login()
+        elif path.startswith("/api/"):
             self.handle_api(path)
         else:
             self.send_error(404)
+
+    def _handle_hotspot_login(self):
+        cl = int(self.headers.get("Content-Length", 0))
+        body = parse_qs(self.rfile.read(cl).decode())
+        user, pwd = body.get("username", [""])[0], body.get("password", [""])[0]
+        if not user:
+            self.send_error(400); return
+        payload = f"User-Name={user},User-Password={pwd}"
+        from rnas_env import get_env
+        env = get_env()
+        result = subprocess.run(
+            ["radclient", "-r", "1", "-t", "3", f"{env.radius_host}:{env.radius_auth_port}",
+             "auth", env.radius_secret],
+            input=payload, capture_output=True, text=True, timeout=10)
+        ok = "Access-Accept" in result.stdout
+        self.send_response(302 if ok else 403)
+        self.send_header("Content-Type", "text/plain")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(b"Authenticated" if ok else b"Access Denied")
 
     def do_PUT(self):
         path = urlparse(self.path).path
