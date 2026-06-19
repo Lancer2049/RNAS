@@ -412,13 +412,13 @@ def generate_dot1x(config: Dict[str, Dict[str, str]]) -> str:
     out.append(f"interface={g.get('interface', 'ens33')}")
     out.append("driver=wired")
     out.append("ieee8021x=1")
+    out.append("eapol_version=2")
     out.append(f"auth_server_addr={g.get('auth_server', '192.168.0.202')}")
     out.append(f"auth_server_port={g.get('auth_port', '1812')}")
     out.append(f"auth_server_shared_secret={g.get('auth_secret', 'testing123')}")
     out.append("eap_server=0")
     out.append(f"nas_identifier={g.get('nas_identifier', 'rnas-dot1x')}")
-    for m in g.get("eap_methods", "md5").split(","):
-        out.append(f"eap_method={m.strip()}")
+    # EAP methods are configured in FreeRADIUS, not hostapd
     if g.get("ca_cert"): out.append(f"ca_cert={g['ca_cert']}")
     if g.get("server_cert"): out.append(f"server_cert={g['server_cert']}")
     if g.get("private_key"): out.append(f"private_key={g['private_key']}")
