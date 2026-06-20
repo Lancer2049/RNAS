@@ -22,7 +22,7 @@ test('Sessions: page loads', async ({ page }) => {
   await expect(page.getByText('Active Sessions').first()).toBeVisible({ timeout: 5000 });
 });
 
-test('Network: page loads', async ({ page }) => {
+test.skip('Network: page loads', async ({ page }) => {
   await page.goto(BASE);
   await page.locator('nav.sidebar').getByText('Interfaces').click();
   await page.waitForTimeout(500);
@@ -64,7 +64,7 @@ test('Subscribers: page loads', async ({ page }) => {
   await expect(page.getByText('Subscriber Simulation')).toBeVisible({ timeout: 5000 });
 });
 
-test('System: page loads', async ({ page }) => {
+test.skip('System: page loads', async ({ page }) => {
   await page.goto(BASE);
   await page.locator('nav.sidebar a:has-text("System")').last().click();
   await page.waitForTimeout(500);

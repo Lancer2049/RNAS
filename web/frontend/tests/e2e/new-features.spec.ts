@@ -106,7 +106,7 @@ test.describe('System Integration Checks', () => {
   });
 
   test('Config export returns valid structure', async ({ request }) => {
-    const resp = await request.get(`${BASE}/api/config/export`);
+    const resp = await request.get(`${BASE}/api/config-export`);
     expect(resp.status()).toBe(200);
     const json = await resp.json();
     expect(json.rnas_version).toBeDefined();
