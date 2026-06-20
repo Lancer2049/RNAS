@@ -229,6 +229,99 @@ async def dhcp_leases():
                 leases.append({"timestamp": parts[0], "mac": parts[1], "ip": parts[2], "hostname": parts[3], "client_id": parts[4], "vendor": _vendor(parts[1])})
     return {"leases": leases, "count": len(leases)}
 
+
+
+@router.get("/ip/dhcp-static")
+async def dhcp_static():
+    """DHCP static leases from dnsmasq config"""
+    import re
+    static_file = "/etc/dnsmasq.d/static.conf"
+    try:
+        lines = open(static_file).readlines()
+    except:
+        lines = []
+    entries = []
+    for line in lines:
+        line = line.strip()
+        if line.startswith("dhcp-host=") or line.startswith("#"):
+            content = line.replace("dhcp-host=", "").replace("#", "").strip()
+            parts = [p.strip() for p in content.split(",")]
+            mac = parts[0] if len(parts) > 0 else ""
+            ip = parts[1] if len(parts) > 1 else ""
+            hostname = parts[2] if len(parts) > 2 else ""
+            entries.append({"mac": mac, "ip": ip, "hostname": hostname, "enabled": not line.startswith("#")})
+    return {"static": entries, "count": len(entries)}
+
+@router.post("/ip/dhcp-static")
+async def add_dhcp_static(data: dict = Body(...)):
+    """Add DHCP static lease: { mac, ip, hostname? }"""
+    mac = data.get("mac", "")
+    ip = data.get("ip", "")
+    hostname = data.get("hostname", "")
+    if not mac or not ip:
+        raise HTTPException(400, "mac and ip are required")
+    static_file = "/etc/dnsmasq.d/static.conf"
+    line = f"dhcp-host={mac},{ip}" + (f",{hostname}" if hostname else "") + "\n"
+    with open(static_file, "a") as fh:
+        fh.write(line)
+    subprocess.run(["systemctl", "restart", "dnsmasq"], capture_output=True, timeout=5)
+    return {"ok": True, "mac": mac, "ip": ip}
+
+@router.delete("/ip/dhcp-static")
+async def del_dhcp_static(data: dict = Body(...)):
+    """Delete DHCP static lease by mac"""
+    mac = data.get("mac", "")
+    if not mac:
+        raise HTTPException(400, "mac is required")
+    static_file = "/etc/dnsmasq.d/static.conf"
+    try:
+        lines = open(static_file).readlines()
+    except:
+        raise HTTPException(404, "no static config")
+    new_lines = [l for l in lines if mac.upper() not in l.upper()]
+    if len(new_lines) == len(lines):
+        raise HTTPException(404, f"mac {mac} not found")
+    with open(static_file, "w") as fh:
+        fh.writelines(new_lines)
+    subprocess.run(["systemctl", "restart", "dnsmasq"], capture_output=True, timeout=5)
+    return {"ok": True, "mac": mac}
+
+@router.get("/ip/addresses")
+async def ip_addresses():
+    """Interface IP addresses"""
+    out = subprocess.run("ip -4 -br addr show", shell=True, capture_output=True, text=True, timeout=3).stdout
+    addrs = []
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) >= 3 and parts[1].upper() == "UP":
+            addrs.append({"name": parts[0], "ip": parts[2], "state": "UP"})
+        elif len(parts) >= 3:
+            addrs.append({"name": parts[0], "ip": parts[2], "state": parts[1]})
+    return {"addresses": addrs, "count": len(addrs)}
+
+@router.post("/ip/addresses")
+async def add_ip_address(data: dict = Body(...)):
+    """Add IP to interface: { iface: str, ip: str }"""
+    iface = data.get("iface", "")
+    ip = data.get("ip", "")
+    if not iface or not ip:
+        raise HTTPException(400, "iface and ip are required")
+    res = subprocess.run(["ip", "addr", "add", ip, "dev", iface], capture_output=True, text=True, timeout=5)
+    if res.returncode != 0:
+        raise HTTPException(400, res.stderr.strip())
+    return {"ok": True, "iface": iface, "ip": ip}
+
+@router.delete("/ip/addresses")
+async def del_ip_address(data: dict = Body(...)):
+    """Delete IP from interface: { iface: str, ip: str }"""
+    iface = data.get("iface", "")
+    ip = data.get("ip", "")
+    if not iface or not ip:
+        raise HTTPException(400, "iface and ip are required")
+    res = subprocess.run(["ip", "addr", "del", ip, "dev", iface], capture_output=True, text=True, timeout=5)
+    if res.returncode != 0:
+        raise HTTPException(400, res.stderr.strip())
+    return {"ok": True, "iface": iface, "ip": ip}
 @router.get("/system/log")
 async def system_log(lines: int = 50, unit: str = "", level: str = ""):
     cmd = ["journalctl", "--no-pager", "-n", str(lines)]

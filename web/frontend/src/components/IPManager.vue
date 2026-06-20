@@ -1,7 +1,7 @@
 <template>
   <div class="ros-ip">
     <div class="ros-tabs">
-      <button v-for="t in tabs" :key="t.id" :class="{sel: tab===t.id}" @click="tab=t.id; t.id==='arp'?fetchArp():t.id==='fw'?fetchFW():t.id==='dhcp'?fetchDHCP():fetchRoutes()">
+      <button v-for="t in tabs" :key="t.id" :class="{sel: tab===t.id}" @click="switchTab(t.id)">
         {{ t.label }} <span v-if="t.count" class="ct">{{ t.count }}</span>
       </button>
     </div>
@@ -53,6 +53,28 @@
       <div v-else class="empty">No active DHCP leases</div>
     </div>
 
+    <!-- DHCP Static Leases -->
+    <div v-if="tab==='static'" class="tab-body">
+      <div class="fw-head"><h3>Static Leases</h3><button class="btn-mini" @click="showStaticAdd=!showStaticAdd">+ Add</button></div>
+      <div v-if="showStaticAdd" class="fw-add">
+        <input v-model="newStaticMac" placeholder="MAC (e.g. aa:bb:cc:dd:ee:ff)" />
+        <input v-model="newStaticIp" placeholder="IP (e.g. 192.168.100.50)" />
+        <input v-model="newStaticHost" placeholder="Hostname (optional)" class="short" />
+        <button class="btn-mini" @click="addStatic">Add</button>
+        <button class="btn-cancel" @click="showStaticAdd=false; newStaticMac=''; newStaticIp=''; newStaticHost=''">Cancel</button>
+      </div>
+      <table v-if="dhcpStatic.length">
+        <thead><tr><th>MAC</th><th>IP</th><th>Hostname</th><th></th></tr></thead>
+        <tbody>
+          <tr v-for="s in dhcpStatic" :key="s.mac" :class="{disabled: !s.enabled}">
+            <td class="mono">{{ s.mac }}</td><td class="mono">{{ s.ip }}</td><td>{{ s.hostname || '-' }}</td>
+            <td><button class="btn-del always" @click="delStatic(s.mac)">✕</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <div v-if="!dhcpStatic.length && !showStaticAdd" class="empty">No static leases</div>
+    </div>
+
     <!-- Routes -->
     <div v-if="tab==='routes'" class="tab-body">
       <table v-if="routes.length">
@@ -64,23 +86,88 @@
         </tbody>
       </table>
     </div>
+
+    <!-- IP Addresses -->
+    <div v-if="tab==='addr'" class="tab-body">
+      <div class="fw-head"><h3>Interface IP Addresses</h3><button class="btn-mini" @click="showAddrAdd=!showAddrAdd">+ Add</button></div>
+      <div v-if="showAddrAdd" class="fw-add">
+        <input v-model="newAddrIface" placeholder="Interface name" />
+        <input v-model="newAddrIp" placeholder="IP/CIDR" />
+        <button class="btn-mini" @click="addAddr">Add</button>
+        <button class="btn-cancel" @click="showAddrAdd=false; newAddrIface=''; newAddrIp=''">Cancel</button>
+      </div>
+      <table v-if="addrs.length">
+        <thead><tr><th>Interface</th><th>IP Address</th><th>State</th><th></th></tr></thead>
+        <tbody>
+          <tr v-for="a in addrs" :key="a.name + a.ip" :class="{down: a.state !== 'UP'}">
+            <td class="mono">{{ a.name }}</td><td class="mono">{{ a.ip }}</td>
+            <td><span :class="'tag '+(a.state.toLowerCase())">{{ a.state }}</span></td>
+            <td><button class="btn-del always" @click="delAddr(a.name, a.ip)" :disabled="a.name==='lo'">✕</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 const tab = ref('arp')
-const tabs = [{id:'arp',label:'ARP'},{id:'dhcp',label:'DHCP'},{id:'fw',label:'Firewall'},{id:'routes',label:'Routes'}]
-const arp = ref([]), fwChains = ref([]), dhcp = ref([]), routes = ref([])
+const tabs = [ {id:'arp',label:'ARP'}, {id:'dhcp',label:'DHCP'}, {id:'static',label:'Static'}, {id:'fw',label:'Firewall'}, {id:'routes',label:'Routes'}, {id:'addr',label:'Addresses'} ]
+const arp = ref([]), fwChains = ref([]), dhcp = ref([]), routes = ref([]), dhcpStatic = ref([]), addrs = ref([])
 const addTarget = ref(''), newRule = ref('')
+const showStaticAdd = ref(false), newStaticMac = ref(''), newStaticIp = ref(''), newStaticHost = ref('')
+const showAddrAdd = ref(false), newAddrIface = ref(''), newAddrIp = ref('')
+
+function switchTab(id) {
+  tab.value = id
+  if (id === 'arp') fetchArp()
+  else if (id === 'fw') fetchFW()
+  else if (id === 'dhcp') fetchDHCP()
+  else if (id === 'static') fetchStatic()
+  else if (id === 'addr') fetchAddr()
+  else if (id === 'routes') fetchRoutes()
+}
 
 async function fetchArp() { try{const r=await fetch('/api/ip/arp'); arp.value=(await r.json()).arp||[]; tabs[0].count=arp.value.length}catch{} }
 async function fetchFW() { try{const r=await fetch('/api/ip/firewall-full'); fwChains.value=(await r.json()).chains||[]}catch(e){ try{const r2=await fetch('/api/ip/firewall'); fwChains.value=(await r2.json()).chains||[]}catch{}} }
-async function fetchDHCP() { try{const r=await fetch('/api/ip/dhcp'); const d=await r.json(); dhcp.value=d.leases||[]; tabs[2].count=d.count}catch{} }
+async function fetchDHCP() { try{const r=await fetch('/api/ip/dhcp'); const d=await r.json(); dhcp.value=d.leases||[]; tabs[1].count=d.count}catch{} }
+async function fetchStatic() { try{const r=await fetch('/api/ip/dhcp-static'); dhcpStatic.value=(await r.json()).static||[]}catch{} }
+async function fetchAddr() { try{const r=await fetch('/api/ip/addresses'); addrs.value=(await r.json()).addresses||[]}catch{} }
 async function fetchRoutes() {
   try {
     const r = await fetch('/api/network/status'); const d = await r.json()
     routes.value = (d.routes||'').split('\n').filter(l=>l.trim()).map(l=>({network:l.split(' ')[0]||'', nexthop:l.split(' ')[2]||'', dev:l.split(' ')[4]||'', proto:l.split(' ')[0]||''}))
+  } catch {}
+}
+
+async function addStatic() {
+  if (!newStaticMac.value.trim() || !newStaticIp.value.trim()) return
+  try {
+    await fetch('/api/ip/dhcp-static', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac: newStaticMac.value.trim(), ip: newStaticIp.value.trim(), hostname: newStaticHost.value.trim() }) })
+    showStaticAdd.value = false; newStaticMac.value = ''; newStaticIp.value = ''; newStaticHost.value = ''; fetchStatic()
+  } catch {}
+}
+async function delStatic(mac) {
+  if (!confirm(`Delete static lease for ${mac}?`)) return
+  try {
+    await fetch('/api/ip/dhcp-static', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac }) })
+    fetchStatic()
+  } catch {}
+}
+async function addAddr() {
+  const iface = newAddrIface.value.trim(), ip = newAddrIp.value.trim()
+  if (!iface || !ip) return
+  try {
+    await fetch('/api/ip/addresses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ iface, ip }) })
+    showAddrAdd.value = false; newAddrIface.value = ''; newAddrIp.value = ''; fetchAddr()
+  } catch {}
+}
+async function delAddr(iface, ip) {
+  if (!confirm(`Remove ${ip} from ${iface}?`)) return
+  try {
+    await fetch('/api/ip/addresses', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ iface, ip }) })
+    fetchAddr()
   } catch {}
 }
 
@@ -124,4 +211,12 @@ onMounted(fetchArp)
 .btn-cancel { padding:2px 10px; background:none; color:var(--fg3); border:1px solid var(--border); border-radius:3px; cursor:pointer; font-size:10px; font-family:var(--font); margin-left:4px; }
 .fw-add { display:flex; gap:6px; align-items:center; margin-top:6px; padding:6px 0; }
 .fw-add input { flex:1; padding:4px 8px; background:var(--bg); color:var(--fg); border:1px solid var(--accent); border-radius:3px; font-family:var(--mono); font-size:11px; outline:none; }
+.fw-add input.short { flex:0.5; }
+.btn-del.always { opacity: 1; }
+tr.disabled { opacity: 0.4; }
+tr.down { opacity: 0.4; }
+.tag { font-size:9px; padding:1px 6px; border-radius:3px; font-weight:600; }
+.tag.reachable, .tag.up { background:rgba(16,172,132,0.15); color:var(--green); }
+.tag.stale, .tag.unknown { background:rgba(131,149,167,0.15); color:var(--fg3); }
+.tag.failed, .tag.down { background:rgba(238,82,83,0.15); color:var(--red); }
 </style>

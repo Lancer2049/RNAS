@@ -38,10 +38,16 @@
       <div v-else class="empty">No active sessions</div>
     </div>
 
+    <!-- Interface Rate Chart -->
+    <div class="if-section">
+      <h3 class="sec-title">Interface Rate (bps)</h3>
+      <canvas ref="ifaceChart" style="max-height:220px"></canvas>
+    </div>
+
     <!-- Session History Chart -->
     <div class="if-section">
       <h3 class="sec-title">Sessions Over Time</h3>
-      <canvas ref="sessionsChart" style="max-height:200px"></canvas>
+      <canvas ref="sessionsChart" style="max-height:180px"></canvas>
     </div>
   </div>
 </template>
@@ -50,11 +56,14 @@
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { Chart } from 'chart.js/auto'
 
-const sessionsChart = ref(null)
+const sessionsChart = ref(null), ifaceChart = ref(null)
 const ifaces = ref([])
 const bwList = reactive([])
+const prevIfaceRx = reactive({}), prevIfaceTs = reactive({})
 const prevRx = reactive({}), prevTx = reactive({})
-let chartInstance = null, timer = null, history = []
+let chartInstance = null, ifaceChartInst = null, timer = null, history = []
+const ifaceHistory = reactive({})
+const COLORS = ['#0abde3','#10ac84','#ff9f43','#ee5253','#5f27cd','#f368e0','#01a3a4','#54a0ff']
 
 function fmtBytes(b) {
   if (b < 1024) return b + ' B'
@@ -81,6 +90,41 @@ async function fetchAll() {
     ifaces.value = ifData.interfaces || []
     const sessions = stData.sessions || []
 
+    // Interface rate calculation
+    const now = Date.now()
+    for (const iface of ifaces.value) {
+      const n = iface.name
+      if (n === 'lo') continue
+      if (!ifaceHistory[n]) ifaceHistory[n] = { rx: [], tx: [], labels: [] }
+      const h = ifaceHistory[n]
+      const prevRxV = prevIfaceRx[n+"_rx"] || iface.rx_bytes
+      const prevTxV = prevIfaceRx[n+"_tx"] || iface.tx_bytes
+      const prevTs = prevIfaceTs[n] || now - 5000
+      const dt = Math.max((now - prevTs) / 1000, 0.1)
+      const rxRate = Math.max(0, (iface.rx_bytes - prevRxV) * 8 / dt)
+      const txRate = Math.max(0, (iface.tx_bytes - prevTxV) * 8 / dt)
+      prevIfaceRx[n+"_rx"] = iface.rx_bytes
+      prevIfaceRx[n+"_tx"] = iface.tx_bytes
+      prevIfaceTs[n] = now
+      h.rx.push(rxRate); h.tx.push(txRate)
+      h.labels.push(new Date().toLocaleTimeString())
+      if (h.rx.length > 40) { h.rx.shift(); h.tx.shift(); h.labels.shift() }
+    }
+    if (ifaceChartInst) {
+      const names = ifaces.value.filter(i => i.name !== 'lo').map(i => i.name)
+      const datasets = []
+      let ci = 0
+      for (const n of names) {
+        const d = ifaceHistory[n] || { rx: [], tx: [], labels: [] }
+        datasets.push({ label: n + ' RX', data: d.rx, borderColor: COLORS[ci % COLORS.length], backgroundColor: 'transparent', tension: 0.2, borderWidth: 1.5 })
+        datasets.push({ label: n + ' TX', data: d.tx, borderColor: COLORS[(ci + 1) % COLORS.length], backgroundColor: 'transparent', tension: 0.2, borderWidth: 1, borderDash: [3, 3] })
+        ci += 2
+      }
+      ifaceChartInst.data.datasets = datasets
+      ifaceChartInst.data.labels = (ifaceHistory[names[0]] || ifaceHistory[Object.keys(ifaceHistory)[0]] || {}).labels || []
+      ifaceChartInst.update('none')
+    }
+
     history.push(sessions.length)
     if (history.length > 40) history.shift()
     if (chartInstance) {
@@ -89,7 +133,6 @@ async function fetchAll() {
       chartInstance.update('none')
     }
 
-    const now = Date.now()
     bwList.length = 0
     for (const s of sessions) {
       const rx = parseInt(s.rx_bytes_raw) || 0, tx = parseInt(s.tx_bytes_raw) || 0
@@ -109,12 +152,27 @@ onMounted(async () => {
     chartInstance = new Chart(sessionsChart.value, {
       type: 'line',
       data: { labels: [], datasets: [{ label: 'Sessions', data: [], borderColor: '#0abde3', backgroundColor: 'rgba(10,189,227,0.1)', fill: true, tension: 0.3 }] },
-      options: { responsive: true, scales: { y: { beginAtZero: true }, x: { display: false } }, plugins: { legend: { display: false } } }
+      options: { responsive: true, scales: { y: { beginAtZero: true, grid: { color: 'rgba(46,64,82,0.3)' } }, x: { display: false } }, plugins: { legend: { display: false } } }
+    })
+  }
+  if (ifaceChart.value) {
+    ifaceChartInst = new Chart(ifaceChart.value, {
+      type: 'line',
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, grid: { color: 'rgba(46,64,82,0.3)' }, ticks: { color: '#8395a7', callback: v => v < 1e6 ? (v/1e3).toFixed(0)+'K' : (v/1e6).toFixed(1)+'M' } },
+          x: { ticks: { color: '#576574', maxTicksLimit: 8, font: { size: 9 } }, grid: { display: false } }
+        },
+        plugins: { legend: { position: 'bottom', labels: { color: '#8395a7', font: { size: 10 }, usePointStyle: true, padding: 12 } } },
+        interaction: { intersect: false, mode: 'index' }
+      }
     })
   }
   fetchAll(); timer = setInterval(fetchAll, 5000)
 })
-onUnmounted(() => { clearInterval(timer); chartInstance?.destroy() })
+onUnmounted(() => { clearInterval(timer); chartInstance?.destroy(); ifaceChartInst?.destroy() })
 </script>
 
 <style scoped>
