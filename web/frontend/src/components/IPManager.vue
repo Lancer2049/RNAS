@@ -9,10 +9,10 @@
     <!-- ARP Table -->
     <div v-if="tab==='arp'" class="tab-body">
       <table>
-        <thead><tr><th>IP Address</th><th>MAC Address</th><th>Interface</th><th>State</th></tr></thead>
+        <thead><tr><th>IP Address</th><th>MAC Address</th><th>Vendor</th><th>Interface</th><th>State</th></tr></thead>
         <tbody>
           <tr v-for="a in arp" :key="a.ip">
-            <td class="mono">{{ a.ip }}</td><td class="mono">{{ a.mac }}</td><td>{{ a.dev }}</td>
+            <td class="mono">{{ a.ip }}</td><td class="mono">{{ a.mac }}</td><td>{{ a.vendor || '––' }}</td><td>{{ a.dev }}</td>
             <td><span :class="'tag '+(a.state.toLowerCase())">{{ a.state }}</span></td>
           </tr>
         </tbody>
@@ -31,10 +31,10 @@
     <!-- DHCP Leases -->
     <div v-if="tab==='dhcp'" class="tab-body">
       <table v-if="dhcp.length">
-        <thead><tr><th>IP</th><th>MAC</th><th>Hostname</th><th>Expires</th></tr></thead>
+        <thead><tr><th>IP</th><th>MAC</th><th>Vendor</th><th>Hostname</th><th>Expires</th></tr></thead>
         <tbody>
           <tr v-for="d in dhcp" :key="d.ip">
-            <td class="mono">{{ d.ip }}</td><td class="mono">{{ d.mac }}</td><td>{{ d.hostname || '-' }}</td><td>{{ d.timestamp }}</td>
+            <td class="mono">{{ d.ip }}</td><td class="mono">{{ d.mac }}</td><td>{{ d.vendor || '––' }}</td><td>{{ d.hostname || '-' }}</td><td>{{ d.timestamp }}</td>
           </tr>
         </tbody>
       </table>
