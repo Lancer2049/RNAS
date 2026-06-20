@@ -27,10 +27,32 @@ async def system_status():
 
     mem = subprocess.run(["free", "-h"], capture_output=True, text=True).stdout.splitlines()[1].split()
     disk = subprocess.run(["df", "-h", "/"], capture_output=True, text=True).stdout.splitlines()[1].split()
+    # system resource details
+    loadavg = subprocess.run("cat /proc/loadavg", shell=True, capture_output=True, text=True).stdout.strip()
+    cpu_cores = subprocess.run("nproc", shell=True, capture_output=True, text=True).stdout.strip()
+    os_name = subprocess.run('grep PRETTY_NAME /etc/os-release 2>/dev/null | cut -d= -f2', shell=True, capture_output=True, text=True).stdout.strip().replace('"', '')
+    kernel = subprocess.run("uname -r", shell=True, capture_output=True, text=True).stdout.strip()
+    arch = subprocess.run("uname -m", shell=True, capture_output=True, text=True).stdout.strip()
+    uptime_str = subprocess.run("cat /proc/uptime | awk '{print $1}'", shell=True, capture_output=True, text=True).stdout.strip()
+    boot = subprocess.run("who -b | awk '{print $3,$4}'", shell=True, capture_output=True, text=True).stdout.strip()
+    host = subprocess.run("hostname", shell=True, capture_output=True, text=True).stdout.strip()
+    try:
+        ut = int(float(uptime_str))
+        ut_str = f"{ut//86400}d {ut%86400//3600}h {ut%3600//60}m"
+    except:
+        ut_str = "N/A"
     return {
         "services": svcs,
         "memory": f"{mem[2]}/{mem[1]}" if len(mem) >= 3 else "N/A",
         "disk": f"{disk[2]}/{disk[1]}" if len(disk) >= 3 else "N/A",
+        "load": loadavg,
+        "cpu_cores": cpu_cores,
+        "os": os_name or "Debian",
+        "kernel": kernel,
+        "arch": arch,
+        "uptime": ut_str,
+        "boot_time": boot,
+        "hostname": host,
     }
 
 
