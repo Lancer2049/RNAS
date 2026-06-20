@@ -329,3 +329,62 @@ async def system_log(lines: int = 50, unit: str = "", level: str = ""):
     if level: cmd += ["-p", level]
     out = subprocess.run(cmd, capture_output=True, text=True, timeout=5).stdout
     return {"log": out, "lines": len(out.splitlines())}
+
+
+@router.get("/scheduler")
+async def get_scheduler():
+    """Load scheduled tasks from JSON file"""
+    import json, os
+    path = "/etc/rnas/scheduler.json"
+    try:
+        with open(path) as fh:
+            tasks = json.load(fh)
+        return {"tasks": tasks, "count": len(tasks)}
+    except:
+        return {"tasks": [], "count": 0}
+
+@router.post("/scheduler")
+async def save_scheduler(data: dict = Body(...)):
+    """Save scheduled tasks to JSON file"""
+    import json, os
+    tasks = data.get("tasks", [])
+    path = "/etc/rnas/scheduler.json"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as fh:
+        json.dump(tasks, fh, indent=2)
+    return {"ok": True, "count": len(tasks)}
+
+@router.post("/bandwidth-test")
+async def bandwidth_test(data: dict = Body(...)):
+    """Run iperf3 bandwidth test to a target. { target: str, port: int=5201, duration: int=5, proto: str='tcp' }"""
+    target = data.get("target", "127.0.0.1")
+    port = data.get("port", 5201)
+    duration = data.get("duration", 5)
+    proto = data.get("proto", "tcp")
+    import json
+    cmd = ["iperf3", "-c", target, "-p", str(port), "-t", str(duration), "-J"]
+    if proto == "udp":
+        cmd += ["-u", "-b", "0"]
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=duration + 10)
+        if res.returncode == 0:
+            result = json.loads(res.stdout)
+            end = result.get("end", {})
+            return {
+                "ok": True,
+                "target": target, "port": port, "proto": proto,
+                "sent_mbps": round(end.get("sum_sent", {}).get("bits_per_second", 0) / 1e6, 1),
+                "recv_mbps": round(end.get("sum_received", {}).get("bits_per_second", 0) / 1e6, 1),
+                "retransmits": end.get("sum_sent", {}).get("retransmits", 0),
+                "jitter_ms": round(end.get("sum", {}).get("jitter_ms", 0), 2),
+                "lost_packets": end.get("sum", {}).get("lost_packets", 0),
+                "cpu_host": end.get("cpu_utilization_percent", {}).get("host_total", 0),
+                "raw": result
+            }
+        else:
+            return {"ok": False, "error": res.stderr.strip() or res.stdout.strip()}
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": "iperf3 timed out"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+

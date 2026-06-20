@@ -8,7 +8,7 @@ test('Dashboard loads and shows topbar', async ({ page }) => {
 test('sidebar links present', async ({ page }) => {
   await page.goto('http://127.0.0.1:8099');
   const links = page.locator('.rnas-sidebar a');
-  await expect(links).toHaveCount(22);
+  await expect(links).toHaveCount(23);
   await expect(links.first()).toBeVisible();
 });
 

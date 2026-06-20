@@ -31,6 +31,15 @@
           <h3>{{ c.family }} {{ c.table }} → {{ c.name }}</h3>
           <button class="btn-mini" @click="showAdd(c)">+ Add</button>
         </div>
+        <!-- NAT presets -->
+        <div v-if="tab==='nat' && c.name==='rnas-hotspot'" class="fw-presets">
+          <button class="btn-preset" @click="quickAdd(c, 'udp dport 53 counter dnat to 192.168.0.203:53')">DNS→203</button>
+          <button class="btn-preset" @click="quickAdd(c, 'tcp dport 80 counter dnat to 192.168.0.203:8099')">HTTP→8099</button>
+          <button class="btn-preset" @click="quickAdd(c, 'tcp dport 443 counter dnat to 192.168.0.203:8099')">HTTPS→8099</button>
+        </div>
+        <div v-if="tab==='nat' && c.name==='postrouting'" class="fw-presets">
+          <button class="btn-preset" @click="quickAdd(c, 'ip saddr 192.168.100.0/24 oifname ens33 counter masquerade')">Masquerade .100/24</button>
+        </div>
         <div v-if="!c.rules.length" class="empty">no rules</div>
         <div v-for="(r,i) in c.rules" :key="i" class="fw-rule">
           <span class="fw-text">{{ typeof r === 'string' ? r : r.text }}</span>
@@ -184,6 +193,12 @@ async function delAddr(iface, ip) {
 }
 
 function showAdd(chain) { addTarget.value = chain.name; newRule.value = '' }
+async function quickAdd(chain, rule) {
+  try {
+    await fetch('/api/ip/firewall', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, rule }) })
+    fetchFW()
+  } catch {}
+}
 async function addRule(chain) {
   if (!newRule.value.trim()) return
   try {
@@ -222,6 +237,9 @@ onMounted(fetchArp)
 .btn-del:hover { color:var(--red); }
 .btn-cancel { padding:2px 10px; background:none; color:var(--fg3); border:1px solid var(--border); border-radius:3px; cursor:pointer; font-size:10px; font-family:var(--font); margin-left:4px; }
 .fw-add { display:flex; gap:6px; align-items:center; margin-top:6px; padding:6px 0; }
+.fw-presets { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:6px; }
+.btn-preset { padding:2px 8px; background:var(--bg3); color:var(--accent); border:1px solid rgba(10,189,227,0.3); border-radius:3px; cursor:pointer; font-size:10px; font-family:var(--mono); }
+.btn-preset:hover { background:var(--accent); color:#000; }
 .fw-add input { flex:1; padding:4px 8px; background:var(--bg); color:var(--fg); border:1px solid var(--accent); border-radius:3px; font-family:var(--mono); font-size:11px; outline:none; }
 .fw-add input.short { flex:0.5; }
 .btn-del.always { opacity: 1; }

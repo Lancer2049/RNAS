@@ -44,6 +44,7 @@
           <a :class="{sel:page==='radius-editor'}" @click="page='radius-editor'">AAA Editor</a>
           <a :class="{sel:page==='dictionary'}" @click="page='dictionary'">Dictionary</a>
           <a :class="{sel:page==='tools'}" @click="page='tools'">RADIUS Tools</a>
+          <a :class="{sel:page==='bw-test'}" @click="page='bw-test'">Bandwidth Test</a>
         </div>
         <div class="menu-group">
           <div class="menu-label">Simulation</div>
@@ -76,6 +77,7 @@
         <ServicesConfig v-if="page==='services'" />
         <ProtocolConfig v-if="page==='proto-config'" />
         <ToolsPage v-if="page==='tools'" />
+        <BandwidthTest v-if="page==='bw-test'" />
         <RADIUSEditor v-if="page==='radius-editor'" />
         <DictionaryBrowser v-if="page==='dictionary'" />
         <SubscriberSim v-if="page==='subscriber-sim'" />
@@ -134,6 +136,7 @@ import ScenarioRunner from './components/ScenarioRunner.vue'
 import FaultInject from './components/FaultInject.vue'
 import SystemPage from './components/SystemPage.vue'
 import TestResults from './components/TestResults.vue'
+import BandwidthTest from './components/BandwidthTest.vue'
 
 const page = ref('overview')
 const hostIP = ref('192.168.0.203')

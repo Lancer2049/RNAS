@@ -22,10 +22,17 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 const tasks = reactive([]), newName=ref(''), newAction=ref('regression'), newInterval=ref(60)
-function addTask(){if(!newName.value)return;tasks.push({name:newName.value,action:newAction.value,interval:newInterval.value,last:'',next:new Date(Date.now()+newInterval.value*60000).toLocaleTimeString()});newName.value=''}
-function removeTask(name){const i=tasks.findIndex(t=>t.name===name);if(i>=0)tasks.splice(i,1)}
+async function loadTasks() {
+  try { const r = await fetch('/api/scheduler'); tasks.length = 0; tasks.push(...((await r.json()).tasks || [])) } catch {}
+}
+async function saveTasks() {
+  fetch('/api/scheduler', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tasks: [...tasks] }) })
+}
+function addTask(){if(!newName.value)return;tasks.push({name:newName.value,action:newAction.value,interval:newInterval.value,last:'',next:new Date(Date.now()+newInterval.value*60000).toLocaleTimeString()});newName.value='';saveTasks()}
+function removeTask(name){const i=tasks.findIndex(t=>t.name===name);if(i>=0){tasks.splice(i,1);saveTasks()}}
+onMounted(loadTasks)
 </script>
 <style scoped>
 .tool-section{display:flex;flex-direction:column;gap:12px} h2{font-size:15px;color:var(--fg);font-weight:600} .hint{font-size:11px;color:var(--fg3)}

@@ -4,16 +4,15 @@
     <div class="if-section">
       <h3 class="sec-title">Interface Bandwidth</h3>
       <table class="if-table">
-        <thead><tr><th>Name</th><th>MAC</th><th>MTU</th><th>RX Bytes</th><th>TX Bytes</th><th>RX Pkts</th><th>TX Pkts</th><th>Errors</th></tr></thead>
+        <thead><tr><th>Name</th><th>Rate RX</th><th>Rate TX</th><th>Total RX</th><th>Total TX</th><th>Pkts</th><th>Err</th></tr></thead>
         <tbody>
           <tr v-for="iface in ifaces" :key="iface.name" :class="{down: !iface.running}">
             <td class="mono">{{ iface.name }}</td>
-            <td class="mono">{{ iface.mac || '--' }}</td>
-            <td>{{ iface.mtu }}</td>
+            <td class="mono rate-rx">{{ formatBps(iface.rx_rate) }}</td>
+            <td class="mono rate-tx">{{ formatBps(iface.tx_rate) }}</td>
             <td class="mono">{{ fmtBytes(iface.rx_bytes) }}</td>
             <td class="mono">{{ fmtBytes(iface.tx_bytes) }}</td>
-            <td class="mono">{{ iface.rx_packets }}</td>
-            <td class="mono">{{ iface.tx_packets }}</td>
+            <td class="mono">{{ iface.rx_packets + iface.tx_packets }}</td>
             <td><span :class="{err: (iface.rx_errors + iface.tx_errors) > 0}">{{ iface.rx_errors + iface.tx_errors }}</span></td>
           </tr>
         </tbody>
@@ -106,6 +105,7 @@ async function fetchAll() {
       prevIfaceRx[n+"_rx"] = iface.rx_bytes
       prevIfaceRx[n+"_tx"] = iface.tx_bytes
       prevIfaceTs[n] = now
+      iface.rx_rate = rxRate; iface.tx_rate = txRate // table display
       h.rx.push(rxRate); h.tx.push(txRate)
       h.labels.push(new Date().toLocaleTimeString())
       if (h.rx.length > 40) { h.rx.shift(); h.tx.shift(); h.labels.shift() }
@@ -184,6 +184,7 @@ onUnmounted(() => { clearInterval(timer); chartInstance?.destroy(); ifaceChartIn
 .if-table td { padding: 4px 8px; border-bottom: 1px solid rgba(46,64,82,0.3); }
 .if-table tr.down { opacity: 0.4; }
 .mono { font-family: var(--mono); font-size: 11px; }
+.rate-rx { color: var(--accent); } .rate-tx { color: var(--green); }
 .err { color: var(--red); font-weight: 600; }
 .empty { text-align: center; color: var(--fg3); padding: 16px; font-size: 12px; }
 </style>

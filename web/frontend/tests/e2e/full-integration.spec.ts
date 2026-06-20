@@ -1,72 +1,73 @@
 import { test, expect } from '@playwright/test';
 
 const BASE = 'http://127.0.0.1:8099';
+const SIDEBAR = 'nav.rnas-sidebar';
 
 test('Dashboard: topbar and status', async ({ page }) => {
   await page.goto(BASE);
-  await expect(page.locator('.topbar .brand')).toHaveText('RNAS');
-  await expect(page.getByText('Uptime')).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('.rnas-topbar .t-brand')).toHaveText('RNAS');
+  await expect(page.locator('.ros-status')).toBeVisible({ timeout: 8000 });
 });
 
 test('Protocols: page loads', async ({ page }) => {
   await page.goto(BASE);
-  await page.waitForSelector('nav.sidebar a', {timeout:5000}); await page.locator('nav.sidebar a:has-text("Protocols")').click();
+  await page.locator(SIDEBAR).getByText('Access Protocols').click();
   await page.waitForTimeout(500);
-  await expect(page.getByText('Protocol').first()).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText('Protocol Configuration')).toBeVisible({ timeout: 5000 });
 });
 
 test('Sessions: page loads', async ({ page }) => {
   await page.goto(BASE);
-  await page.locator('nav.sidebar').getByText('Sessions').click();
+  await page.locator(SIDEBAR).getByText('Active Sessions').click();
   await page.waitForTimeout(500);
-  await expect(page.getByText('Active Sessions').first()).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole('heading', { name: /Active Sessions/ })).toBeVisible({ timeout: 5000 });
 });
 
-test.skip('Network: page loads', async ({ page }) => {
+test('Network: page loads', async ({ page }) => {
   await page.goto(BASE);
-  await page.locator('nav.sidebar').getByText('Interfaces').click();
+  await page.locator(SIDEBAR).getByText('Interfaces').click();
   await page.waitForTimeout(500);
-  await expect(page.getByText('Network')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('h2').filter({ hasText: 'Network' })).toBeVisible({ timeout: 5000 });
 });
 
 test('RADIUS Editor: page loads', async ({ page }) => {
   await page.goto(BASE);
-  await page.locator('nav.sidebar').getByText('Editor').click();
+  await page.locator(SIDEBAR).getByText('AAA Editor').click();
   await page.waitForTimeout(500);
-  await expect(page.getByText('RADIUS Message')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText('RADIUS Message Editor')).toBeVisible({ timeout: 5000 });
 });
 
 test('Dictionary: page loads', async ({ page }) => {
   await page.goto(BASE);
-  await page.locator('nav.sidebar').getByText('Dictionary').click();
+  await page.locator(SIDEBAR).getByText('Dictionary').click();
   await page.waitForTimeout(500);
   await expect(page.getByText('RADIUS Dictionary')).toBeVisible({ timeout: 5000 });
 });
 
 test('Torch: page loads', async ({ page }) => {
   await page.goto(BASE);
-  await page.locator('nav.sidebar').getByText('Torch').click();
+  await page.locator(SIDEBAR).getByText('Traffic Torch').first().click();
   await page.waitForTimeout(500);
-  await expect(page.getByText('Traffic Torch')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole('heading', { name: 'Traffic Torch' })).toBeVisible({ timeout: 5000 });
 });
 
 test('Queues: page loads', async ({ page }) => {
   await page.goto(BASE);
-  await page.locator('nav.sidebar').getByText('Queues').click();
+  await page.locator(SIDEBAR).getByText('Queue (QoS)').click();
   await page.waitForTimeout(500);
   await expect(page.getByText('Queue Management')).toBeVisible({ timeout: 5000 });
 });
 
 test('Subscribers: page loads', async ({ page }) => {
   await page.goto(BASE);
-  await page.locator('nav.sidebar').getByText('Subscribers').click();
+  await page.locator(SIDEBAR).getByText('Subscriber Sim').click();
   await page.waitForTimeout(500);
   await expect(page.getByText('Subscriber Simulation')).toBeVisible({ timeout: 5000 });
 });
 
-test.skip('System: page loads', async ({ page }) => {
+test('System: page loads', async ({ page }) => {
   await page.goto(BASE);
-  await page.locator('nav.sidebar a:has-text("System")').last().click();
+  await page.locator(SIDEBAR).getByText('System Log').click();
   await page.waitForTimeout(500);
   await expect(page.getByText('System').first()).toBeVisible({ timeout: 5000 });
 });

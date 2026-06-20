@@ -24,6 +24,7 @@
         <option :value="30">30</option><option :value="50">50</option><option :value="100">100</option><option :value="200">200</option>
       </select>
       <button class="btn" @click="fetchLog">Refresh</button>
+      <button class="btn" @click="exportLog">Export</button>
       <label class="auto"><input type="checkbox" v-model="auto" /> Auto 5s</label>
     </div>
     <pre class="log-content">{{ log }}</pre>
@@ -42,6 +43,10 @@ async function fetchLog() {
   try { const r = await fetch(url); log.value = (await r.json()).log || '' } catch {}
 }
 watch(auto, v => { if (v) timer = setInterval(fetchLog, 5000); else clearInterval(timer) })
+function exportLog() {
+  const blob = new Blob([log.value], { type: 'text/plain' })
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `rnas-log-${new Date().toISOString().slice(0,10)}.txt`; a.click()
+}
 onMounted(fetchLog)
 onUnmounted(() => clearInterval(timer))
 </script>
