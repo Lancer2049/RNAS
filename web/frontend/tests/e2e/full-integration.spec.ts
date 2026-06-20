@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = 'http://192.168.0.203:8099';
+const BASE = 'http://127.0.0.1:8099';
 
 test('Dashboard: topbar and status', async ({ page }) => {
   await page.goto(BASE);
