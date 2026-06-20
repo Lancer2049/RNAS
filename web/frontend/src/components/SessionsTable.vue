@@ -88,28 +88,32 @@ function fmtUptime(r){if(!r)return'-';const s=parseInt(r);if(isNaN(s))return r;i
 </script>
 
 <style scoped>
-.sessions-section{background:#fff;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.sessions-section{background:var(--bg2);padding:14px;border:1px solid var(--border);border-radius:3px}
 .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
-.section-header h2{font-size:16px}
+.section-header h2{font-size:15px;color:var(--fg);font-weight:600}
 .header-actions{display:flex;gap:8px;align-items:center}
-.filter-input{padding:4px 10px;border:1px solid #ddd;border-radius:4px;font-size:13px;width:140px}
-.btn-refresh{padding:4px 12px;background:#3b82f6;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px}
-.btn-disconnect-all{padding:4px 12px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px}
+.filter-input{padding:4px 10px;border:1px solid var(--border);border-radius:3px;font-size:12px;width:140px;background:var(--bg);color:var(--fg);font-family:var(--font);outline:none}
+.filter-input:focus{border-color:var(--accent)}
+.btn-refresh{padding:4px 12px;background:var(--bg3);color:var(--accent);border:1px solid var(--accent);border-radius:3px;cursor:pointer;font-size:11px;font-family:var(--font)}
+.btn-refresh:hover{background:var(--accent);color:#000}
+.btn-disconnect-all{padding:4px 12px;background:rgba(238,82,83,0.1);color:var(--red);border:1px solid var(--red);border-radius:3px;cursor:pointer;font-size:11px;font-family:var(--font)}
+.btn-disconnect-all:hover{background:var(--red);color:#fff}
 table{width:100%;border-collapse:collapse}
-th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #eee;font-size:12px}
-th{color:#666;font-weight:600;font-size:10px;text-transform:uppercase;cursor:default}
-th.sortable{cursor:pointer} th.sortable:hover{color:#3b82f6}
-.session-row{cursor:pointer} .session-row:hover{background:#f8faff}
-.session-row.expanded{background:#f0f4ff}
-.type-badge{background:#f0f4ff;color:#3b82f6;padding:1px 6px;border-radius:3px;font-size:11px}
-.mono{font-family:monospace;font-size:11px}
-.btn-disconnect{padding:2px 8px;background:#ef4444;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:10px}
-.detail-row td{background:#fafbff;padding:0}
-.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px;padding:10px 16px}
+th,td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--border);font-size:11px}
+th{color:var(--fg3);font-weight:600;font-size:10px;text-transform:uppercase;cursor:default}
+th.sortable{cursor:pointer} th.sortable:hover{color:var(--accent)}
+.session-row{cursor:pointer} .session-row:hover{background:rgba(10,189,227,0.04)}
+.session-row.expanded{background:rgba(10,189,227,0.08)}
+.type-badge{background:rgba(10,189,227,0.12);color:var(--accent);padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600}
+.mono{font-family:var(--mono);font-size:11px}
+.btn-disconnect{padding:2px 8px;background:rgba(238,82,83,0.1);color:var(--red);border:1px solid rgba(238,82,83,0.3);border-radius:3px;cursor:pointer;font-size:10px;font-family:var(--font)}
+.btn-disconnect:hover{background:var(--red);color:#fff}
+.detail-row td{background:var(--bg);padding:0}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px;padding:10px 14px}
 .detail-grid div{display:flex;flex-direction:column;gap:2px}
-.detail-grid label{font-size:10px;color:#888;text-transform:uppercase}
-.detail-grid span{font-size:13px}
+.detail-grid label{font-size:9px;color:var(--fg3);text-transform:uppercase;letter-spacing:0.5px}
+.detail-grid span{font-size:12px;color:var(--fg)}
 .badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
-.badge.active{background:#dcfce7;color:#166534} .badge.finishing,.badge.finish{background:#fef9c3;color:#854d0e}
-.empty{text-align:center;color:#999;padding:30px}
+.badge.active{background:rgba(16,172,132,0.12);color:var(--green)} .badge.finishing,.badge.finish{background:rgba(255,159,67,0.12);color:#ff9f43}
+.empty{text-align:center;color:var(--fg3);padding:30px;font-size:12px}
 </style>

@@ -75,18 +75,19 @@ onMounted(fetchAll)
 </script>
 
 <style scoped>
-.routing-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:18px;} .hint{font-size:13px;color:#888;}
-.tab-bar { display:flex; gap:8px; align-items:center; background:#fff; padding:8px 16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-.tab-bar button { padding:6px 16px; border:1px solid #ddd; border-radius:6px; background:#fff; cursor:pointer; font-size:13px; }
-.tab-bar button.active { background:#3b82f6; color:#fff; border-color:#3b82f6; }
-.refresh { margin-left:auto; color:#3b82f6; cursor:pointer; font-size:13px; }
-.tab-content { background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-table { width:100%; border-collapse:collapse; font-size:13px; }
-th,td { padding:6px 10px; text-align:left; border-bottom:1px solid #eee; } th{color:#666;font-size:11px;text-transform:uppercase;}
-.mono { font-family:monospace; font-size:12px; }
-.state { padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
-.state.Full,.state.Established { background:#dcfce7; color:#16a34a; }
-.state.ExStart,.state.Active { background:#fef9c3; color:#ca8a04; }
-.state.Down,.state.Idle { background:#fef2f2; color:#dc2626; }
-.empty { text-align:center; color:#999; padding:20px; }
+.routing-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:15px;color:var(--fg);font-weight:600;} .hint{font-size:11px;color:var(--fg3);}
+.tab-bar { display:flex; gap:8px; align-items:center; background:var(--bg2); padding:8px 14px; border-radius:3px; border:1px solid var(--border); }
+.tab-bar button { padding:5px 14px; border:1px solid var(--border); border-radius:3px; background:var(--bg); color:var(--fg2); cursor:pointer; font-size:12px; font-family:var(--font); }
+.tab-bar button.active { background:var(--accent); color:#000; border-color:var(--accent); }
+.refresh { margin-left:auto; color:var(--accent); cursor:pointer; font-size:12px; }
+.refresh:hover { text-decoration: underline; }
+.tab-content { background:var(--bg2); padding:14px; border:1px solid var(--border); border-radius:3px; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th,td { padding:5px 10px; text-align:left; border-bottom:1px solid var(--border); } th{color:var(--fg3);font-size:10px;text-transform:uppercase;letter-spacing:1px;}
+.mono { font-family:var(--mono); font-size:11px; }
+.state { padding:2px 8px; border-radius:3px; font-size:10px; font-weight:600; }
+.state.Full,.state.Established { background:rgba(16,172,132,0.12); color:var(--green); }
+.state.ExStart,.state.Active { background:rgba(255,159,67,0.12); color:#ff9f43; }
+.state.Down,.state.Idle { background:rgba(238,82,83,0.12); color:var(--red); }
+.empty { text-align:center; color:var(--fg3); padding:20px; font-size:12px; }
 </style>
