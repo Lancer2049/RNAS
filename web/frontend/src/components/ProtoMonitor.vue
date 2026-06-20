@@ -51,16 +51,16 @@ onUnmounted(() => ws?.close())
 </script>
 
 <style scoped>
-.proto-monitor { display:flex; flex-direction:column; gap:12px; } h2{font-size:18px;} .hint{font-size:13px;color:#888;}
-.stats-row { display:flex; gap:16px; }
-.stat { background:#fff; padding:12px 20px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); text-align:center; min-width:100px; }
-.label { display:block; font-size:11px; color:#888; text-transform:uppercase; }
-.value { font-size:24px; font-weight:700; } .red{color:#ef4444;} .green{color:#22c55e;}
-.log-panel { background:#1a1a2e; border-radius:8px; padding:12px; max-height:400px; overflow-y:auto; font-family:monospace; font-size:12px; }
-.log-item { padding:4px 0; border-bottom:1px solid #2a2a4e; display:flex; gap:12px; color:#ccc; }
-.time { color:#888; width:80px; flex-shrink:0; }
-.type { padding:0 6px; border-radius:3px; font-size:10px; font-weight:600; width:50px; text-align:center; }
-.type.auth { background:#1e3a5f; color:#60a5fa; }
-.type.acct { background:#1e4a2e; color:#4ade80; }
-.empty { text-align:center; color:#666; padding:40px; }
+.proto-monitor { display:flex; flex-direction:column; gap:12px; } h2{font-size:15px;color:var(--fg);font-weight:600} .hint{font-size:11px;color:var(--fg3)}
+.stats-row { display:flex; gap:14px }
+.stat { background:var(--bg2); padding:10px 16px; border:1px solid var(--border); border-radius:3px; text-align:center; min-width:90px }
+.label { display:block; font-size:10px; color:var(--fg3); text-transform:uppercase; letter-spacing:1px }
+.value { font-size:22px; font-weight:700; color:var(--fg) } .red{color:var(--red)} .green{color:var(--green)}
+.log-panel { background:#0a0f14; border:1px solid var(--border); border-radius:3px; padding:12px; max-height:400px; overflow-y:auto; font-family:var(--mono); font-size:11px }
+.log-item { padding:4px 0; border-bottom:1px solid rgba(46,64,82,0.3); display:flex; gap:12px; color:var(--fg2) }
+.time { color:var(--fg3); width:80px; flex-shrink:0 }
+.type { padding:0 6px; border-radius:3px; font-size:9px; font-weight:600; width:50px; text-align:center }
+.type.auth { background:rgba(59,130,246,0.2); color:#60a5fa }
+.type.acct { background:rgba(34,197,94,0.2); color:#4ade80 }
+.empty { text-align:center; color:var(--fg3); padding:40px; font-size:12px }
 </style>

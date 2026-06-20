@@ -50,14 +50,18 @@ async function testLogin() {
 </script>
 
 <style scoped>
-.hotspot-section{display:flex;flex-direction:column;gap:12px}h2{font-size:18px}.hint{font-size:13px;color:#888}
-.stats{display:flex;gap:16px;background:#fff;padding:12px 16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);flex-wrap:wrap}
-.stat{display:flex;flex-direction:column;gap:4px}.label{font-size:11px;color:#888;text-transform:uppercase}
-.value{font-size:14px;font-weight:600}.value.Active{color:#16a34a}.value.Inactive{color:#dc2626}
-.test-box,.url-box{background:#fff;padding:16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-h3{font-size:15px;margin:0 0 8px}.test-row{display:flex;gap:8px;align-items:center}
-input{padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;width:140px}
-button{padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer}
-.result{font-size:13px;font-weight:600}.result.ok{color:#16a34a}.result.fail{color:#dc2626}
-code{background:#f1f5f9;padding:4px 8px;border-radius:4px;font-size:13px}.note{font-size:12px;color:#888;margin:4px 0 0}
+.hotspot-section{display:flex;flex-direction:column;gap:12px}h2{font-size:15px;color:var(--fg);font-weight:600}.hint{font-size:11px;color:var(--fg3)}
+.stats{display:flex;gap:16px;background:var(--bg2);padding:12px 14px;border:1px solid var(--border);border-radius:3px;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:4px}.label{font-size:10px;color:var(--fg3);text-transform:uppercase;letter-spacing:1px}
+.value{font-size:14px;font-weight:600}.value.Active{color:var(--green)}.value.Inactive{color:var(--red)}
+.test-box,.url-box{background:var(--bg2);padding:14px;border:1px solid var(--border);border-radius:3px}
+h3{font-size:12px;color:var(--fg2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.test-row{display:flex;gap:8px;align-items:center}
+input{padding:6px 10px;border:1px solid var(--border);border-radius:3px;font-size:12px;width:140px;background:var(--bg);color:var(--fg);font-family:var(--font);outline:none}
+input:focus{border-color:var(--accent)}
+button{padding:6px 14px;background:var(--bg3);color:var(--accent);border:1px solid var(--accent);border-radius:3px;cursor:pointer;font-size:11px;font-family:var(--font)}
+button:hover{background:var(--accent);color:#000}
+.result{font-size:12px;font-weight:600}.result.ok{color:var(--green)}.result.fail{color:var(--red)}
+code{background:var(--bg3);padding:4px 8px;border-radius:3px;font-size:12px;color:var(--accent);font-family:var(--mono)}
+.note{font-size:10px;color:var(--fg3);margin:4px 0 0}
 </style>

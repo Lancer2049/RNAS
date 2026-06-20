@@ -21,11 +21,11 @@ function formatSize(n){if(!n)return'0B';if(n<1024)return n+'B';return (n/1024).t
 onMounted(check)
 </script>
 <style scoped>
-.tool-section{display:flex;flex-direction:column;gap:12px} h2{font-size:18px} .hint{font-size:13px;color:#888}
-.controls{display:flex;gap:12px;align-items:center;background:#fff;padding:16px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.btn-start{padding:8px 20px;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600}
-.btn-stop{padding:8px 20px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600}
-button:disabled{opacity:.5}
-.status{font-size:14px;font-weight:600} .running{color:#22c55e} .stopped{color:#9ca3af}
-.path{font-family:monospace;font-size:12px;color:#666}
+.tool-section{display:flex;flex-direction:column;gap:12px} h2{font-size:15px;color:var(--fg);font-weight:600} .hint{font-size:11px;color:var(--fg3)}
+.controls{display:flex;gap:12px;align-items:center;background:var(--bg2);padding:14px;border:1px solid var(--border);border-radius:3px}
+.btn-start{padding:6px 16px;background:var(--green);color:#000;border:none;border-radius:3px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font)}
+.btn-stop{padding:6px 16px;background:var(--red);color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font)}
+button:disabled{opacity:.4}
+.status{font-size:13px;font-weight:600} .running{color:var(--green)} .stopped{color:var(--fg3)}
+.path{font-family:var(--mono);font-size:11px;color:var(--fg2)}
 </style>

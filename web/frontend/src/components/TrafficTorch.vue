@@ -68,12 +68,15 @@ onUnmounted(()=>clearInterval(timer))
 </script>
 
 <style scoped>
-.torch-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:18px;} .hint{font-size:13px;color:#888;}
-.controls { display:flex; gap:16px; align-items:center; background:#fff; padding:8px 16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-.controls select { padding:4px 8px; border:1px solid #ddd; border-radius:4px; } .total { margin-left:auto; font-weight:600; color:#3b82f6; }
-table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); font-size:13px; }
-th,td { padding:6px 10px; text-align:left; border-bottom:1px solid #eee; } th { color:#666; font-weight:600; font-size:11px; text-transform:uppercase; }
-.mono { font-family:monospace; font-size:12px; } .rate { color:#3b82f6; font-weight:600; }
-.bar { width:60px; height:6px; background:#eee; border-radius:3px; overflow:hidden; } .fill { height:100%; background:#3b82f6; border-radius:3px; }
-.empty { text-align:center; color:#999; padding:40px; }
+.torch-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:15px;color:var(--fg);font-weight:600} .hint{font-size:11px;color:var(--fg3)}
+.controls { display:flex; gap:14px; align-items:center; background:var(--bg2); padding:8px 14px; border:1px solid var(--border); border-radius:3px }
+.controls select { padding:4px 8px; border:1px solid var(--border); border-radius:3px; background:var(--bg); color:var(--fg); font-size:12px; font-family:var(--font) }
+.controls select:focus { outline:none; border-color:var(--accent) }
+.total { margin-left:auto; font-weight:600; color:var(--accent); font-size:12px }
+.auto { font-size:11px; color:var(--fg2); display:flex; align-items:center; gap:4px; cursor:pointer }
+table { width:100%; border-collapse:collapse; background:var(--bg2); border:1px solid var(--border); border-radius:3px; font-size:12px }
+th,td { padding:5px 10px; text-align:left; border-bottom:1px solid var(--border) } th { color:var(--fg3); font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:1px }
+.mono { font-family:var(--mono); font-size:11px } .rate { color:var(--accent); font-weight:600 }
+.bar { width:60px; height:5px; background:var(--bg3); border-radius:2px; overflow:hidden } .fill { height:100%; background:var(--accent); border-radius:2px }
+.empty { text-align:center; color:var(--fg3); padding:40px; font-size:12px }
 </style>

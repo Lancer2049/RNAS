@@ -35,13 +35,13 @@ onMounted(fetchVlans)
 </script>
 
 <style scoped>
-.vlan-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:18px;} h3{font-size:15px;margin:0;} .hint{font-size:13px;color:#888;}
-.status-row { display:flex; gap:16px; align-items:center; background:#fff; padding:12px 16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-.label { font-size:13px; color:#666; }
-.value { font-size:13px; font-weight:600; padding:2px 8px; border-radius:4px; color:#16a34a; background:#dcfce7; }
-.value.missing { color:#dc2626; background:#fef2f2; }
-table { width:100%; border-collapse:collapse; font-size:13px; background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-th,td { padding:6px 10px; text-align:left; border-bottom:1px solid #eee; } th{color:#666;font-size:11px;text-transform:uppercase;}
-.mono { font-family:monospace; } .up { color:#16a34a; font-weight:600; }
-.empty { text-align:center; color:#999; padding:40px; background:#fff; border-radius:8px; }
+.vlan-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:15px;color:var(--fg);font-weight:600} h3{font-size:12px;color:var(--fg2);text-transform:uppercase;letter-spacing:1px} .hint{font-size:11px;color:var(--fg3)}
+.status-row { display:flex; gap:14px; align-items:center; background:var(--bg2); padding:10px 14px; border:1px solid var(--border); border-radius:3px }
+.label { font-size:11px; color:var(--fg3) }
+.value { font-size:12px; font-weight:600; padding:2px 8px; border-radius:3px; color:var(--green); background:rgba(16,172,132,0.12) }
+.value.missing { color:var(--red); background:rgba(238,82,83,0.12) }
+table { width:100%; border-collapse:collapse; font-size:12px; background:var(--bg2); border:1px solid var(--border); border-radius:3px }
+th,td { padding:5px 10px; text-align:left; border-bottom:1px solid var(--border) } th{color:var(--fg3);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.mono { font-family:var(--mono) } .up { color:var(--green); font-weight:600 }
+.empty { text-align:center; color:var(--fg3); padding:40px; font-size:12px; background:var(--bg2); border:1px solid var(--border); border-radius:3px }
 </style>

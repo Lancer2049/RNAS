@@ -57,15 +57,19 @@ onMounted(loadQueues)
 </script>
 
 <style scoped>
-.queue-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:18px;} .hint{font-size:13px;color:#888;}
-.add-form { display:flex; gap:8px; flex-wrap:wrap; background:#fff; padding:12px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-.field { padding:6px 10px; border:1px solid #ddd; border-radius:4px; font-size:13px; }
-.btn-add { padding:6px 16px; background:#22c55e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; }
-table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); font-size:13px; }
-th,td { padding:8px 10px; text-align:left; border-bottom:1px solid #eee; } th { color:#666; font-weight:600; font-size:11px; text-transform:uppercase; }
-.mono { font-family:monospace; font-size:12px; }
-.badge { padding:2px 8px; border-radius:10px; font-size:11px; }
-.badge.active { background:#dcfce7; color:#166534; } .badge.inactive { background:#f3f4f6; color:#9ca3af; }
-.btn-del { padding:2px 8px; background:#fee; border:1px solid #fcc; border-radius:3px; cursor:pointer; font-size:12px; color:#c33; }
-.empty { text-align:center; color:#999; padding:40px; }
+.queue-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:15px;color:var(--fg);font-weight:600} .hint{font-size:11px;color:var(--fg3)}
+.add-form { display:flex; gap:6px; flex-wrap:wrap; background:var(--bg2); padding:10px; border:1px solid var(--border); border-radius:3px }
+.field { padding:5px 8px; border:1px solid var(--border); border-radius:3px; font-size:12px; background:var(--bg); color:var(--fg); font-family:var(--font); outline:none }
+.field:focus { border-color:var(--accent) }
+.btn-add { padding:5px 14px; background:var(--green); color:#000; border:none; border-radius:3px; cursor:pointer; font-size:11px; font-weight:600; font-family:var(--font) }
+.btn-add:hover { opacity:.85 }
+table { width:100%; border-collapse:collapse; background:var(--bg2); border:1px solid var(--border); border-radius:3px; font-size:12px }
+th,td { padding:5px 10px; text-align:left; border-bottom:1px solid var(--border) } th { color:var(--fg3); font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:1px }
+.mono { font-family:var(--mono); font-size:11px }
+.badge { padding:2px 8px; border-radius:10px; font-size:10px }
+.badge.active { background:rgba(16,172,132,0.12); color:var(--green) } .badge.inactive { background:var(--bg3); color:var(--fg3) }
+.btn-del { padding:2px 6px; background:rgba(238,82,83,0.08); border:1px solid rgba(238,82,83,0.3); border-radius:3px; cursor:pointer; font-size:11px; color:var(--red) }
+.btn-del:hover { background:var(--red); color:#fff }
+.empty{text-align:center;color:var(--fg3);padding:30px;font-size:12px}
+.empty-state{text-align:center;padding:40px;color:var(--fg3)}.empty-state .icon{font-size:36px}.empty-state .text{font-size:13px;color:var(--fg2)}.empty-state .sub{font-size:11px}
 </style>

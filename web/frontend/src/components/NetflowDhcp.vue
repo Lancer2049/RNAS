@@ -29,10 +29,10 @@ onMounted(async ()=>{
 </script>
 
 <style scoped>
-.section { display:flex; flex-direction:column; gap:12px; } h2{font-size:18px;} h3{font-size:15px;margin:0;} .hint{font-size:13px;color:#888;}
-.stats-row { display:flex; gap:16px; background:#fff; padding:12px 16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); flex-wrap:wrap; }
-.stat { display:flex; flex-direction:column; gap:4px; }
-.label { font-size:11px; color:#888; text-transform:uppercase; }
-.value { font-size:14px; font-weight:600; }
-.value.up { color:#16a34a; } .value.down { color:#dc2626; } .mono { font-family:monospace; }
+.section { display:flex; flex-direction:column; gap:12px; } h2{font-size:15px;color:var(--fg);font-weight:600} h3{font-size:12px;color:var(--fg2);text-transform:uppercase;letter-spacing:1px} .hint{font-size:11px;color:var(--fg3)}
+.stats-row { display:flex; gap:14px; background:var(--bg2); padding:10px 14px; border:1px solid var(--border); border-radius:3px; flex-wrap:wrap }
+.stat { display:flex; flex-direction:column; gap:4px }
+.label { font-size:10px; color:var(--fg3); text-transform:uppercase; letter-spacing:1px }
+.value { font-size:14px; font-weight:600; color:var(--fg) }
+.value.up { color:var(--green) } .value.down { color:var(--red) } .mono { font-family:var(--mono) }
 </style>
