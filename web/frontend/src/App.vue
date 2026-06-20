@@ -29,6 +29,8 @@
           <a :class="{sel:page==='network'}" @click="page='network'">Interfaces</a>
           <a :class="{sel:page==='proto-monitor'}" @click="page='proto-monitor'">RADIUS Monitor</a>
           <a :class="{sel:page==='torch'}" @click="page='torch'">Traffic Torch</a>
+          <a :class="{sel:page==='log'}" @click="page='log'">System Log</a>
+          <a :class="{sel:page==='ip'}" @click="page='ip'">IP Manager</a>
         </div>
         <div class="menu-group">
           <div class="menu-label">Configuration</div>
@@ -91,6 +93,8 @@
         <VlanManager v-if="page==='vlans'" />
         <HotspotManager v-if="page==='hotspot'" />
         <NetflowDhcp v-if="page==='netflow'" />
+        <IPManager v-if="page==='ip'" />
+        <SystemLog v-if="page==='log'" />
       </main>
     </div>
   </div>
@@ -118,6 +122,8 @@ import TunnelManager from './components/TunnelManager.vue'
 import VlanManager from './components/VlanManager.vue'
 import HotspotManager from './components/HotspotManager.vue'
 import NetflowDhcp from './components/NetflowDhcp.vue'
+import IPManager from './components/IPManager.vue'
+import SystemLog from './components/SystemLog.vue'
 import SubscriberSim from './components/SubscriberSim.vue'
 import ProtoMonitor from './components/ProtoMonitor.vue'
 import TrafficTorch from './components/TrafficTorch.vue'
