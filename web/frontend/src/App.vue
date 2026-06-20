@@ -1,66 +1,66 @@
 <template>
-  <div class="luci-layout">
-    <div class="topbar">
-      <span class="brand">RNAS</span>
-      <span class="hostname">192.168.0.203</span>
-      <span class="uptime">{{ service.uptime || '--' }}</span>
-      <span class="spacer" />
-      <a :href="airosUrl" target="_blank" class="airos-link" :class="{offline: !airosOnline}">
-        {{ airosOnline ? 'AirOS' : 'AirOS ⚠' }}
-      </a>
-    </div>
-    <div class="main-area">
-      <nav class="sidebar">
-        <div class="menu-section">
-          <div class="section-title">Monitoring</div>
-          <a :class="{active:page==='overview'}" @click="page='overview'" title="System status & traffic">📊 Dashboard</a>
-          <a :class="{active:page==='sessions'}" @click="page='sessions'" title="Active PPP connections">
-            📋 Sessions <span class="badge" v-if="sessions.length">{{ sessions.length }}</span>
-          </a>
-          <a :class="{active:page==='proto-monitor'}" @click="page='proto-monitor'" title="Real-time RADIUS protocol events">📡 Protocol</a>
-          <a :class="{active:page==='network'}" @click="page='network'" title="Interfaces, routes, ARP, firewall">🌐 Interfaces</a>
+  <div class="rnas-layout">
+    <header class="rnas-topbar">
+      <div class="t-left">
+        <span class="t-brand">RNAS</span>
+        <span class="t-sep">|</span>
+        <span class="t-host">{{ hostIP }}</span>
+        <span class="t-sep">|</span>
+        <span class="t-info">uptime: {{ service.uptime || '--' }}</span>
+      </div>
+      <div class="t-center">
+        <span class="t-sessions">{{ sessions.length }} active</span>
+        <span class="t-sep">·</span>
+        <span class="t-status" :class="radiusOk ? 'ok' : 'err'">{{ radiusOk ? '● RADIUS up' : '○ RADIUS down' }}</span>
+        <span class="t-sep">·</span>
+        <span class="t-cpu">CPU {{ service.cpu || '--' }}</span>
+      </div>
+      <div class="t-right">
+        <span class="t-ver">v3.0</span>
+      </div>
+    </header>
+
+    <div class="rnas-main">
+      <nav class="rnas-sidebar">
+        <div class="menu-group">
+          <div class="menu-label">Status</div>
+          <a :class="{sel:page==='overview'}" @click="page='overview'">Overview</a>
+          <a :class="{sel:page==='sessions'}" @click="page='sessions'">Active Sessions <b v-if="sessions.length">{{ sessions.length }}</b></a>
+          <a :class="{sel:page==='network'}" @click="page='network'">Interfaces</a>
+          <a :class="{sel:page==='proto-monitor'}" @click="page='proto-monitor'">RADIUS Monitor</a>
+          <a :class="{sel:page==='torch'}" @click="page='torch'">Traffic Torch</a>
         </div>
-        <div class="menu-section">
-          <div class="section-title">Simulation</div>
-          <a :class="{active:page==='subscriber-sim'}" @click="page='subscriber-sim'" title="Simulate multiple CPE clients">👥 Subscribers</a>
-          <a :class="{active:page==='scenario-runner'}" @click="page='scenario-runner'" title="One-click preset test scenarios">▶ Scenario</a>
-          <a :class="{active:page==='fault-inject'}" @click="page='fault-inject'" title="Simulate network failures">⚠ Fault Inject</a>
+        <div class="menu-group">
+          <div class="menu-label">Configuration</div>
+          <a :class="{sel:page==='proto-config'}" @click="page='proto-config'">Access Protocols</a>
+          <a :class="{sel:page==='services'}" @click="page='services'">VPN Services</a>
+          <a :class="{sel:page==='queues'}" @click="page='queues'">Queue (QoS)</a>
+          <a :class="{sel:page==='config'}" @click="page='config'">Config Editor</a>
         </div>
-        <div class="menu-section">
-          <div class="section-title">Tools</div>
-          <a :class="{active:page==='torch'}" @click="page='torch'" title="Real-time per-session bandwidth">🔥 Torch</a>
-          <a :class="{active:page==='queues'}" @click="page='queues'" title="Bandwidth control rules">📏 Queues</a>
-          <a :class="{active:page==='sniffer'}" @click="page='sniffer'" title="Capture RADIUS packets">📡 Sniffer</a>
-          <a :class="{active:page==='scheduler'}" @click="page='scheduler'" title="Automated test runs">⏰ Scheduler</a>
+        <div class="menu-group">
+          <div class="menu-label">RADIUS</div>
+          <a :class="{sel:page==='radius-editor'}" @click="page='radius-editor'">AAA Editor</a>
+          <a :class="{sel:page==='dictionary'}" @click="page='dictionary'">Dictionary</a>
+          <a :class="{sel:page==='tools'}" @click="page='tools'">RADIUS Tools</a>
         </div>
-        <div class="menu-section">
-          <div class="section-title">RADIUS Tools</div>
-          <a :class="{active:page==='radius-editor'}" @click="page='radius-editor'">🔧 Editor</a>
-          <a :class="{active:page==='dictionary'}" @click="page='dictionary'">📖 Dictionary</a>
-          <a :class="{active:page==='tools'}" @click="page='tools'">🛠 Tools</a>
+        <div class="menu-group">
+          <div class="menu-label">Simulation</div>
+          <a :class="{sel:page==='subscriber-sim'}" @click="page='subscriber-sim'">Subscriber Sim</a>
+          <a :class="{sel:page==='scenario-runner'}" @click="page='scenario-runner'">Scenario</a>
+          <a :class="{sel:page==='fault-inject'}" @click="page='fault-inject'">Fault Inject</a>
         </div>
-        <div class="menu-section">
-          <div class="section-title">Services</div>
-          <a :class="{active:page==='services'}" @click="page='services'">⚙️ VPN</a>
-          <a :class="{active:page==='proto-config'}" @click="page='proto-config'" title="Configure access protocols">📋 Protocols</a>
-          <a :class="{active:page==='config'}" @click="page='config'">📝 Config</a>
+        <div class="menu-group">
+          <div class="menu-label">Network</div>
+          <a :class="{sel:page==='routing'}" @click="page='routing'">Dynamic Routing</a>
+          <a :class="{sel:page==='tunnels'}" @click="page='tunnels'">Tunnel Manager</a>
+          <a :class="{sel:page==='vlans'}" @click="page='vlans'">VLAN per User</a>
+          <a :class="{sel:page==='hotspot'}" @click="page='hotspot'">Hotspot Portal</a>
+          <a :class="{sel:page==='netflow'}" @click="page='netflow'">NetFlow / DHCP</a>
         </div>
-        <div class="menu-section">
-          <div class="section-title">Network</div>
-          <a :class="{active:page==='routing'}" @click="page='routing'" title="OSPF / BGP status">🌍 Routing</a>
-          <a :class="{active:page==='tunnels'}" @click="page='tunnels'" title="GRE / IPIP / EoIP / VXLAN">🔗 Tunnels</a>
-          <a :class="{active:page==='vlans'}" @click="page='vlans'" title="VLAN per User">🏷 VLAN</a>
-          <a :class="{active:page==='hotspot'}" @click="page='hotspot'" title="Captive Portal">📶 Hotspot</a>
-          <a :class="{active:page==='netflow'}" @click="page='netflow'" title="NetFlow + DHCP Relay">📡 Export</a>
-        </div>
-        <div class="sidebar-footer">
-          <small>RNAS v3.0</small>
-        </div>
+        <div class="sidebar-foot"><div class="dot ok"></div> v3.0 running</div>
       </nav>
-      <div class="content">
-        <div class="breadcrumb">
-          {{ breadcrumb }}
-        </div>
+
+      <main class="rnas-content">
         <StatusCard v-if="page==='overview'||page==='sessions'" :service="service" />
         <QuickActions v-if="page==='overview'" @nav="page=$event" @refresh="fetchData" />
         <SystemHealth v-if="page==='overview'" />
@@ -91,7 +91,7 @@
         <VlanManager v-if="page==='vlans'" />
         <HotspotManager v-if="page==='hotspot'" />
         <NetflowDhcp v-if="page==='netflow'" />
-      </div>
+      </main>
     </div>
   </div>
 </template>
@@ -130,85 +130,111 @@ import SystemPage from './components/SystemPage.vue'
 import TestResults from './components/TestResults.vue'
 
 const page = ref('overview')
+const hostIP = ref('192.168.0.203')
 const service = ref({ uptime: '--', cpu: '--', mem: '--' })
 const sessions = ref([])
 const selectedSession = ref(null)
 const loading = ref(true)
-const airosOnline = ref(false)
-const airosUrl = ref('http://192.168.0.202:8000')
-
-const breadcrumb = computed(() => {
-  const m = { overview:'Monitoring / Dashboard', sessions:'Monitoring / Sessions', network:'Monitoring / Interfaces', services:'Services / VPN', config:'Services / Configuration', 'radius-editor':'RADIUS / Editor', dictionary:'RADIUS / Dictionary', tools:'RADIUS / Tools', system:'System', 'subscriber-sim':'Simulation / Subscribers', 'scenario-runner':'Simulation / Scenario', 'fault-inject':'Simulation / Fault Inject' }
-  return m[page.value] || page.value
-})
+const radiusOk = ref(false)
 
 async function fetchData() {
   loading.value = true
-  try { const res = await fetch('/api/status'); const d = await res.json(); service.value = d.service||{}; sessions.value = d.sessions||[] } catch(e){}
+  try { const res = await fetch('/api/status'); const d = await res.json(); service.value = d.service||{}; sessions.value = d.sessions||[]; radiusOk.value = d.service?.radius_state === 'active' } catch(e){}
   loading.value = false
-}
-async function checkAirOS() {
-  try { const res = await fetch('/api/airos/status'); airosOnline.value = (await res.json()).online||false } catch { airosOnline.value = false }
 }
 async function handleDisconnect(sid) { await fetch(`/api/sessions/${sid}/disconnect`,{method:'POST'}); fetchData() }
 
-let refreshTimer = null, ws = null
-async function startWS() {
-  try { ws=new WebSocket(`ws://${location.host}/api/ws`); ws.onmessage=e=>{ try{ const d=JSON.parse(e.data); service.value=d.service||{}; sessions.value=d.sessions||[] }catch{} }; ws.onclose=()=>ws=null; ws.onerror=()=>{ws?.close();ws=null} } catch{ws=null}
-}
-onMounted(()=>{ fetchData(); checkAirOS(); refreshTimer=setInterval(fetchData,5000); startWS() })
-onUnmounted(()=>{ clearInterval(refreshTimer); ws?.close() })
+let refreshTimer = null
+onMounted(()=>{ fetchData(); refreshTimer=setInterval(fetchData,5000) })
+onUnmounted(()=>{ clearInterval(refreshTimer) })
 </script>
 
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif; background: #f0f2f5; color: #1a1a2e; font-size: 14px; }
-.luci-layout { display: flex; flex-direction: column; height: 100vh; }
-.topbar { display: flex; align-items: center; gap: 16px; padding: 0 20px; height: 46px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; font-size: 13px; flex-shrink: 0; border-bottom: 2px solid #3b82f6; }
-.topbar .brand { font-weight: 800; font-size: 16px; letter-spacing: 2px; color: #60a5fa; }
-.topbar .hostname { color: #94a3b8; font-family: monospace; }
-.topbar .uptime { color: #64748b; font-size: 12px; }
-.topbar .spacer { flex: 1; }
-.topbar .airos-link { color: #60a5fa; text-decoration: none; font-size: 12px; padding: 2px 10px; border: 1px solid #3b82f6; border-radius: 4px; }
-.topbar .airos-link:hover { background: #3b82f6; color: #fff; }
-.topbar .airos-link.offline { color: #666; border-color: #444; }
+/* ===== RNAS RouterOS-Style Global Theme ===== */
+:root {
+  --bg: #0f1923;
+  --bg2: #1a2733;
+  --bg3: #243447;
+  --fg: #c8d6e5;
+  --fg2: #8395a7;
+  --fg3: #576574;
+  --accent: #0abde3;
+  --green: #10ac84;
+  --red: #ee5253;
+  --border: #2e4052;
+  --font: 'Segoe UI', 'Noto Sans SC', system-ui, sans-serif;
+  --mono: 'Cascadia Code', 'Consolas', monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: var(--font); background: var(--bg); color: var(--fg); font-size: 13px; line-height: 1.5; }
+.rnas-layout { display:flex; flex-direction:column; height:100vh; }
 
-.main-area { display: flex; flex: 1; overflow: hidden; }
-.sidebar { width: 210px; background: #1e293b; color: #94a3b8; overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column; font-size: 13px; }
-.sidebar .menu-section { padding: 4px 0; }
-.sidebar .section-title { padding: 10px 20px 4px; font-size: 10px; text-transform: uppercase; color: #64748b; letter-spacing: 1.5px; font-weight: 600; }
-.sidebar a { display: flex; align-items: center; gap: 10px; padding: 8px 24px; color: #cbd5e1; text-decoration: none; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; }
-.sidebar a:hover { background: #334155; color: #fff; border-left-color: #475569; }
-.sidebar a.active { background: #1e3a5f; color: #60a5fa; font-weight: 600; border-left-color: #3b82f6; }
-.sidebar .badge { margin-left: auto; background: #ef4444; color: #fff; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 700; min-width: 20px; text-align: center; }
-.sidebar-footer { margin-top: auto; padding: 12px 20px; color: #475569; font-size: 11px; border-top: 1px solid #334155; }
+/* Topbar */
+.rnas-topbar { display:flex; align-items:center; height:36px; padding:0 16px; background: var(--bg2); border-bottom:1px solid var(--border); font-size:12px; flex-shrink:0; }
+.rnas-topbar .t-left { display:flex; align-items:center; gap:8px; }
+.rnas-topbar .t-brand { font-weight:800; color:var(--accent); letter-spacing:2px; font-size:14px; }
+.rnas-topbar .t-sep { color:var(--fg3); }
+.rnas-topbar .t-host { color:var(--fg); font-family:var(--mono); }
+.rnas-topbar .t-info { color:var(--fg2); }
+.rnas-topbar .t-center { display:flex; align-items:center; gap:8px; margin:0 auto; }
+.rnas-topbar .t-sessions { color:var(--fg); font-weight:600; }
+.rnas-topbar .t-status { font-weight:600; }
+.rnas-topbar .t-status.ok { color:var(--green); }
+.rnas-topbar .t-status.err { color:var(--red); }
+.rnas-topbar .t-cpu { color:var(--fg2); }
+.rnas-topbar .t-right { display:flex; align-items:center; }
+.rnas-topbar .t-ver { color:var(--fg3); font-family:var(--mono); font-size:11px; }
 
-.content { flex: 1; overflow-y: auto; padding: 20px 28px; background: #f8fafc; }
-.breadcrumb { font-size: 11px; color: #94a3b8; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+/* Main area */
+.rnas-main { display:flex; flex:1; overflow:hidden; }
 
-/* Global table polish */
-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-thead { background: #f8fafc; }
-th { color: #64748b; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
-td { padding: 9px 12px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-tbody tr:hover { background: #f8faff; }
-tbody tr:nth-child(even) { background: #fafbfc; }
-tbody tr:nth-child(even):hover { background: #f0f4ff; }
+/* Sidebar */
+.rnas-sidebar { width:190px; background:var(--bg2); border-right:1px solid var(--border); overflow-y:auto; flex-shrink:0; font-size:12px; }
+.menu-group { padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+.menu-label { padding:10px 14px 4px; font-size:9px; text-transform:uppercase; color:var(--fg3); letter-spacing:1.5px; font-weight:700; }
+.rnas-sidebar a { display:flex; align-items:center; gap:6px; padding:6px 14px 6px 18px; color:var(--fg2); text-decoration:none; cursor:pointer; border-left:2px solid transparent; transition:0.1s; }
+.rnas-sidebar a:hover { background:var(--bg3); color:var(--fg); }
+.rnas-sidebar a.sel { background:rgba(10,189,227,0.08); color:var(--accent); border-left-color:var(--accent); font-weight:600; }
+.rnas-sidebar a b { margin-left:auto; background:var(--accent); color:#000; padding:0 6px; border-radius:8px; font-size:10px; font-weight:700; }
+.sidebar-foot { padding:10px 14px; color:var(--fg3); font-size:10px; display:flex; align-items:center; gap:6px; }
+.sidebar-foot .dot { width:6px; height:6px; border-radius:50%; }
+.sidebar-foot .dot.ok { background:var(--green); }
 
-/* Global button polish */
-button { font-family: inherit; }
-.btn-primary { padding: 6px 14px; background: #3b82f6; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
-.btn-primary:hover { background: #2563eb; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-danger { padding: 6px 14px; background: #ef4444; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
-.btn-danger:hover { background: #dc2626; }
+/* Content */
+.rnas-content { flex:1; overflow-y:auto; padding:16px 20px; background:var(--bg); }
 
-/* Global empty state */
-.empty-state { text-align: center; padding: 48px 20px; color: #94a3b8; }
-.empty-state .icon { font-size: 40px; margin-bottom: 12px; }
-.empty-state .text { font-size: 14px; }
+/* Global component containers */
+.rnas-content h2 { font-size:15px; font-weight:600; color:var(--fg); margin-bottom:8px; }
+.rnas-content .hint, .rnas-content .page-hint { font-size:11px; color:var(--fg2); margin-bottom:12px; }
 
-/* Global hint text */
-.page-hint { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
-.page-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #1e293b; }
+/* Tables */
+table { width:100%; border-collapse:collapse; background:var(--bg2); border:1px solid var(--border); font-size:12px; }
+th { background:var(--bg3); color:var(--fg2); font-weight:600; padding:8px 10px; text-align:left; border-bottom:1px solid var(--border); font-size:10px; text-transform:uppercase; letter-spacing:0.5px; }
+td { padding:7px 10px; border-bottom:1px solid rgba(255,255,255,0.03); font-family:var(--mono); font-size:12px; }
+tbody tr:hover { background:var(--bg3); }
+.mono { font-family:var(--mono); }
+
+/* Status tags */
+.tag { display:inline-block; padding:1px 8px; border-radius:3px; font-size:10px; font-weight:700; }
+.tag.ok { background:rgba(16,172,132,0.15); color:var(--green); }
+.tag.err { background:rgba(238,82,83,0.15); color:var(--red); }
+.tag.info { background:rgba(10,189,227,0.12); color:var(--accent); }
+
+/* Buttons */
+button { font-family:var(--font); cursor:pointer; }
+.btn { padding:6px 14px; border:1px solid var(--border); border-radius:3px; background:var(--bg3); color:var(--fg); font-size:12px; font-weight:600; }
+.btn:hover { background:var(--accent); color:#000; border-color:var(--accent); }
+.btn:disabled { opacity:0.4; cursor:default; }
+.btn-accent { background:var(--accent); color:#000; border-color:var(--accent); }
+.btn-danger { background:var(--red); color:#fff; border-color:var(--red); }
+
+/* Inputs */
+input, select, textarea { background:var(--bg); border:1px solid var(--border); color:var(--fg); padding:6px 10px; border-radius:3px; font-size:12px; font-family:var(--font); }
+input:focus, select:focus { outline:none; border-color:var(--accent); }
+
+/* Cards / Sections */
+.card, .section, .tool-section, .hotspot-section, .routing-section, .tunnel-section, .vlan-section, .sim-section { background:var(--bg2); border:1px solid var(--border); border-radius:4px; padding:14px; margin-bottom:12px; }
+
+/* Empty state */
+.empty, .empty-state { text-align:center; padding:32px; color:var(--fg3); font-size:13px; }
 </style>
