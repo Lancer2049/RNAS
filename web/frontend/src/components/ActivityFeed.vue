@@ -33,11 +33,11 @@ onMounted(() => { poll(); setInterval(poll, 3000) })
 </script>
 
 <style scoped>
-.activity-section{background:#fff;padding:16px 20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:20px}
-.activity-section h3{font-size:14px;color:#64748b;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.activity-section{background:var(--bg2);padding:14px;border:1px solid var(--border);border-radius:3px;margin-bottom:16px}
+.activity-section h3{font-size:12px;color:var(--fg2);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
 .activity-list{display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto}
-.activity-item{display:flex;align-items:center;gap:10px;font-size:12px;color:#64748b}
-.time{color:#94a3b8;font-family:monospace;font-size:11px;width:70px;flex-shrink:0}
+.activity-item{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--fg2)}
+.time{color:var(--fg3);font-family:var(--mono);font-size:10px;width:70px;flex-shrink:0}
 .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dot.auth{background:#3b82f6} .dot.acct{background:#22c55e}
+.dot.auth{background:var(--accent)} .dot.acct{background:var(--green)}
 </style>

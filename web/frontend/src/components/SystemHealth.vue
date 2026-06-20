@@ -21,11 +21,11 @@ onMounted(() => { load(); setInterval(load, 10000) })
 </script>
 
 <style scoped>
-.health-section{background:#fff;padding:14px 18px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
-.health-section h3{font-size:13px;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.health-section{background:var(--bg2);padding:12px 14px;border:1px solid var(--border);border-radius:3px;margin-bottom:14px}
+.health-section h3{font-size:12px;color:var(--fg2);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
 .health-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:4px}
-.health-item{display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0}
-.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}.dot.up{background:#22c55e}.dot.down{background:#ef4444}
-.name{color:#64748b;flex:1}.state{font-weight:600;font-size:11px}.state{color:#22c55e}
-.health-item:has(.down) .state{color:#ef4444}
+.health-item{display:flex;align-items:center;gap:8px;font-size:11px;padding:4px 0}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}.dot.up{background:var(--green)}.dot.down{background:var(--red)}
+.name{color:var(--fg3);flex:1}.state{font-weight:600;font-size:10px;color:var(--green)}
+.health-item:has(.down) .state{color:var(--red)}
 </style>

@@ -69,16 +69,22 @@ async function stopSim() {
 
 <style scoped>
 .sim-section { display:flex; flex-direction:column; gap:12px; }
-.controls { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-.field { display:flex; flex-direction:column; gap:2px; }
-.field label { font-size:10px; color:#888; text-transform:uppercase; }
-.field input, .field select { padding:6px 10px; border:1px solid #ddd; border-radius:4px; font-size:14px; width:90px; }
-.btn-start { padding:8px 20px; background:#22c55e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:600; }
-.btn-stop { padding:8px 20px; background:#ef4444; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:600; }
-.btn-start:disabled,.btn-stop:disabled { opacity:0.5; }
-.status { font-weight:600; font-size:13px; } .active { color:#22c55e; } .idle { color:#94a3b8; }
-.progress { display:flex; align-items:center; gap:12px; }
-.bar { flex:1; height:8px; background:#eee; border-radius:4px; overflow:hidden; }
-.fill { height:100%; background:#3b82f6; transition:width .3s; }
-.row-ok { background:#f0fdf4; } .row-fail { background:#fef2f2; }
+.page-title{font-size:15px;color:var(--fg);font-weight:600} .page-hint{font-size:11px;color:var(--fg3)}
+.controls { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; background:var(--bg2); padding:12px; border:1px solid var(--border); border-radius:3px }
+.field { display:flex; flex-direction:column; gap:2px }
+.field label { font-size:9px; color:var(--fg3); text-transform:uppercase; letter-spacing:1px }
+.field input, .field select { padding:5px 8px; border:1px solid var(--border); border-radius:3px; font-size:12px; width:90px; background:var(--bg); color:var(--fg); font-family:var(--font); outline:none }
+.field input:focus,.field select:focus { border-color:var(--accent) }
+.btn-start { padding:6px 16px; background:var(--green); color:#000; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600; font-family:var(--font) }
+.btn-stop { padding:6px 16px; background:var(--red); color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600; font-family:var(--font) }
+.btn-start:disabled,.btn-stop:disabled { opacity:0.4 }
+.status { font-weight:600; font-size:12px } .active { color:var(--green) } .idle { color:var(--fg3) }
+.progress { display:flex; align-items:center; gap:12px }
+.bar { flex:1; height:6px; background:var(--bg3); border-radius:3px; overflow:hidden }
+.fill { height:100%; background:var(--accent); transition:width .3s }
+table{width:100%;border-collapse:collapse;background:var(--bg2);border:1px solid var(--border);border-radius:3px;font-size:12px}
+th,td{padding:5px 10px;text-align:left;border-bottom:1px solid var(--border)} th{color:var(--fg3);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.row-ok { color:var(--fg) } .row-fail { background:rgba(238,82,83,0.04) }
+.mono{font-family:var(--mono);font-size:11px}
+.empty-state{text-align:center;padding:40px;color:var(--fg3)}.empty-state .icon{font-size:36px}.empty-state .text{font-size:13px;color:var(--fg2)}.empty-state .sub{font-size:11px}
 </style>

@@ -48,14 +48,16 @@ onMounted(loadUsers)
 </script>
 
 <style scoped>
-.aaa-section { display: flex; flex-direction: column; gap: 16px; }
-.aaa-section h2 { font-size: 18px; }
-.hint { font-size: 13px; color: #888; }
-.actions-bar { margin-bottom: 8px; }
-.btn-refresh { padding: 6px 16px; background: #3b82f6; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-th { color: #666; font-weight: 600; font-size: 11px; text-transform: uppercase; background: #f8f9fa; }
-.mono { font-family: monospace; font-size: 12px; }
-.empty { text-align: center; color: #999; padding: 40px; }
+.aaa-section { display: flex; flex-direction: column; gap: 14px; }
+.aaa-section h2 { font-size: 15px; color: var(--fg); font-weight: 600; }
+.hint { font-size: 11px; color: var(--fg3); }
+.actions-bar { margin-bottom: 4px; }
+.btn-refresh { padding: 5px 14px; background: var(--bg3); color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; cursor: pointer; font-size: 11px; font-family: var(--font); }
+.btn-refresh:hover { background: var(--accent); color: #000; }
+table { width: 100%; border-collapse: collapse; background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; }
+th, td { padding: 5px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
+th { color: var(--fg3); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; background: var(--bg3); }
+.mono { font-family: var(--mono); font-size: 11px; }
+.empty { text-align: center; color: var(--fg3); padding: 40px; font-size: 12px; }
+.btn-export { padding:5px 14px; background:var(--bg3); color:var(--fg2); border:1px solid var(--border); border-radius:3px; cursor:pointer; font-size:11px; font-family:var(--font); margin-left:6px }
 </style>

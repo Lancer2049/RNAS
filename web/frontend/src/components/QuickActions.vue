@@ -29,11 +29,11 @@ defineEmits(['nav','refresh'])
 </script>
 
 <style scoped>
-.quick-actions { margin-bottom: 20px; }
-.quick-actions h3 { font-size: 14px; color: #64748b; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.quick-actions { margin-bottom: 16px; }
+.quick-actions h3 { font-size: 12px; color: var(--fg2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
 .actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
-.action-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: all 0.15s; }
-.action-card:hover { border-color: #3b82f6; box-shadow: 0 2px 8px rgba(59,130,246,0.15); transform: translateY(-1px); }
-.action-card .icon { font-size: 24px; }
-.action-card .label { font-size: 12px; color: #64748b; font-weight: 500; text-align: center; }
+.action-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; padding: 14px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: all 0.15s; }
+.action-card:hover { border-color: var(--accent); background: rgba(10,189,227,0.06); transform: translateY(-1px); }
+.action-card .icon { font-size: 22px; }
+.action-card .label { font-size: 11px; color: var(--fg2); font-weight: 500; text-align: center; }
 </style>

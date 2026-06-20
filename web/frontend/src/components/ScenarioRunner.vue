@@ -26,13 +26,14 @@ onMounted(load)
 </script>
 
 <style scoped>
-.sim-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:18px;} .hint{font-size:13px;color:#888;}
-.scenario-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
-.scenario-card { background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); display:flex; flex-direction:column; gap:8px; }
-.scenario-card h3 { font-size:15px; } .scenario-card p { font-size:13px; color:#666; flex:1; }
-.scenario-card button { padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; }
-.scenario-card button:disabled { opacity:0.5; }
-.result { font-size:12px; padding:4px 8px; border-radius:4px; }
-.result.ok { color:#22c55e; background:#f0fdf4; } .result.fail { color:#ef4444; background:#fef2f2; }
-.running { border-left:3px solid #3b82f6; }
+.sim-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:15px;color:var(--fg);font-weight:600} .hint{font-size:11px;color:var(--fg3)}
+.scenario-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px }
+.scenario-card { background:var(--bg2); padding:14px; border:1px solid var(--border); border-radius:3px; display:flex; flex-direction:column; gap:8px }
+.scenario-card h3 { font-size:13px; color:var(--fg) } .scenario-card p { font-size:11px; color:var(--fg2); flex:1 }
+.scenario-card button { padding:5px 14px; background:var(--bg3); color:var(--accent); border:1px solid var(--accent); border-radius:3px; cursor:pointer; font-size:11px; font-weight:600; font-family:var(--font) }
+.scenario-card button:hover { background:var(--accent); color:#000 }
+.scenario-card button:disabled { opacity:0.4 }
+.result { font-size:11px; padding:4px 8px; border-radius:3px }
+.result.ok { color:var(--green); background:rgba(16,172,132,0.1) } .result.fail { color:var(--red); background:rgba(238,82,83,0.1) }
+.running { border-left:3px solid var(--accent) }
 </style>
