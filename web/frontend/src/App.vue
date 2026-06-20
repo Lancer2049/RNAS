@@ -150,9 +150,17 @@ async function fetchData() {
 }
 async function handleDisconnect(sid) { await fetch(`/api/sessions/${sid}/disconnect`,{method:'POST'}); fetchData() }
 
-let refreshTimer = null
-onMounted(()=>{ fetchData(); refreshTimer=setInterval(fetchData,5000) })
-onUnmounted(()=>{ clearInterval(refreshTimer) })
+let refreshTimer = null, ws = null
+function connectWS() {
+  try {
+    ws = new WebSocket(`ws://${location.host}/api/ws`)
+    ws.onmessage = e => { try { const d=JSON.parse(e.data); service.value=d.service||{}; sessions.value=d.sessions||[]; radiusOk.value=d.service?.radius_state==='active' } catch {} }
+    ws.onclose = () => { ws=null; setTimeout(connectWS,3000) }
+    ws.onerror = () => { ws?.close(); ws=null }
+  } catch { ws=null }
+}
+onMounted(()=>{ fetchData(); refreshTimer=setInterval(fetchData,15000); connectWS() })
+onUnmounted(()=>{ clearInterval(refreshTimer); ws?.close() })
 </script>
 
 <style>
