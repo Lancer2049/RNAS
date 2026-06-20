@@ -66,18 +66,27 @@ onMounted(loadAll)
 </script>
 
 <style scoped>
-.services-section { display: flex; flex-direction: column; gap: 16px; }
-.section-header h2 { font-size: 18px; }
-.card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.card h3 { font-size: 15px; margin-bottom: 8px; color: #555; }
+.services-section { display: flex; flex-direction: column; gap: 14px; }
+.section-header h2 { font-size: 15px; color: var(--fg); font-weight: 600; }
+.status-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.status-item { display: flex; align-items: center; gap: 6px; background: var(--bg2); padding: 6px 12px; border: 1px solid var(--border); border-radius: 3px; font-size: 11px; }
+.s-icon { font-size: 12px; }
+.s-name { font-weight: 600; color: var(--fg); }
+.s-state { padding: 1px 6px; border-radius: 8px; font-size: 9px; font-weight: 600; }
+.s-state.on { background: rgba(16,172,132,0.12); color: var(--green); }
+.s-state.off { background: rgba(238,82,83,0.12); color: var(--red); }
+.s-detail { color: var(--fg3); }
+.card { background: var(--bg2); padding: 14px; border: 1px solid var(--border); border-radius: 3px; }
+.card h3 { font-size: 12px; margin-bottom: 8px; color: var(--fg2); text-transform: uppercase; letter-spacing: 1px; }
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 6px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-th { color: #888; font-weight: 600; text-transform: uppercase; font-size: 11px; }
-.mono { font-family: monospace; font-size: 12px; }
-td input { width: 100%; padding: 4px 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 13px; }
-td input:focus { border-color: #3b82f6; outline: none; }
-.empty { text-align: center; color: #bbb; }
-.actions { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
-.btn-save { padding: 6px 16px; background: #22c55e; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.saved-msg { color: #22c55e; font-size: 13px; }
+th, td { padding: 5px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
+th { color: var(--fg3); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
+.mono { font-family: var(--mono); font-size: 11px; }
+td input { width: 100%; padding: 4px 8px; border: 1px solid var(--border); border-radius: 3px; font-size: 12px; background: var(--bg); color: var(--fg); font-family: var(--font); outline: none; }
+td input:focus { border-color: var(--accent); }
+.empty { text-align: center; color: var(--fg3); font-size: 12px; }
+.actions { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
+.btn-save { padding: 5px 14px; background: var(--green); color: #000; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-family: var(--font); }
+.btn-save:disabled { opacity: 0.4; }
+.saved-msg { color: var(--green); font-size: 11px; }
 </style>

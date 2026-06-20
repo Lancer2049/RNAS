@@ -19,9 +19,14 @@
       </table>
     </div>
 
-    <!-- Firewall -->
-    <div v-if="tab==='fw'" class="tab-body">
-      <div v-for="c in fwChains" :key="c.name" class="fw-chain">
+    <!-- Firewall (Filter/NAT/Mangle) -->
+    <div v-if="['fw','nat','mangle'].includes(tab)" class="tab-body">
+      <div class="fw-subtabs">
+        <button :class="{sel: tab==='fw'}" @click="switchTab('fw')">Filter</button>
+        <button :class="{sel: tab==='nat'}" @click="switchTab('nat')">NAT</button>
+        <button :class="{sel: tab==='mangle'}" @click="switchTab('mangle')">Mangle</button>
+      </div>
+      <div v-for="c in fwFiltered" :key="c.name" class="fw-chain">
         <div class="fw-head">
           <h3>{{ c.family }} {{ c.table }} → {{ c.name }}</h3>
           <button class="btn-mini" @click="showAdd(c)">+ Add</button>
@@ -31,7 +36,6 @@
           <span class="fw-text">{{ typeof r === 'string' ? r : r.text }}</span>
           <button v-if="r.handle" class="btn-del" @click="delRule(c, r.handle)" title="Delete rule">✕</button>
         </div>
-        <!-- Inline add form -->
         <div v-if="addTarget === c.name" class="fw-add">
           <input v-model="newRule" placeholder="e.g. tcp dport 443 accept" @keyup.enter="addRule(c)" />
           <button class="btn-mini" @click="addRule(c)">Add</button>
@@ -111,18 +115,26 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+
+const TBL_MAP = { fw: 'filter', nat: 'nat', mangle: 'mangle' }
 const tab = ref('arp')
-const tabs = [ {id:'arp',label:'ARP'}, {id:'dhcp',label:'DHCP'}, {id:'static',label:'Static'}, {id:'fw',label:'Firewall'}, {id:'routes',label:'Routes'}, {id:'addr',label:'Addresses'} ]
+const tabs = [ {id:'arp',label:'ARP'}, {id:'dhcp',label:'DHCP'}, {id:'static',label:'Static'}, {id:'fw',label:'Filter'}, {id:'nat',label:'NAT'}, {id:'mangle',label:'Mangle'}, {id:'routes',label:'Routes'}, {id:'addr',label:'Addresses'} ]
 const arp = ref([]), fwChains = ref([]), dhcp = ref([]), routes = ref([]), dhcpStatic = ref([]), addrs = ref([])
 const addTarget = ref(''), newRule = ref('')
 const showStaticAdd = ref(false), newStaticMac = ref(''), newStaticIp = ref(''), newStaticHost = ref('')
 const showAddrAdd = ref(false), newAddrIface = ref(''), newAddrIp = ref('')
 
+const fwFiltered = computed(() => {
+  const tbl = TBL_MAP[tab.value]
+  if (!tbl) return fwChains.value
+  return fwChains.value.filter(c => (c.table||'').toLowerCase() === tbl)
+})
+
 function switchTab(id) {
   tab.value = id
   if (id === 'arp') fetchArp()
-  else if (id === 'fw') fetchFW()
+  else if (['fw','nat','mangle'].includes(id)) fetchFW()
   else if (id === 'dhcp') fetchDHCP()
   else if (id === 'static') fetchStatic()
   else if (id === 'addr') fetchAddr()

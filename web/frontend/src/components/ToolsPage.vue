@@ -100,13 +100,15 @@ async function runCoa() {
 </script>
 
 <style scoped>
-.tools-section { display: flex; flex-direction: column; gap: 16px; }
-.tools-section h2 { font-size: 18px; }
-.card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.card h3 { font-size: 15px; margin-bottom: 8px; color: #555; }
+.tools-section { display: flex; flex-direction: column; gap: 14px; }
+.tools-section h2 { font-size: 15px; color: var(--fg); font-weight: 600; }
+.card { background: var(--bg2); padding: 14px; border: 1px solid var(--border); border-radius: 3px; }
+.card h3 { font-size: 12px; margin-bottom: 8px; color: var(--fg2); text-transform: uppercase; letter-spacing: 1px; }
 .tool-row { display: flex; gap: 8px; margin-bottom: 8px; }
-.tool-row input { flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-.tool-row button { padding: 6px 16px; background: #3b82f6; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
-.tool-row button:disabled { opacity: 0.5; }
-.output { background: #1a1a2e; color: #0f0; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+.tool-row input { flex: 1; padding: 5px 10px; border: 1px solid var(--border); border-radius: 3px; font-size: 12px; background: var(--bg); color: var(--fg); font-family: var(--font); outline: none; }
+.tool-row input:focus { border-color: var(--accent); }
+.tool-row button { padding: 5px 14px; background: var(--bg3); color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; cursor: pointer; font-size: 11px; font-family: var(--font); }
+.tool-row button:hover { background: var(--accent); color: #000; }
+.tool-row button:disabled { opacity: 0.4; }
+.output { background: #0a0f14; color: var(--green); padding: 12px; border-radius: 3px; font-family: var(--mono); font-size: 11px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; border: 1px solid var(--border); }
 </style>
