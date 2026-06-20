@@ -121,31 +121,30 @@ onMounted(loadDictionary)
 </script>
 
 <style scoped>
-.dictionary-section { display: flex; flex-direction: column; gap: 16px; }
+.dictionary-section { display: flex; flex-direction: column; gap: 14px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; }
-.section-header h2 { font-size: 18px; }
+.section-header h2 { font-size: 15px; color: var(--fg); font-weight: 600; }
 .search-bar { display: flex; align-items: center; gap: 12px; }
-.search-bar input { padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; width: 240px; font-size: 14px; }
-.count { color: #888; font-size: 13px; white-space: nowrap; }
-
-.dict-layout { display: grid; grid-template-columns: 180px 1fr; gap: 20px; }
+.search-bar input { padding: 5px 10px; border: 1px solid var(--border); border-radius: 3px; width: 240px; font-size: 12px; background: var(--bg); color: var(--fg); font-family: var(--font); outline: none; }
+.search-bar input:focus { border-color: var(--accent); }
+.count { color: var(--fg3); font-size: 12px; white-space: nowrap; }
+.dict-layout { display: grid; grid-template-columns: 180px 1fr; gap: 14px; }
 .vendor-list { display: flex; flex-direction: column; gap: 2px; }
-.vendor-item { display: flex; justify-content: space-between; padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 14px; }
-.vendor-item:hover { background: #f0f4ff; }
-.vendor-item.active { background: #3b82f6; color: #fff; }
-.vendor-item.active .vendor-count { color: #bfdbfe; }
-.vendor-count { color: #999; font-size: 12px; }
-
-.attr-table-wrap { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 16px; }
+.vendor-item { display: flex; justify-content: space-between; padding: 7px 10px; cursor: pointer; border-radius: 3px; font-size: 12px; color: var(--fg2); }
+.vendor-item:hover { background: rgba(10,189,227,0.06); }
+.vendor-item.active { background: var(--accent); color: #000; }
+.vendor-item.active .vendor-count { color: rgba(0,0,0,0.5); }
+.vendor-count { color: var(--fg3); font-size: 11px; }
+.attr-table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: 3px; padding: 14px; }
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
-th { color: #666; font-weight: 600; text-transform: uppercase; font-size: 11px; }
-.mono { font-family: monospace; font-size: 13px; }
-code { background: #f0f0f0; padding: 1px 6px; border-radius: 3px; font-size: 12px; }
-.empty { text-align: center; color: #999; padding: 40px; }
-
-.pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 16px; }
-.pagination button { padding: 4px 12px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; }
+th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
+th { color: var(--fg3); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
+.mono { font-family: var(--mono); font-size: 11px; }
+code { background: var(--bg3); padding: 1px 6px; border-radius: 3px; font-size: 11px; color: var(--accent); }
+.empty { text-align: center; color: var(--fg3); padding: 40px; font-size: 12px; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 14px; }
+.pagination button { padding: 4px 12px; border: 1px solid var(--border); background: var(--bg); color: var(--fg2); border-radius: 3px; cursor: pointer; font-size: 12px; font-family: var(--font); }
+.pagination button:hover { border-color: var(--accent); color: var(--accent); }
 .pagination button:disabled { opacity: 0.3; cursor: default; }
-.pagination span { font-size: 13px; color: #666; }
+.pagination span { font-size: 12px; color: var(--fg3); }
 </style>

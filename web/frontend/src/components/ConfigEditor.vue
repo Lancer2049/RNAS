@@ -105,25 +105,31 @@ onMounted(loadModules)
 </script>
 
 <style scoped>
-.config-section { display: flex; flex-direction: column; gap: 16px; }
+.config-section { display: flex; flex-direction: column; gap: 14px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; }
-.section-header h2 { font-size: 18px; }
+.section-header h2 { font-size: 15px; color: var(--fg); font-weight: 600; }
 .header-actions { display: flex; gap: 8px; }
-.header-actions select { padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; }
-.btn-save, .btn-apply, .btn-add { padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.btn-save { background: #22c55e; color: #fff; }
-.btn-apply { background: #3b82f6; color: #fff; }
-.btn-add { background: #8b5cf6; color: #fff; }
-.btn-save:disabled, .btn-apply:disabled { opacity: 0.5; }
-.editor-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.editor-card h3 { font-size: 14px; color: #555; margin-bottom: 12px; font-family: monospace; }
-.field-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; margin-bottom: 8px; align-items: center; }
-.field-row label { font-size: 13px; color: #888; font-family: monospace; }
-.field-row input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-.new-field { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #eee; grid-template-columns: 1fr 1fr auto; }
-.new-field label { display: none; }
-.empty { text-align: center; color: #bbb; padding: 40px; font-size: 14px; }
-.message { padding: 10px 16px; border-radius: 4px; font-size: 13px; }
-.message.success { background: #dcfce7; color: #166534; }
-.message.error { background: #fee2e2; color: #991b1b; }
+.header-actions select { padding: 5px 10px; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--fg); font-size: 12px; font-family: var(--font); outline: none; }
+.header-actions select:focus { border-color: var(--accent); }
+.btn-save, .btn-apply, .btn-add { padding: 5px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-family: var(--font); }
+.btn-save { background: var(--green); color: #000; }
+.btn-apply { background: var(--accent); color: #000; }
+.btn-add { background: var(--bg3); color: var(--accent); border: 1px solid var(--accent); }
+.btn-add:hover { background: var(--accent); color: #000; }
+.btn-save:disabled, .btn-apply:disabled { opacity: 0.4; }
+.editor-card { background: var(--bg2); padding: 14px; border: 1px solid var(--border); border-radius: 3px; }
+.editor-card h3 { font-size: 12px; color: var(--fg2); margin-bottom: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; }
+.field-row { display: grid; grid-template-columns: 200px 1fr; gap: 10px; margin-bottom: 8px; align-items: center; }
+.field-row label { font-size: 11px; color: var(--fg3); font-family: var(--mono); }
+.field-row input, .field-row select { padding: 4px 8px; border: 1px solid var(--border); border-radius: 3px; font-size: 12px; background: var(--bg); color: var(--fg); font-family: var(--font); outline: none; }
+.field-row input:focus, .field-row select:focus { border-color: var(--accent); }
+.field-hint { font-size: 10px; color: var(--fg3); }
+.empty { text-align: center; color: var(--fg3); padding: 40px; font-size: 12px; }
+.empty-state { text-align: center; padding: 40px; color: var(--fg3); }
+.empty-state .icon { font-size: 36px; margin-bottom: 8px; }
+.empty-state .text { font-size: 13px; color: var(--fg2); }
+.empty-state .sub { font-size: 11px; }
+.message { padding: 8px 14px; border-radius: 3px; font-size: 12px; }
+.message.success { background: rgba(16,172,132,0.1); color: var(--green); border: 1px solid rgba(16,172,132,0.2); }
+.message.error { background: rgba(238,82,83,0.1); color: var(--red); border: 1px solid rgba(238,82,83,0.2); }
 </style>

@@ -103,25 +103,27 @@ onMounted(() => { loadProto('pppoe'); loadInterfaces() })
 </script>
 
 <style scoped>
-.proto-config{display:flex;flex-direction:column;gap:16px}
+.proto-config{display:flex;flex-direction:column;gap:14px}
+.page-title{font-size:15px;color:var(--fg);font-weight:600}
+.page-hint{font-size:11px;color:var(--fg3)}
 .proto-tabs{display:flex;gap:4px;flex-wrap:wrap}
-.proto-tabs button{padding:8px 18px;border:1px solid #e2e8f0;background:#fff;border-radius:6px 6px 0 0;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;transition:all .15s}
-.proto-tabs button.active{background:#3b82f6;color:#fff;border-color:#3b82f6;font-weight:600}
-.proto-tabs button:hover:not(.active){background:#f8faff}
-.status-dot{width:8px;height:8px;border-radius:50%}.status-dot.on{background:#22c55e}.status-dot.off{background:#e2e8f0}
-.proto-tabs button.active .status-dot.off{background:rgba(255,255,255,.5)}
-
-.proto-form{background:#fff;padding:20px;border-radius:0 8px 8px 8px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.form-header{margin-bottom:16px}
-.toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;font-weight:600}
-.toggle input{width:18px;height:18px}
-
+.proto-tabs button{padding:6px 14px;border:1px solid var(--border);background:var(--bg);border-radius:3px 3px 0 0;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;transition:all .15s;color:var(--fg2);font-family:var(--font)}
+.proto-tabs button.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.proto-tabs button:hover:not(.active){background:var(--bg3)}
+.status-dot{width:8px;height:8px;border-radius:50%}.status-dot.on{background:var(--green)}.status-dot.off{background:var(--border)}
+.proto-tabs button.active .status-dot.off{background:rgba(0,0,0,.3)}
+.proto-form{background:var(--bg2);padding:14px;border-radius:0 3px 3px 3px;border:1px solid var(--border)}
+.form-header{margin-bottom:14px}
+.toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--fg)}
+.toggle input{width:18px;height:18px;accent-color:var(--accent)}
 .field-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.field-row label{width:120px;font-size:13px;color:#64748b;flex-shrink:0}
-.field-input{padding:6px 10px;border:1px solid #ddd;border-radius:4px;font-size:13px;flex:1;max-width:300px}
-.field-input:focus{border-color:#3b82f6;outline:none}
-.field-hint{font-size:10px;color:#94a3b8;width:80px}
-
-.form-actions{display:flex;gap:10px;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid #f0f0f0}
-.msg{font-size:13px;font-weight:500}.ok{color:#22c55e}.err{color:#ef4444}
+.field-row label{width:120px;font-size:11px;color:var(--fg3);flex-shrink:0}
+.field-input{padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;flex:1;max-width:300px;background:var(--bg);color:var(--fg);font-family:var(--font);outline:none}
+.field-input:focus{border-color:var(--accent)}
+.field-hint{font-size:9px;color:var(--fg3);width:80px}
+.form-actions{display:flex;gap:10px;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--border)}
+.btn-primary{padding:5px 16px;background:var(--bg3);color:var(--accent);border:1px solid var(--accent);border-radius:3px;cursor:pointer;font-size:11px;font-family:var(--font)}
+.btn-primary:hover{background:var(--accent);color:#000}
+.btn-primary:disabled{opacity:0.4}
+.msg{font-size:12px;font-weight:500}.ok{color:var(--green)}.err{color:var(--red)}
 </style>

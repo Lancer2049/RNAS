@@ -127,26 +127,27 @@ onUnmounted(() => clearInterval(refreshTimer))
 </script>
 
 <style scoped>
-.network-section { display: flex; flex-direction: column; gap: 16px; }
-.section-header h2 { font-size: 18px; }
-.card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.card h3 { font-size: 15px; margin-bottom: 8px; color: #555; }
+.network-section { display: flex; flex-direction: column; gap: 14px; }
+.section-header h2 { font-size: 15px; color: var(--fg); font-weight: 600; }
+.card { background: var(--bg2); padding: 14px; border: 1px solid var(--border); border-radius: 3px; }
+.card h3 { font-size: 12px; margin-bottom: 8px; color: var(--fg2); text-transform: uppercase; letter-spacing: 1px; }
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 6px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-th { color: #888; font-weight: 600; text-transform: uppercase; font-size: 11px; }
-.mono { font-family: monospace; font-size: 12px; }
-td input { width: 100%; padding: 4px 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 13px; }
-td input:focus { border-color: #3b82f6; outline: none; }
-.empty { text-align: center; color: #bbb; }
+th, td { padding: 5px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
+th { color: var(--fg3); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
+.mono { font-family: var(--mono); font-size: 11px; }
+td input { width: 100%; padding: 4px 8px; border: 1px solid var(--border); border-radius: 3px; font-size: 12px; background: var(--bg); color: var(--fg); font-family: var(--font); }
+td input:focus { border-color: var(--accent); outline: none; }
+.empty { text-align: center; color: var(--fg3); }
 .actions { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
-.btn-save, .btn-apply { padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.btn-save { background: #22c55e; color: #fff; }
-.btn-apply { background: #3b82f6; color: #fff; }
-.btn-save:disabled, .btn-apply:disabled { opacity: 0.5; }
-.saved-msg { color: #22c55e; font-size: 13px; }
-.hint { font-size: 13px; color: #888; margin-bottom: 8px; }
-.badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-.badge.up { background: #dcfce7; color: #166534; }
-.badge.down { background: #fee2e2; color: #991b1b; }
-.route-text { background: #f8f9fa; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; }
+.btn-save, .btn-apply { padding: 5px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-family: var(--font); }
+.btn-save { background: var(--green); color: #000; }
+.btn-apply { background: var(--accent); color: #000; }
+.btn-save:disabled, .btn-apply:disabled { opacity: 0.4; }
+.saved-msg { color: var(--green); font-size: 12px; }
+.hint { font-size: 11px; color: var(--fg3); margin-bottom: 8px; }
+.badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.badge.up { background: rgba(16,172,132,0.12); color: var(--green); }
+.badge.down { background: rgba(238,82,83,0.12); color: var(--red); }
+.route-text { background: var(--bg); padding: 12px; border-radius: 3px; font-family: var(--mono); font-size: 11px; max-height: 200px; overflow-y: auto; color: var(--fg); border: 1px solid var(--border); }
+.rate { color: var(--accent); }
 </style>
