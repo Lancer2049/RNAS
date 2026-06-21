@@ -83,6 +83,8 @@ async def get_dictionary():
                     if "values" not in attrs[m2.group(1)]:
                         attrs[m2.group(1)]["values"] = {}
                     attrs[m2.group(1)]["values"][m2.group(2)] = m2.group(3)
+    if any(v == "Standard" for v in vendors) or any(a["vendor"] == "Standard" for a in attrs.values()):
+        vendors.add("Standard")
     return {"success": True, "attributes": attrs, "vendors": sorted(vendors), "count": len(attrs)}
 
 @router.get("/tools/ping")
