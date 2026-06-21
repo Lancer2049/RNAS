@@ -8,6 +8,35 @@ RADCLIENT = "/usr/bin/radclient"
 
 
 
+
+def _parse_dict_lines(fh, default_vendor, attrs, vendors):
+    import re
+    current_vendor = default_vendor
+    for line in fh:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        vm = re.match(r"(?:VENDOR|BEGIN-VENDOR)\s+(\S+)", line)
+        if vm:
+            current_vendor = vm.group(1)
+            vendors.add(current_vendor)
+            continue
+        if line.startswith("END-VENDOR"):
+            current_vendor = default_vendor
+            continue
+        if line.startswith("$INCLUDE"):
+            continue
+        m = re.match(r"ATTRIBUTE\s+(\S+)\s+(\d+)\s+(\S+)", line)
+        if m:
+            name, oid, typ = m.group(1), m.group(2), m.group(3)
+            attrs[name] = {"id": int(oid), "type": typ, "vendor": current_vendor}
+            continue
+        m2 = re.match(r"VALUE\s+(\S+)\s+(\S+)\s+(\S+)", line)
+        if m2 and m2.group(1) in attrs:
+            if "values" not in attrs[m2.group(1)]:
+                attrs[m2.group(1)]["values"] = {}
+            attrs[m2.group(1)]["values"][m2.group(2)] = m2.group(3)
+
 @router.get("/dictionary")
 async def get_dictionary():
     """List all RADIUS dictionary attributes"""
@@ -17,6 +46,14 @@ async def get_dictionary():
     vendors = set()
     if not os.path.isdir(dict_dir):
         return {"success": False, "attributes": {}, "vendors": [], "count": 0}
+    # Parse standard RFC attributes first
+    rfc_dir = "/usr/share/freeradius"
+    import glob
+    for rfc_file in sorted(glob.glob(rfc_dir + "/dictionary.rfc*")):
+        with open(rfc_file, errors="ignore") as fh:
+            _parse_dict_lines(fh, "Standard", attrs, vendors)
+    
+    # Then parse VSA dictionaries
     for fn in sorted(os.listdir(dict_dir)):
         fp = os.path.join(dict_dir, fn)
         if not os.path.isfile(fp) or fn.startswith("."):
@@ -27,7 +64,6 @@ async def get_dictionary():
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
-                # Track vendor from VENDOR and BEGIN-VENDOR declarations
                 vm = re.match(r"(?:VENDOR|BEGIN-VENDOR)\s+(\S+)", line)
                 if vm:
                     current_vendor = vm.group(1)
@@ -36,13 +72,12 @@ async def get_dictionary():
                 if line.startswith("END-VENDOR"):
                     current_vendor = "Standard"
                     continue
-                # Parse: ATTRIBUTE <name> <id> <type>
                 m = re.match(r"ATTRIBUTE\s+(\S+)\s+(\d+)\s+(\S+)", line)
                 if m:
                     name, oid, typ = m.group(1), m.group(2), m.group(3)
-                    attrs[name] = {"id": int(oid), "type": typ, "vendor": current_vendor}
+                    if name not in attrs:  # VSA may shadow standard, prefer first
+                        attrs[name] = {"id": int(oid), "type": typ, "vendor": current_vendor}
                     continue
-                # Parse: VALUE <attr> <name> <value>
                 m2 = re.match(r"VALUE\s+(\S+)\s+(\S+)\s+(\S+)", line)
                 if m2 and m2.group(1) in attrs:
                     if "values" not in attrs[m2.group(1)]:
