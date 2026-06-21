@@ -103,7 +103,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import StatusCard from './components/StatusCard.vue'
 import QuickActions from './components/QuickActions.vue'
 import SystemHealth from './components/SystemHealth.vue'
@@ -138,7 +138,8 @@ import SystemPage from './components/SystemPage.vue'
 import TestResults from './components/TestResults.vue'
 import BandwidthTest from './components/BandwidthTest.vue'
 
-const page = ref('overview')
+const page = ref(location.hash ? location.hash.replace('#/','') || 'overview' : 'overview')
+watch(page, n => window.location.hash = '#/' + n)
 const hostIP = ref('192.168.0.203')
 const service = ref({ uptime: '--', cpu: '--', mem: '--' })
 const sessions = ref([])
@@ -162,7 +163,13 @@ function connectWS() {
     ws.onerror = () => { ws?.close(); ws=null }
   } catch { ws=null }
 }
-onMounted(()=>{ fetchData(); refreshTimer=setInterval(fetchData,15000); connectWS() })
+onMounted(()=>{ 
+  fetchData(); refreshTimer=setInterval(fetchData,15000); connectWS()
+  window.addEventListener('hashchange', () => {
+    const h = location.hash.replace('#/','') || 'overview'
+    if (h !== page.value) page.value = h
+  })
+})
 onUnmounted(()=>{ clearInterval(refreshTimer); ws?.close() })
 </script>
 
