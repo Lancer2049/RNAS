@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, PlainTextResponse
@@ -49,3 +49,33 @@ if os.path.isdir(sd):
         if os.path.isfile(fp) and not fp.endswith(".py"):
             return FileResponse(fp)
         return FileResponse(os.path.join(sd, "index.html"))
+
+import asyncio, json as _json
+
+@app.websocket("/api/ws")
+async def ws_dashboard(ws: WebSocket):
+    await ws.accept()
+    try:
+        while True:
+            import subprocess as _sp, re
+            stat = _sp.run(["accel-cmd", "show", "stat"], capture_output=True, text=True, timeout=3).stdout
+            sessions_raw = _sp.run(["accel-cmd", "show", "sessions", "sid,ifname,username,ip,type,state,uptime-raw,rx-bytes-raw,tx-bytes-raw"], capture_output=True, text=True, timeout=3).stdout
+            svc = {}
+            for key, pat in [("uptime","uptime:\s*(\S+)"),("cpu","cpu:\s*(\S+)"),("mem","mem\(rss/virt\):\s*(\S+)"),("radius_state","state:\s*(\S+)"),("auth_sent","auth sent:\s*(\d+)"),("acct_sent","acct sent:\s*(\d+)"),("sessions_active","sessions:.*?active:\s*(\d+)")]:
+                m = re.search(pat, stat, re.DOTALL)
+                if m: svc[key] = m.group(1)
+            sess = []
+            for line in sessions_raw.splitlines()[1:]:
+                parts = [p.strip() for p in line.split("|")]
+                if len(parts) >= 9:
+                    sid = parts[0]
+                    if sid and not sid.startswith("-") and not sid.startswith("sid"):
+                        sess.append({
+                            "sid": parts[0],"ifname": parts[1],"username": parts[2],"ip": parts[3],
+                            "type": parts[4],"state": parts[5],"uptime_raw": parts[6],
+                            "rx_bytes_raw": parts[7],"tx_bytes_raw": parts[8],
+                        })
+            await ws.send_text(_json.dumps({"service":svc,"sessions":sess,"sessions_count":len(sess)}))
+            await asyncio.sleep(3)
+    except:
+        pass
