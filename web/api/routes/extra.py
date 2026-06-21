@@ -25,7 +25,7 @@ async def interfaces():
         tx_b, tx_p, tx_e, tx_d = 0, 0, 0, 0
         for i, line in enumerate(lines):
             s = line.strip()
-            if s.startswith("link/") and not mac and not s.startswith("link/none"):
+            if s.startswith("link/") and not mac and not s.startswith("link/none") and not s.startswith("link/ppp"):
                 mm = re.search(r"link/\S+\s+(\S+)", s)
                 if mm: mac = mm.group(1)
             if s.startswith("RX:") and i+1 < len(lines):

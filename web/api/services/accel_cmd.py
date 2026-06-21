@@ -19,18 +19,19 @@ def parse_sessions(raw: str) -> list:
             if line.strip().startswith("ifname") or line.strip().startswith("---"):
                 header_skipped = True
             continue
-        cols = line.split()
-        if len(cols) >= 9:
+        # accel-cmd outputs pipe-delimited columns
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) >= 9:
             rows.append({
-                "sid": cols[0],
-                "ifname": cols[1],
-                "username": cols[2],
-                "ip": cols[3],
-                "type": cols[4],
-                "state": cols[5],
-                "uptime_raw": cols[6],
-                "rx_bytes_raw": int(cols[7]) if cols[7].isdigit() else 0,
-                "tx_bytes_raw": int(cols[8]) if cols[8].isdigit() else 0,
+                "sid": parts[0],
+                "ifname": parts[1],
+                "username": parts[2],
+                "ip": parts[3],
+                "type": parts[4],
+                "state": parts[5],
+                "uptime_raw": parts[6],
+                "rx_bytes_raw": int(parts[7]) if parts[7].lstrip("-").isdigit() else 0,
+                "tx_bytes_raw": int(parts[8]) if parts[8].lstrip("-").isdigit() else 0,
             })
     return rows
 
