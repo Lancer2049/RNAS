@@ -330,6 +330,79 @@ async def system_log(lines: int = 50, unit: str = "", level: str = ""):
     return {"log": out, "lines": len(out.splitlines())}
 
 
+
+@router.get("/protocol/events")
+async def protocol_events(lines: int = 50):
+    """Parse accel-ppp log for RADIUS protocol events"""
+    import re
+    log_file = "/var/log/accel-ppp/accel-ppp.log"
+    try:
+        with open(log_file) as fh:
+            all_lines = fh.readlines()
+    except:
+        return {"events": [], "count": 0}
+    
+    # Take the last N lines
+    tail = all_lines[-lines:] if len(all_lines) > lines else all_lines
+    
+    events = []
+    seen = set()
+    for line in tail:
+        m = re.match(r"\[([^]]+)\]\s*:\s*(\w+):\s*(.*)", line.strip())
+        if not m:
+            continue
+        ts, level, msg = m.group(1), m.group(2), m.group(3)
+        
+        # RADIUS send/recv
+        rm = re.search(r"(send|recv)\s*\[RADIUS\(\d+\)\s*(\S+(?:-Request|-Response|-Accept|-Reject))\s+id=(\d+)\s*(.*)\]", msg)
+        if rm:
+            direction, ptype, pid, attrs = rm.group(1), rm.group(2), rm.group(3), rm.group(4).strip()
+            # Extract key attributes
+            username = ""; ip = ""
+            u = re.search(r'User-Name\s+"([^"]+)"', attrs)
+            if u: username = u.group(1)
+            i = re.search(r'Framed-IP-Address\s+(\S+?)(?:>|\s|\]|$)', attrs)
+            if i: ip = i.group(1)
+            a = re.search(r'Acct-Status-Type\s+(\S+?)(?:>|\s|\]|$)', attrs)
+            acct_type = a.group(1) if a else ""
+            
+            event_key = f"{ts}_{ptype}_{pid}"
+            if event_key not in seen:
+                seen.add(event_key)
+                events.append({
+                    "time": ts, "type": ptype, "direction": direction,
+                    "username": username, "ip": ip, "id": pid,
+                    "acct_type": acct_type,
+                    "detail": attrs[:200] if len(attrs) > 200 else attrs
+                })
+        
+        # authentication succeeded/failed
+        am = re.search(r"(\S+):\s+authentication\s+(succeeded|failed)", msg)
+        if am:
+            uname, result = am.group(1), am.group(2)
+            ek = f"{ts}_auth_{uname}"
+            if ek not in seen:
+                seen.add(ek)
+                events.append({
+                    "time": ts, "type": "auth_" + result, "direction": "local",
+                    "username": uname, "detail": f"Authentication {result}"
+                })
+        
+        # disconnected
+        dm = re.search(r"(\S+):\s+disconnected", msg)
+        if dm:
+            iface = dm.group(1)
+            ek = f"{ts}_disc_{iface}"
+            if ek not in seen:
+                seen.add(ek)
+                events.append({
+                    "time": ts, "type": "Disconnect", "direction": "local",
+                    "username": "", "detail": f"{iface} disconnected"
+                })
+    
+    events.reverse()  # chronological order
+    return {"events": events, "count": len(events)}
+
 @router.get("/scheduler")
 async def get_scheduler():
     """Load scheduled tasks from JSON file"""

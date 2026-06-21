@@ -1,20 +1,23 @@
 <template>
   <div class="proto-monitor">
     <h2>Protocol Monitor</h2>
-    <p class="hint">Real-time RADIUS/PPP protocol activity</p>
+    <p class="hint">Real-time RADIUS/PPP protocol activity — parsed from accel-ppp log</p>
 
     <div class="stats-row">
-      <div class="stat"><span class="label">Auth Sent</span><span class="value">{{ service.auth_sent || 0 }}</span></div>
-      <div class="stat"><span class="label">Acct Sent</span><span class="value">{{ service.acct_sent || 0 }}</span></div>
-      <div class="stat"><span class="label">Failures</span><span class="value" :class="service.radius_fail_count>0?'red':''">{{ service.radius_fail_count || 0 }}</span></div>
-      <div class="stat"><span class="label">Active</span><span class="value green">{{ service.sessions_active || 0 }}</span></div>
+      <div class="stat"><span class="label">Auth Sent</span><span class="value">{{ svc.auth_sent || 0 }}</span></div>
+      <div class="stat"><span class="label">Acct Sent</span><span class="value">{{ svc.acct_sent || 0 }}</span></div>
+      <div class="stat"><span class="label">Failures</span><span class="value" :class="(svc.radius_fail_count||0)>0?'red':''">{{ svc.radius_fail_count || 0 }}</span></div>
+      <div class="stat"><span class="label">Active</span><span class="value green">{{ svc.sessions_active || 0 }}</span></div>
     </div>
 
     <div class="log-panel">
-      <div class="log-item" v-for="(l,i) in events" :key="i">
-        <span class="time">{{ l.time }}</span>
-        <span class="type" :class="l.type">{{ l.type }}</span>
-        <span>{{ l.detail }}</span>
+      <div class="log-row" v-for="(e,i) in events" :key="i">
+        <span class="lt">{{ e.time.slice(11,19) }}</span>
+        <span class="ldir" :class="e.direction">{{ e.direction === 'send' ? '»' : e.direction === 'recv' ? '«' : '\u2022' }}</span>
+        <span class="ltype" :class="typeClass(e.type)">{{ fmtType(e.type) }}</span>
+        <span class="lwho" v-if="e.username">{{ e.username }}</span>
+        <span class="lip" v-if="e.ip">{{ e.ip }}</span>
+        <span class="ldetail">{{ e.detail.slice(0, 120) }}{{ e.detail.length > 120 ? '\u2026' : '' }}</span>
       </div>
       <div v-if="!events.length" class="empty">Waiting for RADIUS activity...</div>
     </div>
@@ -24,43 +27,73 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 
-const service = ref({})
 const events = ref([])
-let ws = null
+const svc = ref({})
+const knownKeys = new Set()
+let timer = null
 
-async function startWS() {
+function typeClass(t) {
+  if (!t) return ''
+  if (t.includes('Accept') || t === 'auth_succeeded') return 't-ok'
+  if (t.includes('Reject') || t === 'auth_failed') return 't-err'
+  if (t.includes('Request') && t.includes('Access')) return 't-req'
+  if (t.includes('Accounting')) return t.includes('Request') ? 't-acct' : 't-resp'
+  if (t.includes('Disconnect')) return 't-err'
+  return ''
+}
+function fmtType(t) {
+  if (t === 'auth_succeeded') return 'AUTH OK'
+  if (t === 'auth_failed') return 'AUTH FAIL'
+  return t.toUpperCase().replace('-Request',' REQ').replace('-Response',' RESP').replace('-Accept',' ACC').replace('-Reject',' REJ')
+}
+
+async function fetchEvents() {
   try {
-    ws = new WebSocket(`ws://${location.host}/api/ws`)
-    ws.onmessage = e => {
-      try {
-        const d = JSON.parse(e.data)
-        const oldSvc = {auth_sent: service.value.auth_sent||0, acct_sent: service.value.acct_sent||0}
-        service.value = d.service || {}
-        if ((d.service?.auth_sent||0) > (oldSvc.auth_sent||0))
-          events.value.unshift({time:new Date().toLocaleTimeString(),type:'auth',detail:`Access-Request sent (total: ${d.service.auth_sent})`})
-        if ((d.service?.acct_sent||0) > (oldSvc.acct_sent||0))
-          events.value.unshift({time:new Date().toLocaleTimeString(),type:'acct',detail:`Accounting-Request sent (total: ${d.service.acct_sent})`})
-        if (events.value.length > 50) events.value.length = 50
-      } catch {}
+    const r = await fetch('/api/protocol/events?lines=50')
+    const d = await r.json()
+    const fresh = []
+    for (const e of (d.events || [])) {
+      const key = e.time + '_' + e.type + '_' + (e.id||'') + '_' + (e.username||'')
+      if (!knownKeys.has(key)) {
+        knownKeys.add(key)
+        fresh.push(e)
+      }
     }
-    ws.onclose = () => ws = null
+    events.value = [...fresh.reverse(), ...events.value].slice(0, 100)
   } catch {}
 }
-onMounted(startWS)
-onUnmounted(() => ws?.close())
+async function fetchStats() {
+  try { const r = await fetch('/api/status'); svc.value = (await r.json()).service || {} } catch {}
+}
+
+onMounted(() => {
+  fetchEvents(); fetchStats()
+  timer = setInterval(() => { fetchEvents(); fetchStats() }, 3000)
+})
+onUnmounted(() => clearInterval(timer))
 </script>
 
 <style scoped>
-.proto-monitor { display:flex; flex-direction:column; gap:12px; } h2{font-size:15px;color:var(--fg);font-weight:600} .hint{font-size:11px;color:var(--fg3)}
-.stats-row { display:flex; gap:14px }
-.stat { background:var(--bg2); padding:10px 16px; border:1px solid var(--border); border-radius:3px; text-align:center; min-width:90px }
-.label { display:block; font-size:10px; color:var(--fg3); text-transform:uppercase; letter-spacing:1px }
-.value { font-size:22px; font-weight:700; color:var(--fg) } .red{color:var(--red)} .green{color:var(--green)}
-.log-panel { background:#0a0f14; border:1px solid var(--border); border-radius:3px; padding:12px; max-height:400px; overflow-y:auto; font-family:var(--mono); font-size:11px }
-.log-item { padding:4px 0; border-bottom:1px solid rgba(46,64,82,0.3); display:flex; gap:12px; color:var(--fg2) }
-.time { color:var(--fg3); width:80px; flex-shrink:0 }
-.type { padding:0 6px; border-radius:3px; font-size:9px; font-weight:600; width:50px; text-align:center }
-.type.auth { background:rgba(59,130,246,0.2); color:#60a5fa }
-.type.acct { background:rgba(34,197,94,0.2); color:#4ade80 }
-.empty { text-align:center; color:var(--fg3); padding:40px; font-size:12px }
+.proto-monitor { display:flex; flex-direction:column; gap:12px; }
+h2{font-size:15px;color:var(--fg);font-weight:600} .hint{font-size:11px;color:var(--fg3)}
+.stats-row{display:flex;gap:14px}
+.stat{background:var(--bg2);padding:10px 16px;border:1px solid var(--border);border-radius:3px;text-align:center;min-width:90px}
+.label{display:block;font-size:10px;color:var(--fg3);text-transform:uppercase;letter-spacing:1px}
+.value{font-size:22px;font-weight:700;color:var(--fg)} .red{color:var(--red)} .green{color:var(--green)}
+.log-panel{background:#0a0f14;border:1px solid var(--border);border-radius:3px;padding:8px;max-height:55vh;overflow-y:auto;font-family:var(--mono);font-size:10px}
+.log-row{padding:3px 6px;border-bottom:1px solid rgba(46,64,82,0.25);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.log-row:hover{background:rgba(10,189,227,0.03)}
+.lt{color:var(--fg3);width:55px;flex-shrink:0;font-size:9px}
+.ldir{font-size:12px;width:14px;text-align:center;flex-shrink:0}
+.ldir.send{color:var(--accent)} .ldir.recv{color:var(--green)} .ldir.local{color:var(--fg3)}
+.ltype{padding:0 5px;border-radius:2px;font-size:8px;font-weight:700;letter-spacing:.3px;min-width:48px;text-align:center;flex-shrink:0}
+.t-ok{background:rgba(16,172,132,0.15);color:var(--green)}
+.t-err{background:rgba(238,82,83,0.15);color:var(--red)}
+.t-req{background:rgba(10,189,227,0.12);color:var(--accent)}
+.t-acct{background:rgba(255,159,67,0.12);color:#ff9f43}
+.t-resp{background:rgba(131,149,167,0.15);color:var(--fg2)}
+.lwho{color:var(--accent);font-weight:600;flex-shrink:0}
+.lip{color:var(--fg2);flex-shrink:0}
+.ldetail{color:var(--fg3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{text-align:center;color:var(--fg3);padding:30px;font-size:11px}
 </style>
