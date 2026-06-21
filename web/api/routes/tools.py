@@ -21,15 +21,27 @@ async def get_dictionary():
         fp = os.path.join(dict_dir, fn)
         if not os.path.isfile(fp) or fn.startswith("."):
             continue
+        current_vendor = "Standard"
         with open(fp, errors="ignore") as fh:
             for line in fh:
                 line = line.strip()
-                # Parse: ATTRIBUTE <name> <id> <type> [<vendor>]
-                m = re.match(r"ATTRIBUTE\s+(\S+)\s+(\d+)\s+(\S+)(?:\s+(\S+))?", line)
+                if not line or line.startswith("#"):
+                    continue
+                # Track vendor from VENDOR and BEGIN-VENDOR declarations
+                vm = re.match(r"(?:VENDOR|BEGIN-VENDOR)\s+(\S+)", line)
+                if vm:
+                    current_vendor = vm.group(1)
+                    vendors.add(current_vendor)
+                    continue
+                if line.startswith("END-VENDOR"):
+                    current_vendor = "Standard"
+                    continue
+                # Parse: ATTRIBUTE <name> <id> <type>
+                m = re.match(r"ATTRIBUTE\s+(\S+)\s+(\d+)\s+(\S+)", line)
                 if m:
-                    name, oid, typ, vendor = m.group(1), m.group(2), m.group(3), m.group(4) or "Standard"
-                    attrs[name] = {"id": int(oid), "type": typ, "vendor": vendor}
-                    vendors.add(vendor)
+                    name, oid, typ = m.group(1), m.group(2), m.group(3)
+                    attrs[name] = {"id": int(oid), "type": typ, "vendor": current_vendor}
+                    continue
                 # Parse: VALUE <attr> <name> <value>
                 m2 = re.match(r"VALUE\s+(\S+)\s+(\S+)\s+(\S+)", line)
                 if m2 and m2.group(1) in attrs:
