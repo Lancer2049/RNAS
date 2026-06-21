@@ -293,10 +293,9 @@ async def ip_addresses():
     addrs = []
     for line in out.splitlines():
         parts = line.split()
-        if len(parts) >= 3 and parts[1].upper() == "UP":
-            addrs.append({"name": parts[0], "ip": parts[2], "state": "UP"})
-        elif len(parts) >= 3:
-            addrs.append({"name": parts[0], "ip": parts[2], "state": parts[1]})
+        if len(parts) >= 3:
+            state = parts[1] if parts[1].upper() != "UNKNOWN" else "UP"
+            addrs.append({"name": parts[0], "ip": parts[2], "state": state})
     return {"addresses": addrs, "count": len(addrs)}
 
 @router.post("/ip/addresses")
