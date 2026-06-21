@@ -417,10 +417,15 @@ async def get_scheduler():
     path = "/etc/rnas/scheduler.json"
     try:
         with open(path) as fh:
-            tasks = json.load(fh)
-        return {"tasks": tasks, "count": len(tasks)}
-    except:
-        return {"tasks": [], "count": 0}
+            content = fh.read()
+        if not content.strip():
+            return {"tasks": [], "count": 0, "error": str(e)}
+        tasks = json.loads(content)
+        if isinstance(tasks, list):
+            return {"tasks": tasks, "count": len(tasks)}
+        return {"tasks": tasks, "count": 0}
+    except Exception as e:
+        return {"tasks": [], "count": 0, "error": str(e)}
 
 @router.post("/scheduler")
 async def save_scheduler(data: dict = Body(...)):

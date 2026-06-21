@@ -7,6 +7,37 @@ router = APIRouter()
 RADCLIENT = "/usr/bin/radclient"
 
 
+
+@router.get("/dictionary")
+async def get_dictionary():
+    """List all RADIUS dictionary attributes"""
+    import os, re
+    dict_dir = "/etc/rnas/dictionary"
+    attrs = {}
+    vendors = set()
+    if not os.path.isdir(dict_dir):
+        return {"success": False, "attributes": {}, "vendors": [], "count": 0}
+    for fn in sorted(os.listdir(dict_dir)):
+        fp = os.path.join(dict_dir, fn)
+        if not os.path.isfile(fp) or fn.startswith("."):
+            continue
+        with open(fp, errors="ignore") as fh:
+            for line in fh:
+                line = line.strip()
+                # Parse: ATTRIBUTE <name> <id> <type> [<vendor>]
+                m = re.match(r"ATTRIBUTE\s+(\S+)\s+(\d+)\s+(\S+)(?:\s+(\S+))?", line)
+                if m:
+                    name, oid, typ, vendor = m.group(1), m.group(2), m.group(3), m.group(4) or "Standard"
+                    attrs[name] = {"id": int(oid), "type": typ, "vendor": vendor}
+                    vendors.add(vendor)
+                # Parse: VALUE <attr> <name> <value>
+                m2 = re.match(r"VALUE\s+(\S+)\s+(\S+)\s+(\S+)", line)
+                if m2 and m2.group(1) in attrs:
+                    if "values" not in attrs[m2.group(1)]:
+                        attrs[m2.group(1)]["values"] = {}
+                    attrs[m2.group(1)]["values"][m2.group(2)] = m2.group(3)
+    return {"success": True, "attributes": attrs, "vendors": sorted(vendors), "count": len(attrs)}
+
 @router.get("/tools/ping")
 async def ping(host: str = Query("8.8.8.8")):
     out = subprocess.run(["ping", "-c", "3", "-W", "2", host],
@@ -95,6 +126,4 @@ async def sniffer_stop():
 
 # ── Scheduler (placeholder) ──
 
-@router.get("/scheduler")
-async def scheduler():
-    return {"tasks": []}
+
