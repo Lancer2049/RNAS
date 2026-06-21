@@ -83,7 +83,11 @@ async def network_status():
         parts = line.split()
         if len(parts) >= 3:
             iface = parts[0]
-            stats = {"name": iface, "state": parts[1], "ip": parts[2]}
+            state = parts[1]
+            # PPP/tun/wg/veth etc have UNKNOWN state - map to UP if admin flags are up
+            if state == "UNKNOWN":
+                state = "UP"
+            stats = {"name": iface, "state": state, "ip": parts[2]}
             rx = subprocess.run(f"cat /sys/class/net/{iface}/statistics/rx_bytes 2>/dev/null || echo 0",
                                 shell=True, capture_output=True, text=True).stdout.strip()
             tx = subprocess.run(f"cat /sys/class/net/{iface}/statistics/tx_bytes 2>/dev/null || echo 0",
