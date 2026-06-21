@@ -347,6 +347,7 @@ async def protocol_events(lines: int = 50):
     
     events = []
     seen = set()
+    last_cause = ""
     for line in tail:
         m = re.match(r"\[([^]]+)\]\s*:\s*(\w+):\s*(.*)", line.strip())
         if not m:
@@ -354,7 +355,7 @@ async def protocol_events(lines: int = 50):
         ts, level, msg = m.group(1), m.group(2), m.group(3)
         
         # RADIUS send/recv
-        rm = re.search(r"(send|recv)\s*\[RADIUS\(\d+\)\s*(\S+(?:-Request|-Response|-Accept|-Reject))\s+id=(\d+)\s*(.*)\]", msg)
+        rm = re.search(r"(send|recv)\s*\[RADIUS\(\d+\)\s*(\S+(?:-Request|-Response|-Accept|-Reject|-ACK|-NAK))\s+id=(\d+)\s*(.*)\]", msg)
         if rm:
             direction, ptype, pid, attrs = rm.group(1), rm.group(2), rm.group(3), rm.group(4).strip()
             # Extract key attributes
@@ -388,16 +389,22 @@ async def protocol_events(lines: int = 50):
                     "username": uname, "detail": f"Authentication {result}"
                 })
         
+        # Check for Acct-Terminate-Cause in Accounting-Request Stop
+        stop_cause = re.search(r'Acct-Terminate-Cause\s+([\w-]+)', msg)
+        if stop_cause:
+            last_cause = stop_cause.group(1)
+        
         # disconnected
         dm = re.search(r"(\S+):\s+disconnected", msg)
         if dm:
             iface = dm.group(1)
+            cause = last_cause if last_cause else ""
             ek = f"{ts}_disc_{iface}"
             if ek not in seen:
                 seen.add(ek)
                 events.append({
                     "time": ts, "type": "Disconnect", "direction": "local",
-                    "username": "", "detail": f"{iface} disconnected"
+                    "username": "", "detail": f"{iface} disconnected ({cause})" if cause else f"{iface} disconnected"
                 })
     
     events.reverse()  # chronological order
