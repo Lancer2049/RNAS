@@ -156,7 +156,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
+const addToast = inject('addToast', () => {})
 
 const TBL_MAP = { fw: 'filter', nat: 'nat', mangle: 'mangle' }
 const tab = ref('arp')
@@ -200,14 +201,14 @@ async function addStatic() {
   if (!newStaticMac.value.trim() || !newStaticIp.value.trim()) return
   try {
     await fetch('/api/ip/dhcp-static', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac: newStaticMac.value.trim(), ip: newStaticIp.value.trim(), hostname: newStaticHost.value.trim() }) })
-    showStaticAdd.value = false; newStaticMac.value = ''; newStaticIp.value = ''; newStaticHost.value = ''; fetchStatic()
+    showStaticAdd.value = false; newStaticMac.value = ''; newStaticIp.value = ''; newStaticHost.value = ''; fetchStatic(); addToast('Static lease added', 'ok')
   } catch {}
 }
 async function delStatic(mac) {
   if (!confirm(`Delete static lease for ${mac}?`)) return
   try {
     await fetch('/api/ip/dhcp-static', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac }) })
-    fetchStatic()
+    fetchStatic(); addToast('Static lease deleted', 'ok')
   } catch {}
 }
 async function addAddr() {
@@ -296,14 +297,14 @@ async function addRule(chain) {
   if (!newRule.value.trim()) return
   try {
     await fetch('/api/ip/firewall', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, rule: newRule.value.trim() }) })
-    addTarget.value = ''; newRule.value = ''; fetchFW()
+    addTarget.value = ''; newRule.value = ''; fetchFW(); addToast('Rule added', 'ok')
   } catch {}
 }
 async function delRule(chain, handle) {
   if (!confirm(`Delete rule handle ${handle} from ${chain.name}?`)) return
   try {
     await fetch('/api/ip/firewall', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, handle }) })
-    fetchFW()
+    fetchFW(); addToast('Rule deleted', 'ok')
   } catch {}
 }
 onMounted(fetchArp)
