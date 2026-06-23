@@ -43,6 +43,19 @@
       <canvas ref="ifaceChart" style="max-height:220px"></canvas>
     </div>
 
+    <!-- Traffic History Chart -->
+    <div class="if-section">
+      <h3 class="sec-title">
+        Traffic History
+        <span class="range-btns">
+          <button :class="{sel: histRange===300}" @click="histRange=300;fetchHistory()">5m</button>
+          <button :class="{sel: histRange===3600}" @click="histRange=3600;fetchHistory()">1h</button>
+          <button :class="{sel: histRange===86400}" @click="histRange=86400;fetchHistory()">1d</button>
+        </span>
+      </h3>
+      <canvas ref="histChart" style="max-height:200px"></canvas>
+    </div>
+
     <!-- Session History Chart -->
     <div class="if-section">
       <h3 class="sec-title">Sessions Over Time</h3>
@@ -55,13 +68,14 @@
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { Chart } from 'chart.js/auto'
 
-const sessionsChart = ref(null), ifaceChart = ref(null)
+const sessionsChart = ref(null), ifaceChart = ref(null), histChart = ref(null)
 const ifaces = ref([])
 const bwList = reactive([])
 const prevIfaceRx = reactive({}), prevIfaceTs = reactive({})
 const prevRx = reactive({}), prevTx = reactive({})
-let chartInstance = null, ifaceChartInst = null, timer = null, history = []
+let chartInstance = null, ifaceChartInst = null, histChartInst = null, timer = null, history = []
 const ifaceHistory = reactive({})
+const histRange = ref(3600)
 const COLORS = ['#0abde3','#10ac84','#ff9f43','#ee5253','#5f27cd','#f368e0','#01a3a4','#54a0ff']
 
 function fmtBytes(b) {
@@ -146,6 +160,25 @@ async function fetchAll() {
   } catch {}
 }
 
+const COLORS2 = ['#0abde3','#10ac84','#ff9f43']
+
+async function fetchHistory() {
+  try {
+    const name = (ifaces.value.find(i => i.name !== 'lo') || {}).name || 'ens33'
+    const r = await fetch(`/api/interfaces/history?name=${name}&range_sec=${histRange.value}`)
+    const d = await r.json()
+    const data = d.data || []
+    if (histChartInst) {
+      histChartInst.data.labels = data.map(p => new Date(p.ts * 1000).toLocaleTimeString())
+      histChartInst.data.datasets = [
+        { label: 'RX', data: data.map(p => p.rx), borderColor: '#0abde3', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5 },
+        { label: 'TX', data: data.map(p => p.tx), borderColor: '#10ac84', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5 },
+      ]
+      histChartInst.update('none')
+    }
+  } catch {}
+}
+
 onMounted(async () => {
   await nextTick()
   if (sessionsChart.value) {
@@ -170,9 +203,24 @@ onMounted(async () => {
       }
     })
   }
+  if (histChart.value) {
+    histChartInst = new Chart(histChart.value, {
+      type: 'line',
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, grid: { color: 'rgba(46,64,82,0.3)' }, ticks: { color: '#8395a7', callback: v => v < 1e6 ? (v/1e3).toFixed(0)+'K' : (v/1e6).toFixed(1)+'M' } },
+          x: { ticks: { color: '#576574', maxTicksLimit: 10, font: { size: 9 } }, grid: { display: false } }
+        },
+        plugins: { legend: { position: 'bottom', labels: { color: '#8395a7', font: { size: 10 }, usePointStyle: true, padding: 12 } } }
+      }
+    })
+    setTimeout(fetchHistory, 1000)  // wait for data to accumulate
+  }
   fetchAll(); timer = setInterval(fetchAll, 5000)
 })
-onUnmounted(() => { clearInterval(timer); chartInstance?.destroy(); ifaceChartInst?.destroy() })
+onUnmounted(() => { clearInterval(timer); chartInstance?.destroy(); ifaceChartInst?.destroy(); histChartInst?.destroy() })
 </script>
 
 <style scoped>
@@ -187,4 +235,8 @@ onUnmounted(() => { clearInterval(timer); chartInstance?.destroy(); ifaceChartIn
 .rate-rx { color: var(--accent); } .rate-tx { color: var(--green); }
 .err { color: var(--red); font-weight: 600; }
 .empty { text-align: center; color: var(--fg3); padding: 16px; font-size: 12px; }
+.range-btns { margin-left: auto; display: inline-flex; gap: 2px; }
+.range-btns button { padding: 2px 8px; background: var(--bg3); color: var(--fg2); border: 1px solid var(--border); border-radius: 2px; cursor: pointer; font-size: 9px; font-family: var(--font); }
+.range-btns button.sel { background: var(--accent); color: #000; border-color: var(--accent); }
+.range-btns button:hover:not(.sel) { border-color: var(--accent); color: var(--fg); }
 </style>
