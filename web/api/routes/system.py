@@ -1,6 +1,6 @@
 """RNAS System API — systemd services, logs, network interfaces, SNMP queues."""
 import subprocess
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 
 router = APIRouter()
 
@@ -137,3 +137,47 @@ async def system_health_alerts():
         except:
             alerts.append({"service": svc, "desc": desc, "status": "unknown", "severity": "warning"})
     return {"total": len(alerts), "critical": sum(1 for a in alerts if a["severity"] == "critical"), "alerts": alerts}
+
+@router.get("/system/notifications")
+async def get_notification_config():
+    """Get notification config"""
+    import json, os
+    path = "/etc/rnas/notifications.json"
+    if os.path.exists(path):
+        return json.loads(open(path).read())
+    return {"telegram_bot_token": "", "telegram_chat_id": "", "webhook_url": "", "enabled": False}
+
+@router.post("/system/notifications")
+async def set_notification_config(data: dict = Body(...)):
+    """Save notification config"""
+    import json, os
+    os.makedirs("/etc/rnas", exist_ok=True)
+    with open("/etc/rnas/notifications.json", "w") as f:
+        json.dump(data, f, indent=2)
+    return {"status": "saved"}
+
+@router.post("/system/notifications/test")
+async def test_notification(data: dict = Body(...)):
+    """Test notification"""
+    import subprocess, json
+    results = []
+    if data.get("telegram_bot_token") and data.get("telegram_chat_id"):
+        try:
+            text = "RNAS Test: System is healthy"
+            r = subprocess.run(["curl", "-s", "-X", "POST",
+                f"https://api.telegram.org/bot{data['telegram_bot_token']}/sendMessage",
+                "-d", f"chat_id={data['telegram_chat_id']}&text={text}"],
+                capture_output=True, text=True, timeout=10)
+            results.append({"channel": "telegram", "ok": '"ok":true' in r.stdout})
+        except:
+            results.append({"channel": "telegram", "ok": False})
+    if data.get("webhook_url"):
+        try:
+            r = subprocess.run(["curl", "-s", "-X", "POST", data["webhook_url"],
+                "-H", "Content-Type: application/json",
+                "-d", json.dumps({"text": "RNAS Test: System is healthy", "event": "test"})],
+                capture_output=True, text=True, timeout=10)
+            results.append({"channel": "webhook", "ok": r.returncode == 0})
+        except:
+            results.append({"channel": "webhook", "ok": False})
+    return {"results": results}
