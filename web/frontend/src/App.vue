@@ -27,57 +27,63 @@
       <nav class="rnas-sidebar">
         <div class="menu-group">
           <div class="menu-label">Status</div>
-          <a :class="{sel:page==='overview'}" @click="page='overview'">Overview</a>
-          <a :class="{sel:page==='sessions'}" @click="page='sessions'">Active Sessions <b v-if="sessions.length">{{ sessions.length }}</b></a>
-          <a :class="{sel:page==='network'}" @click="page='network'">Interfaces</a>
-          <a :class="{sel:page==='proto-monitor'}" @click="page='proto-monitor'">RADIUS Monitor</a>
-          <a :class="{sel:page==='torch'}" @click="page='torch'">Traffic Torch</a>
-          <a :class="{sel:page==='log'}" @click="page='log'">System Log</a>
-          <a :class="{sel:page==='ip'}" @click="page='ip'">IP Manager</a>
+          <a :class="{sel:page==='overview'}" @click="page='overview'"><span class="si">◉</span> Overview</a>
+          <a :class="{sel:page==='sessions'}" @click="page='sessions'"><span class="si">◉</span> Active Sessions <b v-if="sessions.length">{{ sessions.length }}</b></a>
+          <a :class="{sel:page==='network'}" @click="page='network'"><span class="si">◉</span> Interfaces</a>
+          <a :class="{sel:page==='proto-monitor'}" @click="page='proto-monitor'"><span class="si">◉</span> RADIUS Monitor</a>
+          <a :class="{sel:page==='torch'}" @click="page='torch'"><span class="si">◉</span> Traffic Torch</a>
+          <a :class="{sel:page==='log'}" @click="page='log'"><span class="si">◉</span> System Log</a>
+          <a :class="{sel:page==='ip'}" @click="page='ip'"><span class="si">◉</span> IP Manager</a>
         </div>
         <div class="menu-group">
           <div class="menu-label">Configuration</div>
-          <a :class="{sel:page==='proto-config'}" @click="page='proto-config'">Access Protocols</a>
-          <a :class="{sel:page==='services'}" @click="page='services'">VPN Services</a>
-          <a :class="{sel:page==='queues'}" @click="page='queues'">Queue (QoS)</a>
-          <a :class="{sel:page==='config'}" @click="page='config'">Config Editor</a>
+          <a :class="{sel:page==='proto-config'}" @click="page='proto-config'"><span class="si">◉</span> Access Protocols</a>
+          <a :class="{sel:page==='services'}" @click="page='services'"><span class="si">◉</span> VPN Services</a>
+          <a :class="{sel:page==='queues'}" @click="page='queues'"><span class="si">◉</span> Queue (QoS)</a>
+          <a :class="{sel:page==='config'}" @click="page='config'"><span class="si">◉</span> Config Editor</a>
         </div>
         <div class="menu-group">
           <div class="menu-label">RADIUS</div>
-          <a :class="{sel:page==='radius-editor'}" @click="page='radius-editor'">AAA Editor</a>
-          <a :class="{sel:page==='dictionary'}" @click="page='dictionary'">Dictionary</a>
-          <a :class="{sel:page==='tools'}" @click="page='tools'">RADIUS Tools</a>
-          <a :class="{sel:page==='bw-test'}" @click="page='bw-test'">Bandwidth Test</a>
-          <a :class="{sel:page==='setup'}" @click="page='setup'">Quick Setup</a>
-          <a :class="{sel:page==='terminal'}" @click="page='terminal'">Terminal</a>
-          <a :class="{sel:page==='certs'}" @click="page='certs'">Certificates</a>
+          <a :class="{sel:page==='radius-editor'}" @click="page='radius-editor'"><span class="si">◉</span> AAA Editor</a>
+          <a :class="{sel:page==='dictionary'}" @click="page='dictionary'"><span class="si">◉</span> Dictionary</a>
+          <a :class="{sel:page==='tools'}" @click="page='tools'"><span class="si">◉</span> RADIUS Tools</a>
+          <a :class="{sel:page==='bw-test'}" @click="page='bw-test'"><span class="si">◉</span> Bandwidth Test</a>
+          <a :class="{sel:page==='setup'}" @click="page='setup'"><span class="si">◉</span> Quick Setup</a>
+          <a :class="{sel:page==='terminal'}" @click="page='terminal'"><span class="si">◉</span> Terminal</a>
+          <a :class="{sel:page==='certs'}" @click="page='certs'"><span class="si">◉</span> Certificates</a>
         </div>
         <div class="menu-group">
           <div class="menu-label">Simulation</div>
-          <a :class="{sel:page==='subscriber-sim'}" @click="page='subscriber-sim'">Subscriber Sim</a>
-          <a :class="{sel:page==='scenario-runner'}" @click="page='scenario-runner'">Scenario</a>
-          <a :class="{sel:page==='fault-inject'}" @click="page='fault-inject'">Fault Inject</a>
+          <a :class="{sel:page==='subscriber-sim'}" @click="page='subscriber-sim'"><span class="si">◉</span> Subscriber Sim</a>
+          <a :class="{sel:page==='scenario-runner'}" @click="page='scenario-runner'"><span class="si">◉</span> Scenario</a>
+          <a :class="{sel:page==='fault-inject'}" @click="page='fault-inject'"><span class="si">◉</span> Fault Inject</a>
         </div>
         <div class="menu-group">
           <div class="menu-label">Network</div>
-          <a :class="{sel:page==='routing'}" @click="page='routing'">Dynamic Routing</a>
-          <a :class="{sel:page==='tunnels'}" @click="page='tunnels'">Tunnel Manager</a>
-          <a :class="{sel:page==='vlans'}" @click="page='vlans'">VLAN per User</a>
-          <a :class="{sel:page==='hotspot'}" @click="page='hotspot'">Hotspot Portal</a>
-          <a :class="{sel:page==='netflow'}" @click="page='netflow'">NetFlow / DHCP</a>
+          <a :class="{sel:page==='routing'}" @click="page='routing'"><span class="si">◉</span> Dynamic Routing</a>
+          <a :class="{sel:page==='tunnels'}" @click="page='tunnels'"><span class="si">◉</span> Tunnel Manager</a>
+          <a :class="{sel:page==='vlans'}" @click="page='vlans'"><span class="si">◉</span> VLAN per User</a>
+          <a :class="{sel:page==='hotspot'}" @click="page='hotspot'"><span class="si">◉</span> Hotspot Portal</a>
+          <a :class="{sel:page==='netflow'}" @click="page='netflow'"><span class="si">◉</span> NetFlow / DHCP</a>
         </div>
         <div class="sidebar-foot"><div class="dot ok"></div> v3.0 running</div>
       </nav>
 
       <main class="rnas-content">
-        <StatusCard v-if="page==='overview'||page==='sessions'" :service="service" />
-        <QuickActions v-if="page==='overview'" @nav="page=$event" @refresh="fetchData" />
-        <SystemHealth v-if="page==='overview'" />
-        <SystemResources v-if="page==='overview'" />
-        <ActivityFeed v-if="page==='overview'" />
-        <SessionsTable v-if="page==='sessions'||page==='overview'" :sessions="sessions" :loading="loading" @disconnect="handleDisconnect" @refresh="fetchData" @detail="(s) => { selectedSession = s; page = 'session-detail' }" />
+        <div v-if="page==='overview'" class="dash-grid">
+          <div class="dash-col-main">
+            <StatusCard :service="service" />
+            <SessionsTable :sessions="sessions" :loading="loading" @disconnect="handleDisconnect" @refresh="fetchData" @detail="(s) => { selectedSession = s; page = 'session-detail' }" />
+            <TrafficMonitor @view-interface="showIface" />
+          </div>
+          <div class="dash-col-side">
+            <QuickActions @nav="page=$event" @refresh="fetchData" />
+            <SystemHealth />
+            <SystemResources />
+            <ActivityFeed />
+          </div>
+        </div>
         <SessionDetail v-if="page==='session-detail'" :session="selectedSession" @back="page='sessions'" />
-        <TrafficMonitor v-if="page==='overview'" @view-interface="showIface" />
         <InterfaceDetail v-if="page==='iface-detail'" :iface="selectedIface" @back="page='overview'" />
         <NetworkConfig v-if="page==='network'" />
         <ConfigEditor v-if="page==='config'" />
@@ -242,6 +248,8 @@ body { font-family: var(--font); background: var(--bg); color: var(--fg); font-s
 .rnas-sidebar a { display:flex; align-items:center; gap:6px; padding:6px 14px 6px 18px; color:var(--fg2); text-decoration:none; cursor:pointer; border-left:2px solid transparent; transition:0.1s; }
 .rnas-sidebar a:hover { background:var(--bg3); color:var(--fg); }
 .rnas-sidebar a.sel { background:rgba(10,189,227,0.08); color:var(--accent); border-left-color:var(--accent); font-weight:600; }
+.rnas-sidebar a .si { font-size:8px; color:var(--fg3); width:12px; text-align:center; flex-shrink:0; }
+.rnas-sidebar a.sel .si { color:var(--accent); }
 .rnas-sidebar a b { margin-left:auto; background:var(--accent); color:#000; padding:0 6px; border-radius:8px; font-size:10px; font-weight:700; }
 .sidebar-foot { padding:10px 14px; color:var(--fg3); font-size:10px; display:flex; align-items:center; gap:6px; }
 .sidebar-foot .dot { width:6px; height:6px; border-radius:50%; }
@@ -249,6 +257,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--fg); font-s
 
 /* Content */
 .rnas-content { flex:1; overflow-y:auto; padding:16px 20px; background:var(--bg); }
+.dash-grid { display:grid; grid-template-columns:1.5fr 1fr; gap:16px; align-items:start; }
+.dash-col-main { display:flex; flex-direction:column; gap:14px; }
+.dash-col-side { display:flex; flex-direction:column; gap:14px; }
 
 /* Global component containers */
 .rnas-content h2 { font-size:15px; font-weight:600; color:var(--fg); margin-bottom:8px; }
