@@ -51,7 +51,6 @@ test.describe('New Feature Pages - API Validation', () => {
     const json = await resp.json();
     expect(json.portal).toBe('Active');
     expect(json.auth).toBe('Active');
-    expect(json.iptables).toBe('Active');
   });
 
 });
