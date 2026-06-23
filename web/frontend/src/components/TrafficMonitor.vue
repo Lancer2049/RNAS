@@ -4,7 +4,7 @@
     <div class="if-section">
       <h3 class="sec-title">Interface Bandwidth</h3>
       <table class="if-table">
-        <thead><tr><th>Name</th><th>Rate RX</th><th>Rate TX</th><th>Total RX</th><th>Total TX</th><th>Pkts</th><th>Err</th></tr></thead>
+        <thead><tr><th>Name</th><th style="color:var(--accent)">⚡ RX</th><th style="color:var(--green)">⚡ TX</th><th>Total RX</th><th>Total TX</th><th>Pkts</th><th>Err</th></tr></thead>
         <tbody>
           <tr v-for="iface in ifaces" :key="iface.name" :class="{down: !iface.running}" style="cursor:pointer" @click="$emit('view-interface', iface.name)">
             <td class="mono">{{ iface.name }}</td>

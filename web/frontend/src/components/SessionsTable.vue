@@ -55,7 +55,7 @@
         </template>
       </tbody>
     </table>
-    <div v-else-if="!loading" class="empty">No active sessions</div>
+    <div v-else-if="!loading" class="empty-state"><div class="empty-icon">◉</div><div class="empty-title">No Active Sessions</div><div class="empty-sub">PPPoE/L2TP/PPTP clients connected to this NAS will appear here. Use the IP Manager to check active connections.</div></div>
   </div>
 </template>
 
@@ -116,4 +116,8 @@ th.sortable{cursor:pointer} th.sortable:hover{color:var(--accent)}
 .badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
 .badge.active{background:rgba(16,172,132,0.12);color:var(--green)} .badge.finishing,.badge.finish{background:rgba(255,159,67,0.12);color:#ff9f43}
 .empty{text-align:center;color:var(--fg3);padding:30px;font-size:12px}
+.empty-state{text-align:center;padding:40px 20px}
+.empty-icon{font-size:32px;color:var(--fg3);margin-bottom:8px}
+.empty-title{font-size:14px;color:var(--fg2);font-weight:600;margin-bottom:4px}
+.empty-sub{font-size:11px;color:var(--fg3);max-width:300px;margin:0 auto}
 </style>
