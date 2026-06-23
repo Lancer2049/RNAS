@@ -764,16 +764,47 @@ def main():
             sys.exit(1)
         files = list(root.rglob("*.conf"))
         errors = 0
+        warnings = 0
         for f in files:
             try:
-                parse_config(f.read_text())
+                config = parse_config(f.read_text())
             except Exception as e:
                 print(f"ERROR: {f}: {e}", file=sys.stderr)
                 errors += 1
+                continue
+            # Additional semantic checks
+            for section, values in config.items():
+                for key, val in values.items():
+                    # Port range check
+                    if key in ("port", "auth_port", "acct_port") and val.isdigit():
+                        p = int(val)
+                        if p < 1 or p > 65535:
+                            print(f"ERROR: {f}: [{section}] {key}={val} not in 1-65535", file=sys.stderr)
+                            errors += 1
+                    # IP format check
+                    if key in ("auth_server", "acct_server", "nas_ip") and val:
+                        import re
+                        ip_match = re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$", val)
+                        if not ip_match:
+                            print(f"WARNING: {f}: [{section}] {key}={val} does not look like IP", file=sys.stderr)
+                            warnings += 1
+        # Required keys check across all configs
+        full_config = walk_config_tree(root)
+        required = [("access.d.radius", "auth_host", "RADIUS auth server"),
+                    ("access.d.radius", "secret", "RADIUS secret"),
+                    ("access.d.pppoe", "interface", "PPPoE interface")]
+        for section, key, desc in required:
+            found = False
+            for s, v in full_config.items():
+                if s.startswith(section.replace(".d.", ".d.")) and key in v:
+                    found = True; break
+            if not found:
+                print(f"WARNING: Required {desc} not set ({section}.{key})", file=sys.stderr)
+                warnings += 1
         if errors:
-            print(f"{errors} config files have errors", file=sys.stderr)
+            print(f"{errors} errors, {warnings} warnings", file=sys.stderr)
             sys.exit(1)
-        print(f"OK: {len(files)} config files valid")
+        print(f"OK: {len(files)} files valid, {warnings} warnings")
 
     elif args.command == "snapshot":
         snap_dir = Path("/etc/rnas/snapshots")
