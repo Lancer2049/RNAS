@@ -8,6 +8,7 @@
       <button :class="{sel: dt==='radius'}" @click="dt='radius'">RADIUS</button>
       <button :class="{sel: dt==='coa'}" @click="dt='coa'">CoA</button>
       <button :class="{sel: dt==='bw'}" @click="dt='bw'">BW Test</button>
+      <button :class="{sel: dt==='cap'}" @click="dt='cap'">Capture</button>
     </div>
 
     <!-- Ping -->
@@ -61,6 +62,20 @@
       </div>
       <pre v-if="bwOutput" class="output">{{ bwOutput }}</pre>
     </div>
+
+    <!-- Packet Capture -->
+    <div v-if="dt==='cap'" class="card">
+      <h3>Packet Capture</h3>
+      <div class="tool-row">
+        <input v-model="capIface" placeholder="interface" style="width:80px" />
+        <input v-model.number="capPort" type="number" placeholder="port" style="width:70px" />
+        <input v-model.number="capCount" type="number" placeholder="packets" style="width:70px" />
+        <button @click="capStart" :disabled="capRunning">Start</button>
+        <button @click="capStop" :disabled="!capRunning">Stop</button>
+        <button @click="capStatus">Status</button>
+      </div>
+      <div v-if="capMsg" class="output">{{ capMsg }}</div>
+    </div>
   </div>
 </template>
 
@@ -73,6 +88,7 @@ const dnsHost = ref('google.com'), dnsType = ref('a'), dnsOutput = ref(''), dnsR
 const radUser = ref('testuser'), radPass = ref('testpass'), radOutput = ref(''), radRunning = ref(false)
 const coaUser = ref(''), coaOutput = ref(''), coaRunning = ref(false)
 const bwTarget = ref('192.168.0.203'), bwPort = ref(5201), bwProto = ref('tcp'), bwDuration = ref(5), bwOutput = ref(''), bwRunning = ref(false)
+const capIface = ref('ens33'), capPort = ref(1812), capCount = ref(100), capRunning = ref(false), capMsg = ref('')
 
 async function runPing() {
   pingRunning.value = true; pingOutput.value = ''
@@ -107,6 +123,16 @@ async function runBw() {
     bwOutput.value = d.ok ? `TX: ${d.sent_mbps} Mbps\nRX: ${d.recv_mbps} Mbps\nRetrans: ${d.retransmits}` : `Error: ${d.error || 'unknown'}`
   } catch(e) { bwOutput.value = 'Error: ' + e.message }
   bwRunning.value = false
+}
+async function capStart() {
+  capRunning.value = true; capMsg.value = ''
+  try { const r = await fetch('/api/tools/capture', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start', interface: capIface.value, port: capPort.value, count: capCount.value }) }); const d = await r.json(); capMsg.value = d.status + ' (pid ' + d.pid + ')' } catch(e) { capMsg.value = 'Error: ' + e.message; capRunning.value = false }
+}
+async function capStop() {
+  try { const r = await fetch('/api/tools/capture', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stop' }) }); const d = await r.json(); capMsg.value = d.status; capRunning.value = false } catch(e) { capMsg.value = 'Error: ' + e.message }
+}
+async function capStatus() {
+  try { const r = await fetch('/api/tools/capture', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'status' }) }); const d = await r.json(); capMsg.value = d.running ? 'Running' : 'Stopped'; capRunning.value = d.running } catch(e) { capMsg.value = 'Error: ' + e.message }
 }
 </script>
 
