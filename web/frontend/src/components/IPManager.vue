@@ -25,6 +25,7 @@
         <button :class="{sel: tab==='fw'}" @click="switchTab('fw')">Filter</button>
         <button :class="{sel: tab==='nat'}" @click="switchTab('nat')">NAT</button>
         <button :class="{sel: tab==='mangle'}" @click="switchTab('mangle')">Mangle</button>
+        <button :class="{sel: natSub==='pf'}" @click="natSub='pf'; showPfTab=true" v-if="tab==='nat'">Port Forward</button>
       </div>
       <div v-for="c in fwFiltered" :key="c.name" class="fw-chain">
         <div class="fw-head">
@@ -59,15 +60,38 @@
           <button class="btn-cancel" @click="addTarget=''">Cancel</button>
         </div>
       </div>
+      <!-- Port Forward Wizard -->
+      <div v-if="tab==='nat' && showPfTab" class="fw-pf">
+        <h3>Port Forward</h3>
+        <div class="pf-form">
+          <select v-model="pfProto"><option value="tcp">TCP</option><option value="udp">UDP</option></select>
+          <input v-model.number="pfPort" type="number" placeholder="External Port" min="1" max="65535" />
+          <span>→</span>
+          <input v-model="pfTarget" placeholder="Internal IP (e.g. 192.168.100.50)" />
+          <input v-model.number="pfTargetPort" type="number" placeholder="Internal Port" min="1" max="65535" />
+          <input v-model="pfDesc" placeholder="Description (optional)" class="pf-desc" />
+          <button class="btn-mini" @click="addPortForward">Add</button>
+        </div>
+        <table v-if="pfRules.length">
+          <thead><tr><th>Proto</th><th>Ext Port</th><th>→</th><th>Internal IP</th><th>Int Port</th><th>Desc</th><th></th></tr></thead>
+          <tbody>
+            <tr v-for="(r,i) in pfRules" :key="i">
+              <td>{{ r.proto }}</td><td>{{ r.port }}</td><td>→</td><td class="mono">{{ r.target }}</td><td>{{ r.targetPort }}</td><td>{{ r.desc || '-' }}</td>
+              <td><button class="btn-del always" @click="delPfRule(r)">✕</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- DHCP Leases -->
     <div v-if="tab==='dhcp'" class="tab-body">
       <table v-if="dhcp.length">
-        <thead><tr><th>IP</th><th>MAC</th><th>Vendor</th><th>Hostname</th><th>Expires</th></tr></thead>
+        <thead><tr><th>IP</th><th>MAC</th><th>Vendor</th><th>Hostname</th><th>Expires</th><th></th></tr></thead>
         <tbody>
           <tr v-for="d in dhcp" :key="d.ip">
             <td class="mono">{{ d.ip }}</td><td class="mono">{{ d.mac }}</td><td>{{ d.vendor || '––' }}</td><td>{{ d.hostname || '-' }}</td><td>{{ d.timestamp }}</td>
+            <td><button class="btn-make-static" @click="makeStatic(d)" title="Make static binding">📌 Static</button></td>
           </tr>
         </tbody>
       </table>
@@ -141,6 +165,8 @@ const arp = ref([]), fwChains = ref([]), dhcp = ref([]), routes = ref([]), dhcpS
 const addTarget = ref(''), newRule = ref('')
 const showStaticAdd = ref(false), newStaticMac = ref(''), newStaticIp = ref(''), newStaticHost = ref('')
 const showAddrAdd = ref(false), newAddrIface = ref(''), newAddrIp = ref('')
+const pfProto = ref('tcp'), pfPort = ref(80), pfTarget = ref(''), pfTargetPort = ref(80), pfDesc = ref('')
+const showPfTab = ref(false), pfRules = ref([]), natSub = ref('')
 
 const fwFiltered = computed(() => {
   const tbl = TBL_MAP[tab.value]
@@ -159,7 +185,7 @@ function switchTab(id) {
 }
 
 async function fetchArp() { try{const r=await fetch('/api/ip/arp'); arp.value=(await r.json()).arp||[]; tabs[0].count=arp.value.length}catch{} }
-async function fetchFW() { try{const r=await fetch('/api/ip/firewall-full'); fwChains.value=(await r.json()).chains||[]}catch(e){ try{const r2=await fetch('/api/ip/firewall'); fwChains.value=(await r2.json()).chains||[]}catch{}} }
+async function fetchFW() { try{const r=await fetch('/api/ip/firewall-full'); fwChains.value=(await r.json()).chains||[]; parsePfRules()}catch(e){ try{const r2=await fetch('/api/ip/firewall'); fwChains.value=(await r2.json()).chains||[]}catch{}} }
 async function fetchDHCP() { try{const r=await fetch('/api/ip/dhcp'); const d=await r.json(); dhcp.value=d.leases||[]; tabs[1].count=d.count}catch{} }
 async function fetchStatic() { try{const r=await fetch('/api/ip/dhcp-static'); dhcpStatic.value=(await r.json()).static||[]}catch{} }
 async function fetchAddr() { try{const r=await fetch('/api/ip/addresses'); addrs.value=(await r.json()).addresses||[]}catch{} }
@@ -231,6 +257,40 @@ async function toggleRule(chain, rule) {
     await fetch(`/api/ip/firewall/${rule.handle}/toggle`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, enabled: !!rule.disabled }) })
     fetchFW()
   } catch {}
+}
+function parsePfRules() {
+  pfRules.value = []
+  const natChain = fwChains.value.find(c => c.name === 'rnas-hotspot' && c.table === 'nat')
+  if (!natChain) return
+  for (const r of natChain.rules) {
+    const t = typeof r === 'string' ? r : r.text
+    const m = t.match(/(tcp|udp)\s+dport\s+(\d+)\s+counter\s+dnat\s+to\s+(\S+):(\d+)/)
+    if (m) pfRules.value.push({ proto: m[1], port: m[2], target: m[3], targetPort: m[4], desc: '', handle: r.handle || 0 })
+  }
+}
+async function addPortForward() {
+  if (!pfTarget.value || !pfPort.value) return
+  const rule = `${pfProto.value} dport ${pfPort.value} counter dnat to ${pfTarget.value}:${pfTargetPort.value}`
+  const c = { name: 'rnas-hotspot', table: 'nat', family: 'ip' }
+  try {
+    await fetch('/api/ip/firewall', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: c.name, table: c.table, family: c.family, rule }) })
+    fetchFW(); setTimeout(parsePfRules, 500)
+    pfPort.value++; pfProto.value = 'tcp'; pfTarget.value = ''; pfTargetPort.value = 80; pfDesc.value = ''
+  } catch {}
+}
+async function delPfRule(r) {
+  if (!r.handle) return
+  try {
+    await fetch('/api/ip/firewall', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: 'rnas-hotspot', table: 'nat', family: 'ip', handle: r.handle }) })
+    fetchFW(); setTimeout(parsePfRules, 500)
+  } catch {}
+}
+function makeStatic(lease) {
+  newStaticMac.value = lease.mac
+  newStaticIp.value = lease.ip
+  newStaticHost.value = lease.hostname || ''
+  showStaticAdd.value = true
+  tab.value = 'static'
 }
 async function addRule(chain) {
   if (!newRule.value.trim()) return

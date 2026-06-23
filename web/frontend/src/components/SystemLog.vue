@@ -27,14 +27,25 @@
       <button class="btn" @click="exportLog">Export</button>
       <label class="auto"><input type="checkbox" v-model="auto" /> Auto 5s</label>
     </div>
-    <pre class="log-content">{{ log }}</pre>
+    <pre class="log-content"><span v-for="l in formattedLog" :class="logLevel(l)" v-text="l+'\n'"></span></pre>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 const log = ref(''), lines = ref(50), auto = ref(false), unit = ref(''), level = ref('')
 let timer = null
+
+const formattedLog = computed(() => log.value.split('\n'))
+
+function logLevel(line) {
+  const l = line.toLowerCase()
+  if (l.includes('error') || l.includes('fail') || l.includes('emerg') || l.includes('alert')) return 'le-err'
+  if (l.includes('warn') || l.includes('notice')) return 'le-warn'
+  if (l.includes('info')) return 'le-info'
+  if (l.includes('debug')) return 'le-debug'
+  return ''
+}
 
 async function fetchLog() {
   let url = `/api/system/log?lines=${lines.value}`
@@ -67,4 +78,8 @@ onUnmounted(() => clearInterval(timer))
   padding: 12px; border: 1px solid var(--border); border-radius: 4px;
   white-space: pre-wrap; max-height: 55vh; overflow-y: auto; line-height: 1.6;
 }
+.le-err { color: #ee5253; }
+.le-warn { color: #ff9f43; }
+.le-info { color: #54a0ff; }
+.le-debug { color: #576574; }
 </style>
