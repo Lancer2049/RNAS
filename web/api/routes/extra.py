@@ -267,7 +267,7 @@ async def toggle_firewall_rule(handle: int, data: dict = Body(...)):
         else:
             # Disable: add a reject rule at the same position
             res = subprocess.run(
-                ["nft", "add", "rule", family, table, chain, "position", str(handle), "reject"],
+                ["nft", "add", "rule", family, table, chain, "position", str(handle), "counter", "drop"],
                 capture_output=True, text=True, timeout=5
             )
         if res.returncode != 0:
