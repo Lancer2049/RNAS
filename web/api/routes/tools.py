@@ -188,3 +188,50 @@ async def dns_lookup(host: str, type: str = "a"):
         return {"output": out.strip() or "No records found"}
     except Exception as e:
         return {"output": f"Error: {e}"}
+
+@router.post("/tools/capture")
+async def capture_packets(data: dict = Body(...)):
+    """Start/stop packet capture"""
+    import subprocess, os, signal
+    action = data.get("action", "start")
+    interface = data.get("interface", "ens33")
+    port = data.get("port", 0)
+    count = data.get("count", 100)
+    pid_file = f"/var/run/rnas/tcpdump-{interface}.pid"
+    
+    if action == "start":
+        if os.path.exists(pid_file):
+            try:
+                old_pid = int(open(pid_file).read().strip())
+                os.kill(old_pid, 0)
+                return {"status": "already_running", "pid": old_pid}
+            except: pass
+        filter_expr = f"port {port}" if port else ""
+        cmd = ["tcpdump", "-i", interface, "-c", str(count), "-w", f"/tmp/capture-{interface}.pcap"]
+        if filter_expr: cmd += [filter_expr]
+        p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        os.makedirs("/var/run/rnas", exist_ok=True)
+        with open(pid_file, "w") as f: f.write(str(p.pid))
+        return {"status": "started", "pid": p.pid, "interface": interface, "file": f"/tmp/capture-{interface}.pcap"}
+    
+    elif action == "stop":
+        if os.path.exists(pid_file):
+            pid = int(open(pid_file).read().strip())
+            try:
+                os.kill(pid, signal.SIGTERM)
+                os.remove(pid_file)
+                return {"status": "stopped", "pid": pid}
+            except: pass
+        return {"status": "not_running"}
+    
+    elif action == "status":
+        running = False
+        if os.path.exists(pid_file):
+            try:
+                pid = int(open(pid_file).read().strip())
+                os.kill(pid, 0)
+                running = True
+            except: pass
+        return {"running": running, "interface": interface}
+    
+    return {"status": "error", "error": "invalid action"}

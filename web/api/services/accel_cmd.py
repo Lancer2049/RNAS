@@ -5,7 +5,7 @@ def run_accel_cmd(*args: str) -> str:
     try:
         result = subprocess.run(
             ["/usr/bin/accel-cmd"] + list(args),
-            capture_output=True, text=True, timeout=5
+            capture_output=True, text=True, timeout=10
         )
         return result.stdout
     except (FileNotFoundError, subprocess.TimeoutExpired):
