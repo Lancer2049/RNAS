@@ -48,6 +48,9 @@
           <a :class="{sel:page==='dictionary'}" @click="page='dictionary'">Dictionary</a>
           <a :class="{sel:page==='tools'}" @click="page='tools'">RADIUS Tools</a>
           <a :class="{sel:page==='bw-test'}" @click="page='bw-test'">Bandwidth Test</a>
+          <a :class="{sel:page==='setup'}" @click="page='setup'">Quick Setup</a>
+          <a :class="{sel:page==='terminal'}" @click="page='terminal'">Terminal</a>
+          <a :class="{sel:page==='certs'}" @click="page='certs'">Certificates</a>
         </div>
         <div class="menu-group">
           <div class="menu-label">Simulation</div>
@@ -82,6 +85,9 @@
         <ProtocolConfig v-if="page==='proto-config'" />
         <ToolsPage v-if="page==='tools'" />
         <BandwidthTest v-if="page==='bw-test'" />
+        <QuickSetup v-if="page==='setup'" />
+        <WebTerminal v-if="page==='terminal'" />
+        <CertManager v-if="page==='certs'" />
         <RADIUSEditor v-if="page==='radius-editor'" />
         <DictionaryBrowser v-if="page==='dictionary'" />
         <SubscriberSim v-if="page==='subscriber-sim'" />
@@ -142,6 +148,9 @@ import FaultInject from './components/FaultInject.vue'
 import SystemPage from './components/SystemPage.vue'
 import TestResults from './components/TestResults.vue'
 import BandwidthTest from './components/BandwidthTest.vue'
+import QuickSetup from './components/QuickSetup.vue'
+import WebTerminal from './components/WebTerminal.vue'
+import CertManager from './components/CertManager.vue'
 
 const page = ref(location.hash ? location.hash.replace('#/','') || 'overview' : 'overview')
 const alertCount = ref(0)

@@ -531,3 +531,93 @@ async def interface_detail(name: str):
     return {"name": name, "mac": mac, "ip": ip, "flags": flags, "running": "UP" in flags,
         "rx_bytes": rx_b, "tx_bytes": tx_b, "rx_packets": rx_p, "tx_packets": tx_p, "rx_errors": rx_e, "tx_errors": tx_e,
         "sessions": sessions, "sessions_count": len(sessions)}
+@router.get("/setup/status")
+async def setup_status():
+    """Check if RNAS has been configured"""
+    import os
+    configured = os.path.exists("/etc/rnas/rnas.conf")
+    return {"configured": configured, "first_run": not configured}
+
+@router.post("/setup/apply")
+async def setup_apply(data: dict = Body(...)):
+    """Apply QuickSet configuration"""
+    import os, subprocess
+    lan_ip = data.get("lan_ip", "192.168.100.1/24")
+    radius_server = data.get("radius_server", "192.168.0.202")
+    radius_secret = data.get("radius_secret", "testing123")
+    pppoe_iface = data.get("pppoe_iface", "ens33")
+    ac_name = data.get("ac_name", "RNAS")
+    ip_pool_start = data.get("ip_pool_start", "192.168.100.10")
+    ip_pool_end = data.get("ip_pool_end", "192.168.100.200")
+    
+    # Generate radius.conf
+    radius_cfg = f"""[radius]
+auth_host={radius_server}
+acct_host={radius_server}
+secret={radius_secret}
+ip_address=192.168.0.203
+gw_ip_address=192.168.100.1
+"""
+    os.makedirs("/etc/rnas/access.d", exist_ok=True)
+    with open("/etc/rnas/access.d/radius.conf", "w") as f:
+        f.write(radius_cfg)
+    
+    # Generate pppoe.conf
+    pppoe_cfg = f"""[pppoe]
+interface={pppoe_iface}
+ac-name={ac_name}
+service-name=RNAS
+"""
+    with open("/etc/rnas/access.d/pppoe.conf", "w") as f:
+        f.write(pppoe_cfg)
+    
+    # Generate ip-pool.conf
+    pool_cfg = f"""[ip-pool]
+gateway=192.168.100.1
+range={ip_pool_start}-{ip_pool_end}
+"""
+    with open("/etc/rnas/access.d/ip-pool.conf", "w") as f:
+        f.write(pool_cfg)
+    
+    # Generate rnas.conf if not exists
+    if not os.path.exists("/etc/rnas/rnas.conf"):
+        with open("/etc/rnas/rnas.conf", "w") as f:
+            f.write("[global]\nenabled = yes\n")
+    
+    # Restart accel-ppp to apply
+    subprocess.run(["systemctl", "restart", "rnas-accel-ppp"], capture_output=True)
+    return {"status": "applied", "services": ["radius.conf", "pppoe.conf", "ip-pool.conf"]}
+
+
+@router.get("/system/certificates")
+async def list_certificates():
+    """List SSL/TLS certificates"""
+    import os, glob
+    certs = []
+    for pattern in ["/etc/rnas/ssl/*.pem", "/etc/rnas/ssl/*.crt", "/etc/rnas/ssl/*.key"]:
+        for fp in glob.glob(pattern):
+            name = os.path.basename(fp)
+            mtime = os.path.getmtime(fp)
+            size = os.path.getsize(fp)
+            kind = "key" if name.endswith(".key") else "cert" if name.endswith(".crt") else "pem"
+            certs.append({"name": name, "path": fp, "kind": kind, "size": size, "modified": mtime})
+    return {"certificates": certs, "count": len(certs)}
+
+@router.post("/system/certificates/generate")
+async def generate_certificate(data: dict = Body(...)):
+    """Generate a self-signed SSL certificate"""
+    import subprocess, os
+    name = data.get("name", "server")
+    days = data.get("days", 3650)
+    cn = data.get("cn", "RNAS Server")
+    os.makedirs("/etc/rnas/ssl", exist_ok=True)
+    key_path = f"/etc/rnas/ssl/{name}.key"
+    cert_path = f"/etc/rnas/ssl/{name}.crt"
+    # Generate key
+    subprocess.run(["openssl", "genrsa", "-out", key_path, "2048"], capture_output=True)
+    # Generate self-signed cert
+    subprocess.run(["openssl", "req", "-new", "-x509", "-key", key_path,
+        "-out", cert_path, "-days", str(days),
+        "-subj", f"/CN={cn}/O=RNAS"], capture_output=True)
+    return {"status": "created", "key": key_path, "cert": cert_path}
+

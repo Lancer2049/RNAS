@@ -79,3 +79,32 @@ async def ws_dashboard(ws: WebSocket):
             await asyncio.sleep(3)
     except:
         pass
+
+import asyncio, subprocess
+
+@app.websocket("/api/terminal")
+async def terminal_shell(ws: WebSocket):
+    """WebSocket shell - spawns bash and bridges I/O"""
+    await ws.accept()
+    process = await asyncio.create_subprocess_exec(
+        "bash", "-c", "stty rows 24 cols 80 -echo && bash",
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
+    async def reader():
+        while True:
+            line = await process.stdout.readline()
+            if not line: break
+            await ws.send_text(line.decode(errors="replace"))
+    async def writer():
+        while True:
+            data = await ws.receive_text()
+            if data == "__CLOSE__":
+                process.terminate()
+                break
+            process.stdin.write(data.encode())
+            await process.stdin.drain()
+    try:
+        await asyncio.gather(reader(), writer())
+    except:
+        process.terminate()
+
