@@ -113,44 +113,46 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue'
+// Always-loaded (dashboard core)
 import StatusCard from './components/StatusCard.vue'
 import QuickActions from './components/QuickActions.vue'
 import SystemHealth from './components/SystemHealth.vue'
 import SystemResources from './components/SystemResources.vue'
 import ActivityFeed from './components/ActivityFeed.vue'
 import SessionsTable from './components/SessionsTable.vue'
-import SessionDetail from './components/SessionDetail.vue'
-import NetworkConfig from './components/NetworkConfig.vue'
 import TrafficMonitor from './components/TrafficMonitor.vue'
-import InterfaceDetail from './components/InterfaceDetail.vue'
-import ConfigEditor from './components/ConfigEditor.vue'
-import ServicesConfig from './components/ServicesConfig.vue'
-import ProtocolConfig from './components/ProtocolConfig.vue'
-import ToolsPage from './components/ToolsPage.vue'
-import RADIUSEditor from './components/RADIUSEditor.vue'
-import DictionaryBrowser from './components/DictionaryBrowser.vue'
-import RoutingPage from './components/RoutingPage.vue'
-import TunnelManager from './components/TunnelManager.vue'
-import VlanManager from './components/VlanManager.vue'
-import HotspotManager from './components/HotspotManager.vue'
-import NetflowDhcp from './components/NetflowDhcp.vue'
-import IPManager from './components/IPManager.vue'
-import SystemLog from './components/SystemLog.vue'
-import SubscriberSim from './components/SubscriberSim.vue'
-import ProtoMonitor from './components/ProtoMonitor.vue'
-import TrafficTorch from './components/TrafficTorch.vue'
-import QueueManager from './components/QueueManager.vue'
-import PacketSniffer from './components/PacketSniffer.vue'
-import Scheduler from './components/Scheduler.vue'
-import ScenarioRunner from './components/ScenarioRunner.vue'
-import FaultInject from './components/FaultInject.vue'
-import SystemPage from './components/SystemPage.vue'
-import TestResults from './components/TestResults.vue'
-import BandwidthTest from './components/BandwidthTest.vue'
-import QuickSetup from './components/QuickSetup.vue'
-import WebTerminal from './components/WebTerminal.vue'
-import CertManager from './components/CertManager.vue'
+// Lazy-loaded (page components)
+const SessionDetail = defineAsyncComponent(() => import('./components/SessionDetail.vue'))
+const NetworkConfig = defineAsyncComponent(() => import('./components/NetworkConfig.vue'))
+const InterfaceDetail = defineAsyncComponent(() => import('./components/InterfaceDetail.vue'))
+const ConfigEditor = defineAsyncComponent(() => import('./components/ConfigEditor.vue'))
+const ServicesConfig = defineAsyncComponent(() => import('./components/ServicesConfig.vue'))
+const ProtocolConfig = defineAsyncComponent(() => import('./components/ProtocolConfig.vue'))
+const ToolsPage = defineAsyncComponent(() => import('./components/ToolsPage.vue'))
+const RADIUSEditor = defineAsyncComponent(() => import('./components/RADIUSEditor.vue'))
+const DictionaryBrowser = defineAsyncComponent(() => import('./components/DictionaryBrowser.vue'))
+const RoutingPage = defineAsyncComponent(() => import('./components/RoutingPage.vue'))
+const TunnelManager = defineAsyncComponent(() => import('./components/TunnelManager.vue'))
+const VlanManager = defineAsyncComponent(() => import('./components/VlanManager.vue'))
+const HotspotManager = defineAsyncComponent(() => import('./components/HotspotManager.vue'))
+const NetflowDhcp = defineAsyncComponent(() => import('./components/NetflowDhcp.vue'))
+const IPManager = defineAsyncComponent(() => import('./components/IPManager.vue'))
+const SystemLog = defineAsyncComponent(() => import('./components/SystemLog.vue'))
+const SubscriberSim = defineAsyncComponent(() => import('./components/SubscriberSim.vue'))
+const ProtoMonitor = defineAsyncComponent(() => import('./components/ProtoMonitor.vue'))
+const TrafficTorch = defineAsyncComponent(() => import('./components/TrafficTorch.vue'))
+const QueueManager = defineAsyncComponent(() => import('./components/QueueManager.vue'))
+const PacketSniffer = defineAsyncComponent(() => import('./components/PacketSniffer.vue'))
+const Scheduler = defineAsyncComponent(() => import('./components/Scheduler.vue'))
+const ScenarioRunner = defineAsyncComponent(() => import('./components/ScenarioRunner.vue'))
+const FaultInject = defineAsyncComponent(() => import('./components/FaultInject.vue'))
+const SystemPage = defineAsyncComponent(() => import('./components/SystemPage.vue'))
+const TestResults = defineAsyncComponent(() => import('./components/TestResults.vue'))
+const BandwidthTest = defineAsyncComponent(() => import('./components/BandwidthTest.vue'))
+const QuickSetup = defineAsyncComponent(() => import('./components/QuickSetup.vue'))
+const WebTerminal = defineAsyncComponent(() => import('./components/WebTerminal.vue'))
+const CertManager = defineAsyncComponent(() => import('./components/CertManager.vue'))
 
 const page = ref(location.hash ? location.hash.replace('#/','') || 'overview' : 'overview')
 const alertCount = ref(0)

@@ -132,6 +132,12 @@ async def radius_send(data: dict = Body(...)):
             "payload": payload, "code": result.returncode}
 
 
+
+@router.get("/tools/coa-pyrad")
+async def coa_pyrad(user: str = Query(""), server: str = Query("127.0.0.1:3799"), secret: str = Query("testing123")):
+    """Send CoA Disconnect-Request using pyrad library"""
+    result = _pyrad_send(server, secret, DisconnectRequest, {"User-Name": user})
+    return {"output": "Disconnect-ACK" if result.get("ok") and result.get("code") == DisconnectACK else "Failed", "detail": result}
 @router.get("/tools/coa")
 async def coa_disconnect(
     user: str = Query(""),

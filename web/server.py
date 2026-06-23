@@ -132,7 +132,13 @@ class RNASHandler(SimpleHTTPRequestHandler):
                 raw_stat = run_accel_cmd("show", "stat")
                 raw_sess = run_accel_cmd("show", "sessions", "sid,ifname,username,ip,type,state,uptime-raw,rx-bytes-raw,tx-bytes-raw")
                 msg = json.dumps({"service": parse_stat(raw_stat), "sessions": parse_sessions(raw_sess)})
-                frame = b'\x81' + bytes([min(len(msg), 125)]) + msg.encode()
+                data = msg.encode()
+                if len(data) < 126:
+                    frame = b'\x81' + bytes([len(data)]) + data
+                elif len(data) < 65536:
+                    frame = b'\x81' + bytes([126]) + len(data).to_bytes(2, 'big') + data
+                else:
+                    frame = b'\x81' + bytes([127]) + len(data).to_bytes(8, 'big') + data
                 self.wfile.write(frame)
                 time.sleep(3)
             except:
