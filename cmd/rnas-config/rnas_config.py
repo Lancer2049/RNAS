@@ -11,9 +11,11 @@ Usage:
 import os
 import re
 import sys
+import json
 import argparse
 from pathlib import Path
 from typing import Dict, Optional
+from datetime import datetime
 
 DEFAULT_ROOT = "/etc/rnas"
 
@@ -688,6 +690,16 @@ def main():
     gen.add_argument("--output", "-o", help="Output file (default: stdout)")
 
     sub.add_parser("validate", help="Validate config tree")
+    snap = sub.add_parser("snapshot", help="Manage config snapshots")
+    snap.add_argument("action", choices=["create", "list", "restore"], help="Snapshot action")
+    snap.add_argument("--name", help="Snapshot name (for create/restore)")
+
+    sc = sub.add_parser("scenario", help="Manage deployment scenarios")
+    sc.add_argument("action", choices=["list", "apply"], help="Scenario action")
+    sc.add_argument("name", nargs="?", help="Scenario name (for apply)")
+
+    app = sub.add_parser("apply", help="Generate config and restart service")
+    app.add_argument("service", choices=["accel-ppp", "dnsmasq", "firewall", "snmp", "qos", "ipsec", "wireguard", "openvpn", "hotspot", "ha", "dhcp-relay"], help="Service to apply")
 
     args = parser.parse_args()
 
@@ -762,6 +774,100 @@ def main():
             print(f"{errors} config files have errors", file=sys.stderr)
             sys.exit(1)
         print(f"OK: {len(files)} config files valid")
+
+    elif args.command == "snapshot":
+        snap_dir = Path("/etc/rnas/snapshots")
+        if args.action == "create":
+            name = args.name or f"snap-{datetime.now():%Y%m%d-%H%M%S}"
+            (snap_dir / name).mkdir(parents=True, exist_ok=True)
+            for f in Path(args.root).rglob("*.conf"):
+                rel = f.relative_to(Path(args.root))
+                target = snap_dir / name / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(f.read_text())
+            print(f"Snapshot '{name}' created ({len(list((snap_dir/name).rglob('*.conf')))} files)")
+        elif args.action == "list":
+            if not snap_dir.exists():
+                print("No snapshots")
+            else:
+                for d in sorted(snap_dir.iterdir()):
+                    if d.is_dir():
+                        cnt = len(list(d.rglob("*.conf")))
+                        print(f"  {d.name} ({cnt} files)")
+        elif args.action == "restore":
+            if not args.name:
+                print("ERROR: --name required for restore", file=sys.stderr); sys.exit(1)
+            src = snap_dir / args.name
+            if not src.exists():
+                print(f"ERROR: snapshot '{args.name}' not found", file=sys.stderr); sys.exit(1)
+            for f in src.rglob("*.conf"):
+                rel = f.relative_to(src)
+                (Path(args.root) / rel).write_text(f.read_text())
+            print(f"Snapshot '{args.name}' restored")
+
+    elif args.command == "scenario":
+        sc_dir = Path("/etc/rnas/scenarios")
+        if args.action == "list":
+            if not sc_dir.exists():
+                print("No scenarios")
+            else:
+                for f in sorted(sc_dir.glob("*.json")):
+                    print(f"  {f.stem}")
+        elif args.action == "apply":
+            if not args.name:
+                print("ERROR: scenario name required", file=sys.stderr); sys.exit(1)
+            sc_file = sc_dir / f"{args.name}.json"
+            if not sc_file.exists():
+                print(f"ERROR: scenario '{args.name}' not found", file=sys.stderr); sys.exit(1)
+            import json
+            overrides = json.loads(sc_file.read_text())
+            for key, val in overrides.get("config", {}).items():
+                sec, opt = key.split(".", 1)
+                conf_path = Path(args.root)
+                for p in sec.split("."):
+                    conf_path = conf_path / p
+                if not conf_path.exists():
+                    conf_path.parent.mkdir(parents=True, exist_ok=True)
+                    conf_path.touch()
+                # Read existing, update key
+                lines = conf_path.read_text().splitlines() if conf_path.exists() else []
+                found = False
+                for i, line in enumerate(lines):
+                    if line.strip().startswith(f"{opt}="):
+                        lines[i] = f"{opt}={val}"
+                        found = True; break
+                if not found:
+                    lines.append(f"{opt}={val}")
+                conf_path.write_text("\n".join(lines) + "\n")
+            print(f"Scenario '{args.name}' applied")
+
+    elif args.command == "apply":
+        root = Path(args.root)
+        config = walk_config_tree(root)
+        svc = args.service
+        gen_map = {"accel-ppp": generate_accel_ppp, "dnsmasq": generate_dnsmasq,
+                   "firewall": generate_firewall, "snmp": generate_snmp,
+                   "qos": generate_qos, "ipsec": generate_ipsec,
+                   "wireguard": generate_wireguard, "openvpn": generate_openvpn,
+                   "hotspot": generate_hotspot, "ha": generate_ha,
+                   "dhcp-relay": generate_dhcp_relay}
+        if svc in gen_map:
+            out_dir = Path("/var/run/rnas")
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out_file = out_dir / f"{svc}.conf"
+            result = gen_map[svc](config)
+            out_file.write_text(result)
+            print(f"Generated {out_file}")
+            import subprocess
+            svc_name = f"rnas-{svc}.service"
+            ret = subprocess.run(["systemctl", "restart", svc_name], capture_output=True, text=True)
+            if ret.returncode == 0:
+                print(f"Restarted {svc_name}")
+            else:
+                print(f"Failed to restart {svc_name}: {ret.stderr}", file=sys.stderr)
+        else:
+            print(f"Unknown service: {svc}", file=sys.stderr)
+
     else:
         parser.print_help()
 
