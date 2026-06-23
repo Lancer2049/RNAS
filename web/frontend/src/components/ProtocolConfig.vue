@@ -18,16 +18,32 @@
         </label>
       </div>
 
-      <div class="field-row" v-for="f in current.fields" :key="f.key">
-        <label>{{ f.label }}</label>
-        <select v-if="f.key==='interface'" v-model="current.values[f.key]" class="field-input">
-          <option v-for="iface in interfaces" :key="iface" :value="iface">{{ iface }}</option>
-        </select>
-        <select v-else-if="f.type==='yesno'" v-model="current.values[f.key]" class="field-input">
-          <option value="yes">yes</option><option value="no">no</option>
-        </select>
-        <input v-else :type="f.type||'text'" v-model="current.values[f.key]" :placeholder="f.default" class="field-input" />
-        <span class="field-hint">{{ f.hint }}</span>
+      <div class="field-group">
+        <div class="field-group-title">Basic Settings</div>
+        <div class="field-row" v-for="f in current.fields.filter(f=>['enabled','interface','port','ac_name','service_name','mtu','mru','accept','ssl_pemfile','mode','start','ip_pool','opt_src'].includes(f.key))" :key="f.key">
+          <label>{{ f.label }}</label>
+          <select v-if="f.key==='interface'" v-model="current.values[f.key]" class="field-input">
+            <option v-for="iface in interfaces" :key="iface" :value="iface">{{ iface }}</option>
+          </select>
+          <select v-else-if="f.type==='yesno'" v-model="current.values[f.key]" class="field-input">
+            <option value="yes">yes</option><option value="no">no</option>
+          </select>
+          <input v-else :type="f.type||'text'" v-model="current.values[f.key]" :placeholder="f.default" class="field-input" />
+          <span class="field-hint">{{ f.hint }}</span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-group-title" @click="showAdvanced=!showAdvanced" style="cursor:pointer;user-select:none">
+          {{ showAdvanced ? '▼' : '▶' }} Advanced Settings
+        </div>
+        <template v-if="showAdvanced">
+          <div class="field-row" v-for="f in current.fields.filter(f=>!['enabled','interface','port','ac_name','service_name','mtu','mru','accept','ssl_pemfile','mode','start','ip_pool','opt_src'].includes(f.key))" :key="f.key">
+            <label>{{ f.label }}</label>
+            <input :type="f.type||'text'" v-model="current.values[f.key]" :placeholder="f.default" class="field-input" />
+            <span class="field-hint">{{ f.hint }}</span>
+          </div>
+        </template>
       </div>
 
       <div class="form-actions">
@@ -47,18 +63,79 @@ const current = ref(null)
 const saving = ref(false), applying = ref(false)
 const msg = ref(''), msgType = ref('ok')
 const interfaces = ref(['ens33','lo','eth0'])
+const showAdvanced = ref(false)
 
 const protocols = reactive([
   {id:'pppoe',name:'PPPoE',icon:'📡',enabled:false,section:'access.d.pppoe', module:'pppoe',
-    fields:[{key:'enabled',label:'Enabled',type:'yesno',hint:''},{key:'interface',label:'Interface',hint:''},{key:'mtu',label:'MTU',type:'number',default:'1492',hint:'576-1500'},{key:'ac_name',label:'AC Name',default:'RNAS',hint:''},{key:'service_name',label:'Service Name',hint:'optional'}]},
-  {id:'pptp',name:'PPTP',icon:'🔒',enabled:false,section:'access.d.pptp', module:'pptp',
-    fields:[{key:'enabled',label:'Enabled',type:'yesno',hint:''},{key:'interface',label:'Interface',hint:''},{key:'mtu',label:'MTU',type:'number',default:'1436',hint:'576-1500'}]},
+    fields:[
+      {key:'enabled',label:'Enabled',type:'yesno',hint:''},
+      {key:'interface',label:'Interface',hint:'Physical interface for PPPoE'},
+      {key:'ac_name',label:'AC Name',default:'RNAS',hint:'Access Concentrator name'},
+      {key:'service_name',label:'Service Name',default:'',hint:'Optional service name filter'},
+      {key:'mtu',label:'MTU',type:'number',default:'1492',hint:'576-1500'},
+      {key:'mru',label:'MRU',type:'number',default:'1492',hint:'576-1500'},
+      {key:'min_mtu',label:'Min MTU',type:'number',default:'1280',hint:'Minimum acceptable MTU'},
+      {key:'lcp_echo_interval',label:'LCP Echo Interval',type:'number',default:'30',hint:'Seconds between keepalives'},
+      {key:'lcp_echo_failure',label:'LCP Echo Failure',type:'number',default:'3',hint:'Failures before disconnect'},
+      {key:'session_timeout',label:'Session Timeout',type:'number',default:'0',hint:'0=unlimited seconds'},
+      {key:'idle_timeout',label:'Idle Timeout',type:'number',default:'0',hint:'0=unlimited seconds'},
+      {key:'max_sessions',label:'Max Sessions',type:'number',default:'1000',hint:'PPPoE session limit'},
+      {key:'padi_timeout',label:'PADI Timeout',type:'number',default:'5',hint:'PPPoE discovery timeout'},
+      {key:'padr_timeout',label:'PADR Timeout',type:'number',default:'5',hint:'PPPoE request timeout'},
+    ]},
   {id:'l2tp',name:'L2TP',icon:'🛡',enabled:false,section:'access.d.l2tp', module:'l2tp',
-    fields:[{key:'enabled',label:'Enabled',type:'yesno',hint:''},{key:'interface',label:'Interface',hint:''},{key:'port',label:'Port',type:'number',default:'1701',hint:'1-65535'},{key:'mtu',label:'MTU',type:'number',default:'1460',hint:'576-1500'}]},
+    fields:[
+      {key:'enabled',label:'Enabled',type:'yesno',hint:''},
+      {key:'interface',label:'Interface',hint:'Listen interface'},
+      {key:'port',label:'Port',type:'number',default:'1701',hint:'1-65535'},
+      {key:'mtu',label:'MTU',type:'number',default:'1460',hint:'576-1500'},
+      {key:'mru',label:'MRU',type:'number',default:'1460',hint:'576-1500'},
+      {key:'hello_interval',label:'Hello Interval',type:'number',default:'60',hint:'L2TP hello keepalive'},
+      {key:'recv_window',label:'Receive Window',type:'number',default:'16',hint:'L2TP receive window size'},
+      {key:'retransmit_timeout',label:'Retransmit Timeout',type:'number',default:'1',hint:'Seconds'},
+      {key:'retransmit_retries',label:'Retransmit Retries',type:'number',default:'5',hint:'Max retransmit attempts'},
+      {key:'lcp_echo_interval',label:'LCP Echo Interval',type:'number',default:'30',hint:'Seconds'},
+      {key:'lcp_echo_failure',label:'LCP Echo Failure',type:'number',default:'3',hint:'Failures'},
+      {key:'session_timeout',label:'Session Timeout',type:'number',default:'0',hint:'Seconds'},
+    ]},
+  {id:'pptp',name:'PPTP',icon:'🔒',enabled:false,section:'access.d.pptp', module:'pptp',
+    fields:[
+      {key:'enabled',label:'Enabled',type:'yesno',hint:''},
+      {key:'interface',label:'Interface',hint:'Listen interface'},
+      {key:'mtu',label:'MTU',type:'number',default:'1436',hint:'576-1500'},
+      {key:'mru',label:'MRU',type:'number',default:'1436',hint:'576-1500'},
+      {key:'lcp_echo_interval',label:'LCP Echo Interval',type:'number',default:'30',hint:'Seconds'},
+      {key:'lcp_echo_failure',label:'LCP Echo Failure',type:'number',default:'3',hint:'Failures'},
+      {key:'session_timeout',label:'Session Timeout',type:'number',default:'0',hint:'Seconds'},
+      {key:'idle_timeout',label:'Idle Timeout',type:'number',default:'0',hint:'Seconds'},
+    ]},
   {id:'sstp',name:'SSTP',icon:'🔐',enabled:false,section:'access.d.sstp', module:'sstp',
-    fields:[{key:'enabled',label:'Enabled',type:'yesno',hint:''},{key:'interface',label:'Interface',hint:''},{key:'port',label:'Port',type:'number',default:'443',hint:'1-65535'},{key:'accept',label:'Accept',type:'yesno',hint:'ssl/proxy'},{key:'ssl_pemfile',label:'SSL Cert',default:'/etc/rnas/ssl/sstp.pem',hint:''}]},
+    fields:[
+      {key:'enabled',label:'Enabled',type:'yesno',hint:''},
+      {key:'interface',label:'Interface',hint:'Listen interface'},
+      {key:'port',label:'Port',type:'number',default:'443',hint:'1-65535'},
+      {key:'accept',label:'Accept Mode',default:'ssl',hint:'ssl/proxy'},
+      {key:'ssl_pemfile',label:'SSL Certificate',default:'/etc/rnas/ssl/sstp.pem',hint:'Path to PEM file'},
+      {key:'ssl_key',label:'SSL Key',default:'/etc/rnas/ssl/sstp.key',hint:'Path to key file'},
+      {key:'mtu',label:'MTU',type:'number',default:'1400',hint:'576-1500'},
+      {key:'mru',label:'MRU',type:'number',default:'1400',hint:'576-1500'},
+      {key:'lcp_echo_interval',label:'LCP Echo Interval',type:'number',default:'30',hint:'Seconds'},
+      {key:'lcp_echo_failure',label:'LCP Echo Failure',type:'number',default:'3',hint:'Failures'},
+      {key:'session_timeout',label:'Session Timeout',type:'number',default:'0',hint:'Seconds'},
+      {key:'idle_timeout',label:'Idle Timeout',type:'number',default:'0',hint:'Seconds'},
+    ]},
   {id:'ipoe',name:'IPoE',icon:'🌐',enabled:false,section:'access.d.ipoe', module:'ipoe',
-    fields:[{key:'enabled',label:'Enabled',type:'yesno',hint:''},{key:'interface',label:'Interface',hint:''},{key:'ip_pool',label:'IP Pool',default:'default',hint:''},{key:'opt_src',label:'Gateway IP',default:'192.168.100.1',hint:''}]},
+    fields:[
+      {key:'enabled',label:'Enabled',type:'yesno',hint:''},
+      {key:'interface',label:'Interface',hint:'DHCP snooping interface'},
+      {key:'mode',label:'Mode',default:'L2',hint:'L2 (DHCP snoop) or L3 (IP subnet)'},
+      {key:'start',label:'Start Type',default:'dhcpv4',hint:'dhcpv4 / arp / dhcpv6'},
+      {key:'ip_pool',label:'IP Pool',default:'default',hint:'Pool name from ip-pool.conf'},
+      {key:'opt_src',label:'Gateway IP',default:'192.168.100.1',hint:'Default gateway for clients'},
+      {key:'lease_time',label:'Lease Time',type:'number',default:'3600',hint:'DHCP lease duration seconds'},
+      {key:'session_timeout',label:'Session Timeout',type:'number',default:'0',hint:'Seconds'},
+      {key:'idle_timeout',label:'Idle Timeout',type:'number',default:'0',hint:'Seconds'},
+    ]},
 ])
 
 async function loadProto(id) {
@@ -117,10 +194,12 @@ onMounted(() => { loadProto('pppoe'); loadInterfaces() })
 .toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--fg)}
 .toggle input{width:18px;height:18px;accent-color:var(--accent)}
 .field-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.field-row label{width:120px;font-size:11px;color:var(--fg3);flex-shrink:0}
-.field-input{padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;flex:1;max-width:300px;background:var(--bg);color:var(--fg);font-family:var(--font);outline:none}
+.field-row label{width:140px;font-size:11px;color:var(--fg3);flex-shrink:0}
+.field-input{padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:12px;flex:1;max-width:300px;background:var(--bg);color:var(--fg);font-family:var(--mono);outline:none}
 .field-input:focus{border-color:var(--accent)}
-.field-hint{font-size:9px;color:var(--fg3);width:80px}
+.field-hint{font-size:9px;color:var(--fg3);width:100px}
+.field-group{margin-bottom:14px;padding:12px;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.03);border-radius:var(--radius)}
+.field-group-title{font-size:11px;color:var(--fg2);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
 .form-actions{display:flex;gap:10px;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--border)}
 .btn-primary{padding:5px 16px;background:var(--bg3);color:var(--accent);border:1px solid var(--accent);border-radius:3px;cursor:pointer;font-size:11px;font-family:var(--font)}
 .btn-primary:hover{background:var(--accent);color:#000}
