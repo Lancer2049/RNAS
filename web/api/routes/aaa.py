@@ -7,20 +7,33 @@ router = APIRouter()
 
 @router.get("/aaa/users")
 async def aaa_users():
-    from rnas_env import get_env
-    env = get_env()
-    result = subprocess.run(
-        env.db_query_str("SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50"),
-        shell=True, capture_output=True, text=True, timeout=15).stdout
+    import os, subprocess
     users = []
-    for line in result.splitlines():
-        parts = line.strip().split("|")
-        if len(parts) >= 3:
-            users.append({"username": parts[0].strip(), "attribute": parts[1].strip(),
-                          "value": parts[2].strip()})
-    return {"users": users}
-
-
+    # Try RADIUS user files first
+    for fp in ["/etc/freeradius/3.0/mods-config/files/authorize", "/etc/freeradius/users"]:
+        if not os.path.exists(fp):
+            continue
+        with open(fp) as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith("#") or line.startswith("DEFAULT"):
+                    continue
+                parts = line.split(None, 3)
+                if len(parts) >= 3:
+                    users.append({"username": parts[0], "attribute": parts[1].rstrip(","), "value": parts[3].strip(chr(34)) if len(parts)>3 else ""})
+        if users:
+            break
+    # Fallback to SQL
+    if not users:
+        from rnas_env import get_env
+        env = get_env()
+        result = subprocess.run(env.db_query_str("SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50"),
+            shell=True, capture_output=True, text=True, timeout=15).stdout
+        for line in result.splitlines():
+            parts = line.strip().split("|")
+            if len(parts) >= 3:
+                users.append({"username": parts[0].strip(), "attribute": parts[1].strip(), "value": parts[2].strip()})
+    return {"users": users, "count": len(users)}
 @router.get("/aaa/logs")
 async def aaa_logs():
     return {"logs": []}

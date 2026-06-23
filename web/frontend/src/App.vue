@@ -14,6 +14,9 @@
         <span class="t-status" :class="radiusOk ? 'ok' : 'err'">{{ radiusOk ? '● RADIUS up' : '○ RADIUS down' }}</span>
         <span class="t-sep">·</span>
         <span class="t-cpu">CPU {{ service.cpu || '--' }}</span>
+        <span class="t-alerts" v-if="alertCount > 0" @click="page='system'" title="Services with issues">
+          ⚠ {{ alertCount }}
+        </span>
       </div>
       <div class="t-right">
         <span class="t-ver">v3.0</span>
@@ -71,7 +74,8 @@
         <ActivityFeed v-if="page==='overview'" />
         <SessionsTable v-if="page==='sessions'||page==='overview'" :sessions="sessions" :loading="loading" @disconnect="handleDisconnect" @refresh="fetchData" @detail="(s) => { selectedSession = s; page = 'session-detail' }" />
         <SessionDetail v-if="page==='session-detail'" :session="selectedSession" @back="page='sessions'" />
-        <TrafficMonitor v-if="page==='overview'" />
+        <TrafficMonitor v-if="page==='overview'" @view-interface="showIface" />
+        <InterfaceDetail v-if="page==='iface-detail'" :iface="selectedIface" @back="page='overview'" />
         <NetworkConfig v-if="page==='network'" />
         <ConfigEditor v-if="page==='config'" />
         <ServicesConfig v-if="page==='services'" />
@@ -113,6 +117,7 @@ import SessionsTable from './components/SessionsTable.vue'
 import SessionDetail from './components/SessionDetail.vue'
 import NetworkConfig from './components/NetworkConfig.vue'
 import TrafficMonitor from './components/TrafficMonitor.vue'
+import InterfaceDetail from './components/InterfaceDetail.vue'
 import ConfigEditor from './components/ConfigEditor.vue'
 import ServicesConfig from './components/ServicesConfig.vue'
 import ProtocolConfig from './components/ProtocolConfig.vue'
@@ -139,11 +144,14 @@ import TestResults from './components/TestResults.vue'
 import BandwidthTest from './components/BandwidthTest.vue'
 
 const page = ref(location.hash ? location.hash.replace('#/','') || 'overview' : 'overview')
+const alertCount = ref(0)
 watch(page, n => window.location.hash = '#/' + n)
 const hostIP = ref('192.168.0.203')
 const service = ref({ uptime: '--', cpu: '--', mem: '--' })
 const sessions = ref([])
 const selectedSession = ref(null)
+const selectedIface = ref('ens33')
+function showIface(name) { selectedIface.value = name; page.value = 'iface-detail' }
 const loading = ref(true)
 const radiusOk = ref(false)
 
@@ -151,6 +159,9 @@ async function fetchData() {
   loading.value = true
   try { const res = await fetch('/api/status'); const d = await res.json(); service.value = d.service||{}; sessions.value = d.sessions||[]; radiusOk.value = d.service?.radius_state === 'active' } catch(e){}
   loading.value = false
+}
+async function fetchAlerts() {
+  try { const r = await fetch('/api/system/health/alerts'); const d = await r.json(); alertCount.value = (d.critical||0) + (d.total||0) } catch {}
 }
 async function handleDisconnect(sid) { await fetch(`/api/sessions/${sid}/disconnect`,{method:'POST'}); fetchData() }
 
@@ -164,7 +175,7 @@ function connectWS() {
   } catch { ws=null }
 }
 onMounted(()=>{ 
-  fetchData(); refreshTimer=setInterval(fetchData,15000); connectWS()
+  fetchData(); fetchAlerts(); refreshTimer=setInterval(fetchData,15000); setInterval(fetchAlerts,30000); connectWS()
   window.addEventListener('hashchange', () => {
     const h = location.hash.replace('#/','') || 'overview'
     if (h !== page.value) page.value = h
@@ -206,6 +217,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--fg); font-s
 .rnas-topbar .t-status.ok { color:var(--green); }
 .rnas-topbar .t-status.err { color:var(--red); }
 .rnas-topbar .t-cpu { color:var(--fg2); }
+.rnas-topbar .t-alerts { display:inline-flex; align-items:center; gap:3px; background:rgba(238,82,83,0.15); color:var(--red); padding:1px 8px; border-radius:8px; font-size:10px; font-weight:700; cursor:pointer; }
 .rnas-topbar .t-right { display:flex; align-items:center; }
 .rnas-topbar .t-ver { color:var(--fg3); font-family:var(--mono); font-size:11px; }
 

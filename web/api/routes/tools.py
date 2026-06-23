@@ -176,3 +176,15 @@ async def sniffer_stop():
 # ── Scheduler (placeholder) ──
 
 
+
+@router.get("/tools/dns")
+async def dns_lookup(host: str, type: str = "a"):
+    """DNS lookup tool"""
+    import subprocess
+    try:
+        out = subprocess.run(["dig", "+short", "-t", type, host], capture_output=True, text=True, timeout=10).stdout
+        if not out.strip():
+            out = subprocess.run(["nslookup", host], capture_output=True, text=True, timeout=10).stdout
+        return {"output": out.strip() or "No records found"}
+    except Exception as e:
+        return {"output": f"Error: {e}"}

@@ -115,3 +115,25 @@ async def radius_stats():
 @router.get("/queues")
 async def queues():
     return {"queues": []}
+
+@router.get("/system/health/alerts")
+async def system_health_alerts():
+    """Check all RNAS services and return alerts for down services"""
+    import subprocess, re
+    services = [
+        ("rnas-accel-ppp", "Access Server (PPPoE/L2TP/PPTP/SSTP)"),
+        ("rnas-web", "Web Dashboard API"),
+        ("dnsmasq", "DHCP/DNS"),
+        ("strongswan-starter", "IPsec VPN"),
+        ("openvpn-server@server", "OpenVPN"),
+    ]
+    alerts = []
+    for svc, desc in services:
+        try:
+            out = subprocess.run(["systemctl", "is-active", svc],
+                capture_output=True, text=True, timeout=5).stdout.strip()
+            if out != "active":
+                alerts.append({"service": svc, "desc": desc, "status": out, "severity": "critical" if out == "failed" else "warning"})
+        except:
+            alerts.append({"service": svc, "desc": desc, "status": "unknown", "severity": "warning"})
+    return {"total": len(alerts), "critical": sum(1 for a in alerts if a["severity"] == "critical"), "alerts": alerts}

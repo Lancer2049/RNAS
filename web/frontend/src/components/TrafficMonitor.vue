@@ -6,7 +6,7 @@
       <table class="if-table">
         <thead><tr><th>Name</th><th>Rate RX</th><th>Rate TX</th><th>Total RX</th><th>Total TX</th><th>Pkts</th><th>Err</th></tr></thead>
         <tbody>
-          <tr v-for="iface in ifaces" :key="iface.name" :class="{down: !iface.running}">
+          <tr v-for="iface in ifaces" :key="iface.name" :class="{down: !iface.running}" style="cursor:pointer" @click="$emit('view-interface', iface.name)">
             <td class="mono">{{ iface.name }}</td>
             <td class="mono rate-rx">{{ formatBps(iface.rx_rate) }}</td>
             <td class="mono rate-tx">{{ formatBps(iface.tx_rate) }}</td>
@@ -67,6 +67,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { Chart } from 'chart.js/auto'
+defineEmits(['view-interface'])
 
 const sessionsChart = ref(null), ifaceChart = ref(null), histChart = ref(null)
 const ifaces = ref([])

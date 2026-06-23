@@ -494,3 +494,40 @@ async def interface_history(name: str, range_sec: int = 3600):
     data = get_history(name, range_sec)
     return {"iface": name, "data": data, "points": len(data)}
 
+
+@router.get("/interfaces/{name}")
+async def interface_detail(name: str):
+    """Detailed interface info with associated sessions"""
+    import subprocess, re, os
+    
+    # Link info
+    link = subprocess.run(["ip", "link", "show", name], capture_output=True, text=True, timeout=5).stdout
+    addr = subprocess.run(["ip", "-4", "addr", "show", name], capture_output=True, text=True, timeout=5).stdout
+    m = re.search(r"<([^>]+)>", link)
+    flags = m.group(1) if m else ""
+    mac = ""
+    mm = re.search(r"link/\S+\s+(\S+)", link)
+    if mm: mac = mm.group(1)
+    ip = ""
+    mi = re.search(r"inet\s+(\S+)", addr)
+    if mi: ip = mi.group(1)
+    
+    # Stats from sysfs (reliable)
+    rx_b = int(open(f"/sys/class/net/{name}/statistics/rx_bytes").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/rx_bytes") else 0
+    tx_b = int(open(f"/sys/class/net/{name}/statistics/tx_bytes").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/tx_bytes") else 0
+    rx_p = int(open(f"/sys/class/net/{name}/statistics/rx_packets").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/rx_packets") else 0
+    tx_p = int(open(f"/sys/class/net/{name}/statistics/tx_packets").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/tx_packets") else 0
+    rx_e = int(open(f"/sys/class/net/{name}/statistics/rx_errors").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/rx_errors") else 0
+    tx_e = int(open(f"/sys/class/net/{name}/statistics/tx_errors").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/tx_errors") else 0
+    
+    # Associated sessions
+    sess_out = subprocess.run(["accel-cmd", "show", "sessions", "sid,ifname,username,ip,type,state,uptime-raw,rx-bytes-raw,tx-bytes-raw"], capture_output=True, text=True, timeout=5).stdout
+    sessions = []
+    for line in sess_out.splitlines()[1:]:
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) >= 9 and parts[1] == name:
+            sessions.append({"sid": parts[0], "username": parts[2], "ip": parts[3], "type": parts[4], "state": parts[5], "uptime": parts[6], "rx": parts[7], "tx": parts[8]})
+    
+    return {"name": name, "mac": mac, "ip": ip, "flags": flags, "running": "UP" in flags,
+        "rx_bytes": rx_b, "tx_bytes": tx_b, "rx_packets": rx_p, "tx_packets": tx_p, "rx_errors": rx_e, "tx_errors": tx_e,
+        "sessions": sessions, "sessions_count": len(sessions)}
