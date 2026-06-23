@@ -14,7 +14,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Terminal } from 'xterm'
-import { FitAddon } from 'xterm/addon-fit'
+import { FitAddon } from '@xterm/addon-fit'
 import 'xterm/css/xterm.css'
 
 const terminalContainer = ref(null)

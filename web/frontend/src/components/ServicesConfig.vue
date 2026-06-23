@@ -16,22 +16,24 @@
       </button>
     </div>
 
-    <div v-for="svc in services" :key="svc.title" v-if="activeSvc===svc.title" class="svc-panel">
-      <div class="svc-header"><h3>{{ svc.title }}</h3></div>
-      <div class="field-group">
-        <div class="field-row" v-for="(val, key) in svc.data" :key="key">
-          <label class="mono">{{ key }}</label>
-          <select v-if="['yes','no','true','false'].includes(String(val).toLowerCase())" v-model="svc.data[key]" class="field-input">
-            <option value="yes">yes</option><option value="no">no</option>
-          </select>
-          <input v-else v-model="svc.data[key]" class="field-input" />
+    <template v-for="svc in services" :key="svc.title">
+      <div v-if="activeSvc===svc.title" class="svc-panel">
+        <div class="svc-header"><h3>{{ svc.title }}</h3></div>
+        <div class="field-group">
+          <div class="field-row" v-for="(val, key) in svc.data" :key="key">
+            <label class="mono">{{ key }}</label>
+            <select v-if="['yes','no','true','false'].includes(String(val).toLowerCase())" v-model="svc.data[key]" class="field-input">
+              <option value="yes">yes</option><option value="no">no</option>
+            </select>
+            <input v-else v-model="svc.data[key]" class="field-input" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn-save" @click="saveSection(svc)" :disabled="svc.saving">{{ svc.saving ? '...' : 'Save' }}</button>
+          <span v-if="svc.saved" class="saved-msg">✓ Saved</span>
         </div>
       </div>
-      <div class="actions">
-        <button class="btn-save" @click="saveSection(svc)" :disabled="svc.saving">{{ svc.saving ? '...' : 'Save' }}</button>
-        <span v-if="svc.saved" class="saved-msg">✓ Saved</span>
-      </div>
-    </div>
+    </template>
   </div>
 </template>
 

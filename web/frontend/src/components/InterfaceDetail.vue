@@ -12,7 +12,7 @@
       <div class="d-item"><span class="dl">TX</span><span class="dv mono">{{ fmtBytes(data.tx_bytes) }}</span></div>
       <div class="d-item"><span class="dl">RX Pkts</span><span class="dv mono">{{ data.rx_packets }}</span></div>
       <div class="d-item"><span class="dl">TX Pkts</span><span class="dv mono">{{ data.tx_packets }}</span></div>
-      <div class="d-item"><span class="dl">Errors</span><span class="dv mono" :style="{color:(data.rx_errors+data.tx_errors>0?'var(--red)':'inherit)'}">{{ data.rx_errors+data.tx_errors }}</span></div>
+      <div class="d-item"><span class="dl">Errors</span><span class="dv mono" :style="{color: data.rx_errors + data.tx_errors > 0 ? 'var(--red)' : 'inherit'}">{{ data.rx_errors+data.tx_errors }}</span></div>
     </div>
 
     <h3>Associated Sessions ({{ data.sessions_count }})</h3>

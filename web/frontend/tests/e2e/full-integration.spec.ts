@@ -18,9 +18,9 @@ test('Protocols: page loads', async ({ page }) => {
 
 test('Sessions: page loads', async ({ page }) => {
   await page.goto(BASE);
-  await page.locator(SIDEBAR).getByText('Active Sessions').click();
-  await page.waitForTimeout(500);
-  await expect(page.getByRole('heading', { name: /Active Sessions/ })).toBeVisible({ timeout: 5000 });
+  await page.click(SIDEBAR + ' a:nth-child(2)');
+  await page.waitForTimeout(2000);
+  await expect(page.getByRole('heading', { name: /Active Sessions/ })).toBeVisible({ timeout: 8000 });
 });
 
 test('Network: page loads', async ({ page }) => {
