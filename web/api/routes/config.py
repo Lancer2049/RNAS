@@ -17,6 +17,56 @@ async def get_all_config():
     return {"config": {k: v for k, v in sorted(config.items())}}
 
 
+
+SNAPSHOT_DIR = Path("/etc/rnas/snapshots")
+
+@router.get("/config/snapshots")
+async def list_snapshots():
+    if not SNAPSHOT_DIR.exists():
+        return {"snapshots": [], "total": 0}
+    snapshots = []
+    for d in sorted(SNAPSHOT_DIR.iterdir(), reverse=True):
+        if d.is_dir():
+            files = list(d.rglob("*.conf"))
+            snapshots.append({"name": d.name, "created": d.stat().st_mtime, "files": len(files)})
+    return {"snapshots": snapshots, "total": len(snapshots)}
+
+@router.post("/config/snapshot")
+async def create_snapshot(data: dict = Body({})):
+    from datetime import datetime
+    name = data.get("name", f"snap-{datetime.now():%Y%m%d-%H%M%S}")
+    target = SNAPSHOT_DIR / name
+    target.mkdir(parents=True, exist_ok=True)
+    for f in Path("/etc/rnas").rglob("*.conf"):
+        rel = f.relative_to(Path("/etc/rnas"))
+        d = target / rel; d.parent.mkdir(parents=True, exist_ok=True); d.write_text(f.read_text())
+    return {"status": "created", "name": name, "files": len(list(target.rglob("*.conf")))}
+
+@router.post("/config/snapshot/{name}/restore")
+async def restore_snapshot(name: str):
+    import shutil, subprocess
+    from datetime import datetime
+    source = SNAPSHOT_DIR / name
+    if not source.exists():
+        raise HTTPException(404, f"Snapshot not found")
+    backup_name = f"pre-{datetime.now():%Y%m%d-%H%M%S}"
+    backup_dir = SNAPSHOT_DIR / backup_name
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    for f in Path("/etc/rnas").rglob("*.conf"):
+        rel = f.relative_to(Path("/etc/rnas"))
+        d = backup_dir / rel; d.parent.mkdir(parents=True, exist_ok=True); d.write_text(f.read_text())
+    shutil.rmtree("/etc/rnas")
+    shutil.copytree(source, "/etc/rnas")
+    subprocess.run(["systemctl", "restart", "rnas-accel-ppp"])
+    return {"status": "restored", "name": name, "backup": backup_name}
+
+@router.get("/config/snapshot/{name}/diff")
+async def diff_snapshot(name: str):
+    import subprocess
+    source = SNAPSHOT_DIR / name
+    result = subprocess.run(["diff", "-ru", str(source), "/etc/rnas"], capture_output=True, text=True)
+    return {"diff": result.stdout or "(identical)", "has_diff": bool(result.stdout)}
+
 @router.get("/config/{module:path}")
 async def get_config_section(module: str):
     config = walk_config_tree(Path(DEFAULT_ROOT))
@@ -58,3 +108,52 @@ async def apply_config():
         return {"success": True, "message": "Configuration applied"}
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=504, detail="Config apply timed out")
+
+SNAPSHOT_DIR = Path("/etc/rnas/snapshots")
+
+@router.get("/config/snapshots")
+async def list_snapshots():
+    if not SNAPSHOT_DIR.exists():
+        return {"snapshots": [], "total": 0}
+    snapshots = []
+    for d in sorted(SNAPSHOT_DIR.iterdir(), reverse=True):
+        if d.is_dir():
+            files = list(d.rglob("*.conf"))
+            snapshots.append({"name": d.name, "created": d.stat().st_mtime, "files": len(files)})
+    return {"snapshots": snapshots, "total": len(snapshots)}
+
+@router.post("/config/snapshot")
+async def create_snapshot(data: dict = Body({})):
+    from datetime import datetime
+    name = data.get("name", f"snap-{datetime.now():%Y%m%d-%H%M%S}")
+    target = SNAPSHOT_DIR / name
+    target.mkdir(parents=True, exist_ok=True)
+    for f in Path("/etc/rnas").rglob("*.conf"):
+        rel = f.relative_to(Path("/etc/rnas"))
+        d = target / rel; d.parent.mkdir(parents=True, exist_ok=True); d.write_text(f.read_text())
+    return {"status": "created", "name": name, "files": len(list(target.rglob("*.conf")))}
+
+@router.post("/config/snapshot/{name}/restore")
+async def restore_snapshot(name: str):
+    import shutil, subprocess
+    from datetime import datetime
+    source = SNAPSHOT_DIR / name
+    if not source.exists():
+        raise HTTPException(404, f"Snapshot not found")
+    backup_name = f"pre-{datetime.now():%Y%m%d-%H%M%S}"
+    backup_dir = SNAPSHOT_DIR / backup_name
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    for f in Path("/etc/rnas").rglob("*.conf"):
+        rel = f.relative_to(Path("/etc/rnas"))
+        d = backup_dir / rel; d.parent.mkdir(parents=True, exist_ok=True); d.write_text(f.read_text())
+    shutil.rmtree("/etc/rnas")
+    shutil.copytree(source, "/etc/rnas")
+    subprocess.run(["systemctl", "restart", "rnas-accel-ppp"])
+    return {"status": "restored", "name": name, "backup": backup_name}
+
+@router.get("/config/snapshot/{name}/diff")
+async def diff_snapshot(name: str):
+    import subprocess
+    source = SNAPSHOT_DIR / name
+    result = subprocess.run(["diff", "-ru", str(source), "/etc/rnas"], capture_output=True, text=True)
+    return {"diff": result.stdout or "(identical)", "has_diff": bool(result.stdout)}
