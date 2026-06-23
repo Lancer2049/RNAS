@@ -115,11 +115,12 @@
         <SystemLog v-if="page==='log'" />
       </main>
     </div>
+    <div class="toast-container"><div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">{{ t.msg }}</div></div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent, provide } from 'vue'
 // Always-loaded (dashboard core)
 import StatusCard from './components/StatusCard.vue'
 import QuickActions from './components/QuickActions.vue'
@@ -171,6 +172,9 @@ const selectedIface = ref('ens33')
 function showIface(name) { selectedIface.value = name; page.value = 'iface-detail' }
 const loading = ref(true)
 const radiusOk = ref(false)
+const toasts = ref([])
+function addToast(msg, type='info') { const id=Date.now(); toasts.value.push({id,msg,type}); setTimeout(()=>toasts.value=toasts.value.filter(t=>t.id!==id), 3500) }
+provide('addToast', addToast)
 
 async function fetchData() {
   loading.value = true
@@ -251,6 +255,12 @@ body { font-family: var(--font); background: var(--bg); color: var(--fg); font-s
 .rnas-sidebar a .si { font-size:8px; color:var(--fg3); width:12px; text-align:center; flex-shrink:0; }
 .rnas-sidebar a.sel .si { color:var(--accent); }
 .rnas-sidebar a b { margin-left:auto; background:var(--accent); color:#000; padding:0 6px; border-radius:8px; font-size:10px; font-weight:700; }
+.toast-container { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:6px; }
+.toast { padding:10px 16px; border-radius:4px; font-size:12px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.3); animation:toast-in .25s; min-width:200px; }
+.toast.info { background:var(--accent); color:#000; }
+.toast.ok { background:var(--green); color:#000; }
+.toast.err { background:var(--red); color:#fff; }
+@keyframes toast-in { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
 .sidebar-foot { padding:10px 14px; color:var(--fg3); font-size:10px; display:flex; align-items:center; gap:6px; }
 .sidebar-foot .dot { width:6px; height:6px; border-radius:50%; }
 .sidebar-foot .dot.ok { background:var(--green); }
