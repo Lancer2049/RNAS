@@ -1,26 +1,34 @@
 <template>
   <div class="queue-section">
     <h2>Queue Management</h2>
-    <p class="hint">Bandwidth control — Simple Queue rules</p>
+    <p class="hint">Bandwidth control — HTB / CAKE / fq_codel traffic shaping</p>
+
+    <div class="q-type-bar">
+      <button :class="{sel: qtype==='simple'}" @click="qtype='simple'">Simple Queue</button>
+      <button :class="{sel: qtype==='htb'}" @click="qtype='htb'">HTB (Hierarchy)</button>
+      <button :class="{sel: qtype==='cake'}" @click="qtype='cake'">CAKE</button>
+    </div>
 
     <div class="add-form">
       <input v-model="newName" placeholder="Name" class="field" />
-      <input v-model="newTarget" placeholder="Target IP" class="field" />
-      <input v-model="newRate" placeholder="Rate (e.g. 10M/20M)" class="field" />
-      <select v-model="newProto" class="field"><option value="all">All</option><option>pppoe</option><option>l2tp</option><option>sstp</option></select>
+      <input v-model="newTarget" placeholder="Target IP/subnet" class="field" />
+      <input v-model="newRate" placeholder="Rate (e.g. 10Mbit)" class="field short" />
+      <input v-model="newCeil" placeholder="Ceil (e.g. 20Mbit)" class="field short" />
+      <input v-model="newBurst" placeholder="Burst (e.g. 15k)" class="field short" />
+      <input v-model="newPrio" placeholder="Priority 0-7" class="field tiny" />
+      <select v-model="newProto" class="field" style="width:80px"><option value="all">All</option><option>pppoe</option><option>l2tp</option></select>
       <button @click="addQueue" class="btn-add">+ Add</button>
     </div>
 
     <table v-if="queues.length">
-      <thead><tr><th>Name</th><th>Target</th><th>Rate</th><th>Burst</th><th>TX</th><th>RX</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Target</th><th>Rate</th><th>Ceil</th><th>Burst</th><th>Prio</th><th>Proto</th><th>TX/RX</th><th>Status</th><th></th></tr></thead>
       <tbody>
         <tr v-for="q in queues" :key="q.name">
-          <td class="mono">{{ q.name }}</td>
-          <td>{{ q.target }}</td>
-          <td class="mono">{{ q.rate }}</td>
-          <td class="mono">{{ q.burst||'none' }}</td>
-          <td>{{ formatBytes(q.tx) }}</td>
-          <td>{{ formatBytes(q.rx) }}</td>
+          <td class="mono">{{ q.name }}</td><td>{{ q.target }}</td>
+          <td class="mono">{{ q.rate }}</td><td class="mono">{{ q.ceil||'-' }}</td>
+          <td class="mono">{{ q.burst||'-' }}</td><td>{{ q.prio||'-' }}</td>
+          <td>{{ q.proto||'all' }}</td>
+          <td>{{ formatBytes(q.tx||0) }}/{{ formatBytes(q.rx||0) }}</td>
           <td><span class="badge" :class="q.active?'active':'inactive'">{{ q.active?'Active':'Idle' }}</span></td>
           <td><button @click="removeQueue(q.name)" class="btn-del">✕</button></td>
         </tr>
@@ -29,23 +37,25 @@
     <div v-else class="empty-state">
       <div class="icon">📏</div>
       <div class="text">No queue rules defined</div>
-      <div class="sub">Add bandwidth control rules above to manage traffic shaping</div>
+      <div class="sub">Set rate limits for PPPoE/L2TP users — supports HTB classes and CAKE qdiscs</div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+const qtype = ref('simple')
 const queues = reactive([])
-const newName = ref(''), newTarget = ref(''), newRate = ref('10M'), newProto = ref('all')
+const newName = ref(''), newTarget = ref(''), newRate = ref('10Mbit'), newCeil = ref('20Mbit')
+const newBurst = ref('15k'), newPrio = ref('3'), newProto = ref('all')
 
 async function loadQueues() {
   try { const r = await fetch('/api/queues'); const d = await r.json(); queues.length=0; queues.push(...(d.queues||[])) } catch {}
 }
 function addQueue() {
   if (!newName.value||!newTarget.value) return
-  queues.push({name:newName.value, target:newTarget.value, rate:newRate.value, burst:'', tx:0, rx:0, active:true, proto:newProto.value})
-  newName.value=''; newTarget.value=''; newRate.value='10M'
+  queues.push({name:newName.value, target:newTarget.value, rate:newRate.value, ceil:newCeil.value, burst:newBurst.value, prio:newPrio.value, tx:0, rx:0, active:true, proto:newProto.value, type:qtype.value})
+  newName.value=''; newTarget.value=''; newRate.value='10Mbit'; newCeil.value='20Mbit'; newBurst.value='15k'; newPrio.value='3'
   fetch('/api/queues',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({queues:[...queues]})})
 }
 function removeQueue(name) {
@@ -58,13 +68,18 @@ onMounted(loadQueues)
 
 <style scoped>
 .queue-section { display:flex; flex-direction:column; gap:12px; } h2{font-size:15px;color:var(--fg);font-weight:600} .hint{font-size:11px;color:var(--fg3)}
+.q-type-bar{display:flex;gap:4px}
+.q-type-bar button{padding:4px 12px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--fg2);cursor:pointer;font-size:11px;font-family:var(--font)}
+.q-type-bar button.sel{background:var(--accent);color:#000;border-color:var(--accent)}
 .add-form { display:flex; gap:6px; flex-wrap:wrap; background:var(--bg2); padding:10px; border:1px solid var(--border); border-radius:3px }
-.field { padding:5px 8px; border:1px solid var(--border); border-radius:3px; font-size:12px; background:var(--bg); color:var(--fg); font-family:var(--font); outline:none }
+.field { padding:5px 8px; border:1px solid var(--border); border-radius:3px; font-size:12px; background:var(--bg); color:var(--fg); font-family:var(--font); outline:none; flex:1; min-width:80px }
+.field.short { width:100px; flex:0 0 100px }
+.field.tiny { width:60px; flex:0 0 60px }
 .field:focus { border-color:var(--accent) }
 .btn-add { padding:5px 14px; background:var(--green); color:#000; border:none; border-radius:3px; cursor:pointer; font-size:11px; font-weight:600; font-family:var(--font) }
 .btn-add:hover { opacity:.85 }
 table { width:100%; border-collapse:collapse; background:var(--bg2); border:1px solid var(--border); border-radius:3px; font-size:12px }
-th,td { padding:5px 10px; text-align:left; border-bottom:1px solid var(--border) } th { color:var(--fg3); font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:1px }
+th,td { padding:5px 8px; text-align:left; border-bottom:1px solid var(--border) } th { color:var(--fg3); font-weight:600; font-size:9px; text-transform:uppercase; letter-spacing:1px }
 .mono { font-family:var(--mono); font-size:11px }
 .badge { padding:2px 8px; border-radius:10px; font-size:10px }
 .badge.active { background:rgba(16,172,132,0.12); color:var(--green) } .badge.inactive { background:var(--bg3); color:var(--fg3) }
