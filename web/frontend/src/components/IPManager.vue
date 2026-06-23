@@ -41,9 +41,17 @@
           <button class="btn-preset" @click="quickAdd(c, 'ip saddr 192.168.100.0/24 oifname ens33 counter masquerade')">Masquerade .100/24</button>
         </div>
         <div v-if="!c.rules.length" class="empty">no rules</div>
-        <div v-for="(r,i) in c.rules" :key="i" class="fw-rule">
+        <div v-for="(r,i) in c.rules" :key="i" class="fw-rule" :class="{disabled: r.disabled}">
+          <div class="fw-bar-wrap"><div class="fw-bar" :style="{width: barWidth(r.packets, c)+'%'}"></div></div>
+          <span class="fw-num pull-sml">#{{ i+1 }}</span>
           <span class="fw-text">{{ typeof r === 'string' ? r : r.text }}</span>
-          <button v-if="r.handle" class="btn-del" @click="delRule(c, r.handle)" title="Delete rule">✕</button>
+          <span class="fw-hit" v-if="r.packets !== undefined">({{ r.packets }}p/{{ fmtBytes(r.bytes||0) }})</span>
+          <span class="fw-actions">
+            <button v-if="i > 0" class="btn-move" @click="moveRule(c,i,'up')" title="Move up">▲</button>
+            <button v-if="i < c.rules.length-1" class="btn-move" @click="moveRule(c,i,'down')" title="Move down">▼</button>
+            <button v-if="r.handle" class="btn-toggle" :class="{on:!r.disabled}" @click="toggleRule(c,r)" title="Toggle rule">⏻</button>
+            <button v-if="r.handle" class="btn-del" @click="delRule(c, r.handle)" title="Delete rule">✕</button>
+          </span>
         </div>
         <div v-if="addTarget === c.name" class="fw-add">
           <input v-model="newRule" placeholder="e.g. tcp dport 443 accept" @keyup.enter="addRule(c)" />
@@ -199,6 +207,31 @@ async function quickAdd(chain, rule) {
     fetchFW()
   } catch {}
 }
+function barWidth(pkts, chain) {
+  const max = Math.max(...chain.rules.map(r => r.packets || 0), 1)
+  return Math.min((pkts || 0) / max * 100, 100)
+}
+function fmtBytes(b) {
+  if (b < 1024) return b + 'B'
+  if (b < 1048576) return (b/1024).toFixed(1)+'K'
+  return (b/1048576).toFixed(1)+'M'
+}
+async function moveRule(chain, idx, dir) {
+  const r = chain.rules[idx]
+  const swap = dir === 'up' ? chain.rules[idx-1] : chain.rules[idx+1]
+  if (!r.handle || !swap.handle) return
+  try {
+    await fetch('/api/ip/firewall/reorder', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, handle: r.handle, position: swap.handle }) })
+    fetchFW()
+  } catch {}
+}
+async function toggleRule(chain, rule) {
+  if (!rule.handle) return
+  try {
+    await fetch(`/api/ip/firewall/${rule.handle}/toggle`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, enabled: !!rule.disabled }) })
+    fetchFW()
+  } catch {}
+}
 async function addRule(chain) {
   if (!newRule.value.trim()) return
   try {
@@ -224,7 +257,24 @@ onMounted(fetchArp)
 .ros-tabs button.sel { color:var(--accent); border-bottom-color:var(--accent); }
 .ros-tabs .ct { background:var(--accent); color:#000; font-size:10px; padding:0 5px; border-radius:8px; min-width:16px; text-align:center; }
 .tab-body { background:var(--bg2); border:1px solid var(--border); border-radius:0 0 4px 4px; padding:12px; }
-.fw-chain { margin-bottom:14px; }
+.fw-chain { margin-bottom:14px; position:relative; }
+.fw-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.fw-head h3 { font-size:12px; color:var(--accent); font-family:var(--mono); }
+.fw-rule { display:flex; align-items:center; gap:4px; font-family:var(--mono); font-size:10px; color:var(--fg2); padding:1px 6px; margin:1px 0; border-left:2px solid var(--border); position:relative; min-height:20px; }
+.fw-rule:hover { background:rgba(10,189,227,0.04); }
+.fw-rule.disabled { opacity:0.35; }
+.fw-bar-wrap { position:absolute; left:0; top:0; height:100%; width:100%; pointer-events:none; }
+.fw-bar { height:100%; background:rgba(10,189,227,0.07); border-radius:0 2px 2px 0; transition:width 0.5s; }
+.fw-num { color:var(--fg3); font-size:9px; min-width:20px; z-index:1; }
+.fw-text { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; z-index:1; }
+.fw-hit { color:var(--fg3); font-size:9px; white-space:nowrap; z-index:1; }
+.fw-actions { display:none; gap:2px; align-items:center; flex-shrink:0; z-index:1; }
+.fw-rule:hover .fw-actions { display:flex; }
+.btn-move { padding:0 4px; background:none; color:var(--fg3); border:none; cursor:pointer; font-size:9px; line-height:1; }
+.btn-move:hover { color:var(--accent); }
+.btn-toggle { padding:0 4px; background:none; color:var(--fg3); border:none; cursor:pointer; font-size:11px; line-height:1; }
+.btn-toggle.on { color:var(--green); }
+.btn-toggle:hover { color:var(--accent); }
 .fw-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
 .fw-head h3 { font-size:12px; color:var(--accent); font-family:var(--mono); }
 .fw-rule { display:flex; align-items:center; justify-content:space-between; font-family:var(--mono); font-size:11px; color:var(--fg2); padding:2px 8px; border-left:2px solid var(--border); margin:2px 0; }

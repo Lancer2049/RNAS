@@ -210,13 +210,71 @@ async def firewall_full():
             # Check for handle annotation
             import re
             h = re.search(r"#\s*handle\s+(\d+)", s)
+            pc = re.search(r"counter\s+packets\s+(\d+)\s+bytes\s+(\d+)", s)
+            pkts = int(pc.group(1)) if pc else 0
+            bytes_n = int(pc.group(2)) if pc else 0
             if h:
                 handle_counter = int(h.group(1))
                 rule_text = re.sub(r"\s*#\s*handle\s+\d+", "", s).strip()
             else:
                 rule_text = s
-            current_chain["rules"].append({"text": rule_text, "handle": handle_counter if h else 0})
+            current_chain["rules"].append({
+                "text": rule_text,
+                "handle": handle_counter if h else 0,
+                "packets": pkts,
+                "bytes": bytes_n
+            })
     return {"chains": chains}
+
+
+@router.put("/ip/firewall/reorder")
+async def reorder_firewall_rule(data: dict = Body(...)):
+    """Reorder nftables rule: { chain: str, table: str, family: str, handle: int, position: int }"""
+    chain = data.get("chain", "")
+    table = data.get("table", "filter")
+    family = data.get("family", "ip")
+    handle = data.get("handle")
+    position = data.get("position")
+    if not chain or not handle:
+        raise HTTPException(400, "chain and handle are required")
+    try:
+        res = subprocess.run(
+            ["nft", "add", "rule", family, table, chain, "position", str(position)],
+            capture_output=True, text=True, timeout=5
+        )
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@router.put("/ip/firewall/{handle}/toggle")
+async def toggle_firewall_rule(handle: int, data: dict = Body(...)):
+    """Enable/disable nftables rule by handle. disabled = add reject rule before it"""
+    enabled = data.get("enabled", True)
+    chain = data.get("chain", "")
+    table = data.get("table", "filter")
+    family = data.get("family", "ip")
+    if not chain:
+        raise HTTPException(400, "chain is required")
+    try:
+        if enabled:
+            # Re-enable: delete the reject rule that was added
+            res = subprocess.run(
+                ["nft", "delete", "rule", family, table, chain, "handle", str(handle)],
+                capture_output=True, text=True, timeout=5
+            )
+        else:
+            # Disable: add a reject rule at the same position
+            res = subprocess.run(
+                ["nft", "add", "rule", family, table, chain, "position", str(handle), "reject"],
+                capture_output=True, text=True, timeout=5
+            )
+        if res.returncode != 0:
+            raise HTTPException(400, res.stderr.strip())
+        return {"ok": True, "enabled": enabled, "handle": handle}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))
 
 @router.get("/ip/dhcp")
 async def dhcp_leases():
