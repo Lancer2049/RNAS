@@ -116,6 +116,7 @@
       </main>
     </div>
     <div class="toast-container"><div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">{{ t.msg }}</div></div>
+    <div v-if="pageLoading" class="page-loader"><div class="loader-bar"></div></div>
   </div>
 </template>
 
@@ -162,8 +163,9 @@ const WebTerminal = defineAsyncComponent(() => import('./components/WebTerminal.
 const CertManager = defineAsyncComponent(() => import('./components/CertManager.vue'))
 
 const page = ref(location.hash ? location.hash.replace('#/','') || 'overview' : 'overview')
+const pageLoading = ref(false)
+watch(page, n => { window.location.hash = '#/' + n; pageLoading.value = true; setTimeout(() => pageLoading.value = false, 300) })
 const alertCount = ref(0)
-watch(page, n => window.location.hash = '#/' + n)
 const hostIP = ref('192.168.0.203')
 const service = ref({ uptime: '--', cpu: '--', mem: '--' })
 const sessions = ref([])
@@ -201,6 +203,12 @@ onMounted(()=>{
     const h = location.hash.replace('#/','') || 'overview'
     if (h !== page.value) page.value = h
   })
+  // Preload common pages after initial load
+  setTimeout(() => {
+    import('./components/IPManager.vue')
+    import('./components/ToolsPage.vue')
+    import('./components/SystemLog.vue')
+  }, 2000)
 })
 onUnmounted(()=>{ clearInterval(refreshTimer); ws?.close() })
 </script>
@@ -322,4 +330,7 @@ input:focus, select:focus, textarea:focus { outline:none; border-color:var(--acc
 
 /* Empty state */
 .empty, .empty-state { text-align:center; padding:40px; color:var(--fg3); font-size:13px; }
+.page-loader { position:fixed; top:0; left:0; right:0; height:2px; z-index:9998; pointer-events:none; }
+.loader-bar { height:100%; background:var(--accent); width:30%; animation:loader-slide 1.2s ease-in-out infinite; border-radius:0 2px 2px 0; }
+@keyframes loader-slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(400%)} }
 </style>
