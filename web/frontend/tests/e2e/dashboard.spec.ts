@@ -12,17 +12,10 @@ test('sidebar links present', async ({ page }) => {
   await expect(links.first()).toBeVisible();
 });
 
-test.skip('Sessions page shows table', async ({ page }) => {
-  await page.goto('http://127.0.0.1:8099');
-  await page.waitForLoadState('networkidle');
-  await page.evaluate(() => { window.location.hash = '#/sessions' });
-  await page.waitForTimeout(2000);
-  // SessionsTable should now be visible
-  const visible = await page.locator('.sessions-section').first().isVisible().catch(() => false);
-  if (!visible) {
-    // Fallback: just check if the page loaded at all
-    await expect(page.locator('.rnas-topbar').first()).toBeVisible();
-  }
+test('Sessions page shows table', async ({ page }) => {
+  await page.goto('http://127.0.0.1:8099/#/sessions');
+  await page.waitForTimeout(3000);
+  await expect(page.getByText('Active Sessions').first()).toBeVisible({ timeout: 10000 });
 });
 
 test('Network page loads', async ({ page }) => {
