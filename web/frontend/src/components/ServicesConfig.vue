@@ -57,11 +57,15 @@ const vpnStatus = ref([
   { name: 'VRRP', icon: '⚡', active: false },
 ])
 
+let servicesCache = null
+
 async function loadAll() {
-  const res = await fetch('/api/config')
-  const cfg = (await res.json()).config || {}
+  if (!servicesCache) {
+    const res = await fetch('/api/config')
+    servicesCache = (await res.json()).config || {}
+  }
   for (const s of services.value) {
-    s.data = cfg[s.module] || {}
+    s.data = servicesCache[s.module] || {}
   }
 }
 

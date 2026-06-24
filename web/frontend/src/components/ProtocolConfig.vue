@@ -138,15 +138,22 @@ const protocols = reactive([
     ]},
 ])
 
+let configCache = null
+
 async function loadProto(id) {
   const p = protocols.find(p=>p.id===id); if (!p) return
+  // Show fields immediately with defaults while loading real values
+  current.value = { ...p, values: {...Object.fromEntries(p.fields.filter(f=>f.default).map(f=>[f.key, f.default]))} }
   try {
-    const r = await fetch('/api/config')
-    const cfg = (await r.json()).config || {}
-    const data = cfg[p.section] || {}
-    const core = cfg['access.d.core'] || {}
+    if (!configCache) {
+      const r = await fetch('/api/config')
+      configCache = (await r.json()).config || {}
+    }
+    const data = configCache[p.section] || {}
+    const core = configCache['access.d.core'] || {}
     p.enabled = core[p.module] === 'yes'
     current.value = { ...p, values: {...data} }
+    current.value.enabled = p.enabled
   } catch {}
 }
 

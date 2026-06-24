@@ -1,60 +1,121 @@
 <template>
   <div class="config-section">
     <div class="section-header">
-      <h2>Configuration Editor</h2>
-      <div class="header-actions">
-        <select v-model="selectedModule" @change="loadModule">
-          <option value="">Select module...</option>
-          <option v-for="m in modules" :key="m" :value="m">{{ m }}</option>
-        </select>
-        <button class="btn-save" @click="saveConfig" :disabled="!selectedModule || saving">
-          {{ saving ? 'Saving...' : 'Save' }}
-        </button>
-        <button class="btn-apply" @click="applyConfig" :disabled="applying">
-          {{ applying ? 'Applying...' : 'Apply Config' }}
-        </button>
-      </div>
+      <h2>Configuration</h2>
+      <p class="hint">Low-level configuration editor — most settings are available in dedicated pages</p>
     </div>
 
-    <div v-if="selectedModule && currentValues" class="editor-card">
-      <h3>{{ selectedModule }}</h3>
-      <div class="field-row" v-for="(val, key) in currentValues" :key="key">
-        <label>{{ key }}</label>
-        <select v-if="isYesNo(val, key)" v-model="currentValues[key]" class="field-input">
-          <option value="yes">yes</option><option value="no">no</option>
-        </select>
-        <input v-else-if="isPort(key)" v-model.number="currentValues[key]" type="number" min="1" max="65535" class="field-input" />
-        <input v-else-if="isNumber(key)" v-model.number="currentValues[key]" type="number" class="field-input" />
-        <input v-else v-model="currentValues[key]" :placeholder="val || '...'" class="field-input" />
-        <span class="field-hint" v-if="isYesNo(val,key)||isPort(key)||isNumber(key)">{{ typeHint(val,key) }}</span>
+    <div class="cfg-layout">
+      <div class="cfg-sidebar">
+        <input v-model="filter" placeholder="Search..." class="cfg-search" />
+        <div v-for="(grp, gname) in grouped" :key="gname" class="cfg-group">
+          <div class="cfg-group-label">{{ gname }}</div>
+          <div v-for="m in grp" :key="m" class="cfg-item" :class="{sel: selectedModule===m}" @click="selectedModule=m;loadModule()">{{ friendlyName(m) }}</div>
+        </div>
+      </div>
+
+      <div class="cfg-editor">
+        <div v-if="selectedModule && currentValues" class="editor-card">
+          <h3>{{ friendlyName(selectedModule) }}</h3>
+          <div class="field-row" v-for="(val, key) in currentValues" :key="key">
+            <label>{{ key }}</label>
+            <select v-if="isYesNo(val, key)" v-model="currentValues[key]" class="field-input">
+              <option value="yes">yes</option><option value="no">no</option>
+            </select>
+            <input v-else-if="isPort(key)" v-model.number="currentValues[key]" type="number" min="1" max="65535" class="field-input" />
+            <input v-else-if="isNumber(key)" v-model.number="currentValues[key]" type="number" class="field-input" />
+            <input v-else v-model="currentValues[key]" :placeholder="val || '...'" class="field-input" />
+            <span class="field-hint" v-if="isYesNo(val,key)||isPort(key)||isNumber(key)">{{ typeHint(val,key) }}</span>
+          </div>
+          <div class="actions">
+            <button class="btn-save" @click="saveConfig" :disabled="!selectedModule || saving">{{ saving ? '...' : 'Save' }}</button>
+            <button class="btn-apply" @click="applyConfig" :disabled="applying">{{ applying ? '...' : 'Apply' }}</button>
+            <span v-if="message" class="msg" :class="messageType">{{ message }}</span>
+          </div>
+        </div>
+        <div v-else class="empty-state">Select a section from the left panel</div>
       </div>
     </div>
-    <div v-else-if="selectedModule" class="empty-state"><div class="icon">📝</div><div class="text">No data for {{ selectedModule }}</div></div>
-    <div v-else class="empty-state"><div class="icon">📝</div><div class="text">Select a module to edit</div><div class="sub">Choose from {{ modules.length }} configuration sections</div></div>
-
-    <div v-if="message" class="message" :class="messageType">{{ message }}</div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 const modules = ref([])
 const selectedModule = ref('')
 const currentValues = ref(null)
-const newKey = ref('')
-const newVal = ref('')
-const saving = ref(false)
-const applying = ref(false)
-const message = ref('')
-const messageType = ref('success')
+const saving = ref(false), applying = ref(false)
+const message = ref(''), messageType = ref('success')
+const filter = ref('')
+
+const CATEGORIES = {
+  'Access Protocols': ['pppoe','l2tp','pptp','sstp','ipoe'],
+  'Core': ['global','core'],
+  'RADIUS': ['radius'],
+  'IP Pool': ['ip_pool','ipoe_pool'],
+  'PPP': ['ppp'],
+  'Network': ['interfaces','dhcp','dns','firewall','qos','ipv6','vlan','relay','zone'],
+  'VPN': ['ipsec','wireguard','openvpn'],
+  'Tunnels': ['gre','ipip','eoip','vxlan'],
+  'Auth/AAA': ['dot1x','mac_auth','auth_pap','auth_chap_md5','auth_mschap_v1','auth_mschap_v2'],
+  'Monitoring': ['snmp','netflow','log'],
+  'HA': ['ha'],
+  'Hotspot': ['hotspot'],
+  'Other': [],
+}
+
+function friendlyName(m) {
+  const map = {
+    'core':'Core Settings','pppoe':'PPPoE Config','l2tp':'L2TP Config','pptp':'PPTP Config',
+    'sstp':'SSTP Config','ipoe':'IPoE Config','radius':'RADIUS Server',
+    'ip_pool':'IP Address Pool','interfaces':'Network Interfaces','dhcp':'DHCP Server',
+    'dns':'DNS Forwarding','firewall':'Firewall Rules','qos':'QoS / Traffic Shaping',
+    'ipv6':'IPv6 Configuration','vlan':'VLAN Assignment','relay':'DHCP Relay',
+    'zone':'Firewall Zones','ipsec':'IPsec VPN','wireguard':'WireGuard VPN',
+    'openvpn':'OpenVPN','gre':'GRE Tunnel','ipip':'IPIP Tunnel','eoip':'EoIP Tunnel',
+    'vxlan':'VXLAN Tunnel','dot1x':'802.1X Authentication','mac_auth':'MAC Auth Bypass',
+    'snmp':'SNMP Monitoring','netflow':'NetFlow Export','log':'Logging',
+    'ha':'High Availability (VRRP)','hotspot':'Hotspot Portal',
+    'auth_pap':'PAP Authentication','auth_chap_md5':'CHAP MD5 Auth',
+    'auth_mschap_v1':'MS-CHAP v1 Auth','auth_mschap_v2':'MS-CHAP v2 Auth',
+    'global':'Global Settings','ppp':'PPP Options',
+  }
+  return map[m] || m.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())
+}
+
+function categorize(name) {
+  const key = name.split('.')[0]  // e.g. "access.d.pppoe" → "access"
+  if (name.startsWith('access.d.')) return friendlyName(name.split('.')[2]) || 'Access Protocols'
+  if (name.startsWith('network.d.')) return 'Network'
+  if (name.startsWith('vpn.d.')) return 'VPN'
+  if (name.startsWith('tunnel.')) return 'Tunnels'
+  for (const [cat, items] of Object.entries(CATEGORIES)) {
+    if (items.some(i => name.includes(i))) return cat
+  }
+  return 'Other'
+}
+
+const grouped = computed(() => {
+  const g = {}
+  const q = filter.value.toLowerCase()
+  for (const m of modules.value) {
+    if (q && !friendlyName(m).toLowerCase().includes(q) && !m.toLowerCase().includes(q)) continue
+    const cat = categorize(m)
+    if (!g[cat]) g[cat] = []
+    g[cat].push(m)
+  }
+  // Sort within each group
+  for (const cat of Object.keys(g)) g[cat].sort()
+  return g
+})
 
 async function loadModules() {
   try {
     const res = await fetch('/api/config')
     const data = await res.json()
     modules.value = Object.keys(data.config || {})
-  } catch (e) { console.error(e) }
+  } catch {}
 }
 
 async function loadModule() {
@@ -64,7 +125,7 @@ async function loadModule() {
     const data = await res.json()
     const matches = data.config || {}
     currentValues.value = { ...matches[selectedModule.value] }
-  } catch (e) { console.error(e) }
+  } catch {}
 }
 
 async function saveConfig() {
@@ -74,18 +135,17 @@ async function saveConfig() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(currentValues.value)
     })
-    if (res.ok) { message.value = 'Saved'; messageType.value = 'success' }
-    else { message.value = 'Save failed'; messageType.value = 'error' }
-  } catch (e) { message.value = 'Network error'; messageType.value = 'error' }
+    message.value = res.ok ? 'Saved' : 'Save failed'
+    messageType.value = res.ok ? 'success' : 'error'
+  } catch { message.value = 'Network error'; messageType.value = 'error' }
   saving.value = false
 }
 
 async function applyConfig() {
   applying.value = true
-  await fetch('/api/config/apply', { method: 'POST' })
+  try { await fetch('/api/config/apply', { method: 'POST' }); message.value = 'Applied'; messageType.value = 'success' }
+  catch { message.value = 'Apply failed'; messageType.value = 'error' }
   applying.value = false
-  message.value = 'Configuration applied'
-  messageType.value = 'success'
 }
 
 function isYesNo(v,k){ return v==='yes'||v==='no'||k.includes('enabled')||k==='daemon'||k==='auth'||k.includes('check_') }
@@ -93,43 +153,35 @@ function isPort(k){ return k.includes('port') }
 function isNumber(k){ return k.includes('timeout')||k.includes('interval')||k.includes('limit')||k.includes('count')||k.includes('thread')||k.includes('max')||k.includes('weight') }
 function typeHint(v,k){ if(isYesNo(v,k))return 'yes/no'; if(isPort(k))return '1-65535'; if(isNumber(k))return 'number'; return '' }
 
-function addField() {
-  if (!newKey.value || !selectedModule.value) return
-  if (!currentValues.value) currentValues.value = {}
-  currentValues.value[newKey.value] = newVal.value
-  newKey.value = ''
-  newVal.value = ''
-}
-
 onMounted(loadModules)
 </script>
 
 <style scoped>
-.config-section { display: flex; flex-direction: column; gap: 14px; }
-.section-header { display: flex; justify-content: space-between; align-items: center; }
-.section-header h2 { font-size: 15px; color: var(--fg); font-weight: 600; }
-.header-actions { display: flex; gap: 8px; }
-.header-actions select { padding: 5px 10px; border: 1px solid var(--border); border-radius: 3px; background: var(--bg); color: var(--fg); font-size: 12px; font-family: var(--font); outline: none; }
-.header-actions select:focus { border-color: var(--accent); }
-.btn-save, .btn-apply, .btn-add { padding: 5px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; font-family: var(--font); }
-.btn-save { background: var(--green); color: #000; }
-.btn-apply { background: var(--accent); color: #000; }
-.btn-add { background: var(--bg3); color: var(--accent); border: 1px solid var(--accent); }
-.btn-add:hover { background: var(--accent); color: #000; }
-.btn-save:disabled, .btn-apply:disabled { opacity: 0.4; }
-.editor-card { background: var(--bg2); padding: 14px; border: 1px solid var(--border); border-radius: 3px; }
-.editor-card h3 { font-size: 12px; color: var(--fg2); margin-bottom: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; }
-.field-row { display: grid; grid-template-columns: 200px 1fr; gap: 10px; margin-bottom: 8px; align-items: center; }
-.field-row label { font-size: 11px; color: var(--fg3); font-family: var(--mono); }
-.field-row input, .field-row select { padding: 4px 8px; border: 1px solid var(--border); border-radius: 3px; font-size: 12px; background: var(--bg); color: var(--fg); font-family: var(--font); outline: none; }
-.field-row input:focus, .field-row select:focus { border-color: var(--accent); }
-.field-hint { font-size: 10px; color: var(--fg3); }
-.empty { text-align: center; color: var(--fg3); padding: 40px; font-size: 12px; }
-.empty-state { text-align: center; padding: 40px; color: var(--fg3); }
-.empty-state .icon { font-size: 36px; margin-bottom: 8px; }
-.empty-state .text { font-size: 13px; color: var(--fg2); }
-.empty-state .sub { font-size: 11px; }
-.message { padding: 8px 14px; border-radius: 3px; font-size: 12px; }
-.message.success { background: rgba(16,172,132,0.1); color: var(--green); border: 1px solid rgba(16,172,132,0.2); }
-.message.error { background: rgba(238,82,83,0.1); color: var(--red); border: 1px solid rgba(238,82,83,0.2); }
+.config-section{display:flex;flex-direction:column;gap:12px}
+.section-header h2{font-size:15px;color:var(--fg);font-weight:600}
+.hint{font-size:11px;color:var(--fg3)}
+.cfg-layout{display:grid;grid-template-columns:220px 1fr;gap:14px;align-items:start}
+.cfg-sidebar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px;max-height:65vh;overflow-y:auto}
+.cfg-search{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--fg);font-size:11px;font-family:var(--font);outline:none;margin-bottom:6px}
+.cfg-search:focus{border-color:var(--accent)}
+.cfg-group{margin-bottom:6px}
+.cfg-group-label{font-size:9px;color:var(--fg3);text-transform:uppercase;letter-spacing:1px;padding:4px 6px;font-weight:700}
+.cfg-item{padding:4px 8px;font-size:11px;color:var(--fg2);cursor:pointer;border-radius:3px}
+.cfg-item:hover{background:var(--bg3);color:var(--fg)}
+.cfg-item.sel{background:rgba(10,189,227,0.08);color:var(--accent);font-weight:600}
+.cfg-editor{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;min-height:200px}
+.editor-card h3{font-size:12px;color:var(--fg2);margin-bottom:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1px}
+.field-row{display:grid;grid-template-columns:200px 1fr;gap:8px;margin-bottom:6px;align-items:center}
+.field-row label{font-size:11px;color:var(--fg3);font-family:var(--mono)}
+.field-input{padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:var(--bg);color:var(--fg);font-family:var(--mono);outline:none}
+.field-input:focus{border-color:var(--accent)}
+.field-hint{font-size:9px;color:var(--fg3)}
+.actions{display:flex;gap:8px;align-items:center;margin-top:12px}
+.btn-save,.btn-apply{padding:5px 14px;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-family:var(--font)}
+.btn-save{background:var(--green);color:#000}
+.btn-apply{background:var(--accent);color:#000}
+.btn-save:disabled,.btn-apply:disabled{opacity:0.4}
+.msg{font-size:11px;font-weight:600}
+.msg.success{color:var(--green)}.msg.error{color:var(--red)}
+.empty-state{text-align:center;padding:40px;color:var(--fg3);font-size:12px}
 </style>
