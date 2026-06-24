@@ -73,7 +73,6 @@
         <div v-if="page==='overview'" class="dash-grid">
           <div class="dash-col-main">
             <StatusCard :service="service" />
-            <SessionsTable :sessions="sessions" :loading="loading" @disconnect="handleDisconnect" @refresh="fetchData" @detail="(s) => { selectedSession = s; page = 'session-detail' }" />
             <TrafficMonitor @view-interface="showIface" />
           </div>
           <div class="dash-col-side">
@@ -83,6 +82,7 @@
             <ActivityFeed />
           </div>
         </div>
+        <SessionsTable v-if="page==='sessions'||page==='overview'" :sessions="sessions" :loading="loading" @disconnect="handleDisconnect" @refresh="fetchData" @detail="(s) => { selectedSession = s; page = 'session-detail' }" />
         <SessionDetail v-if="page==='session-detail'" :session="selectedSession" @back="page='sessions'" />
         <InterfaceDetail v-if="page==='iface-detail'" :iface="selectedIface" @back="page='overview'" />
         <NetworkConfig v-if="page==='network'" />
