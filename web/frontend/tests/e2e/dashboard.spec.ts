@@ -27,6 +27,7 @@ test('Network page loads', async ({ page }) => {
 test('Config page works', async ({ page }) => {
   await page.goto('http://127.0.0.1:8099');
   await page.click('.rnas-sidebar a:has-text("Config")');
+  await page.waitForSelector('.cfg-group .cfg-item', { timeout: 15000 });
   await expect(page.locator('.cfg-item').first()).toBeVisible({ timeout: 5000 });
 });
 
