@@ -29,13 +29,15 @@ $SCP "${REPO_DIR}/configs/access.d/core.conf" root@${VM3_HOST}:/etc/rnas/access.
 $SCP "${REPO_DIR}/configs/access.d/mac-auth.conf" root@${VM3_HOST}:/etc/rnas/access.d/mac-auth.conf 2>/dev/null || echo "(mac-auth.conf new)"
 $SCP "${REPO_DIR}/configs/network.d/ipv6.conf" root@${VM3_HOST}:/etc/rnas/network.d/ipv6.conf 2>/dev/null || echo "(ipv6.conf new)"
 
-# 3. Copy updated web server and new config module
-echo "[3/5] Deploying web server..."
-$SSH "mkdir -p /opt/rnas-web"
-$SCP "${REPO_DIR}/web/server.py" root@${VM3_HOST}:/opt/rnas-web/server.py
-$SCP "${REPO_DIR}/web/rnas_env.py" root@${VM3_HOST}:/opt/rnas-web/rnas_env.py
+# 3. Copy updated API server
+echo "[3/5] Deploying API server..."
+$SSH "mkdir -p /opt/rnas-api"
+$SCP -r "${REPO_DIR}/web/api/"* root@${VM3_HOST}:/opt/rnas-api/
+$SCP -r "${REPO_DIR}/cmd/rnas-config/"* root@${VM3_HOST}:/opt/rnas-config/ 2>/dev/null || echo "(config engine partial)"
+$SSH "mkdir -p /opt/static"
+$SCP -r "${REPO_DIR}/web/frontend/dist/"* root@${VM3_HOST}:/opt/static/ 2>/dev/null || echo "(no static build, skipping)"
 
-# 4. Regenerate configs and restart core service
+# 4. Regenerate configs and restart services
 echo "[4/5] Regenerating accel-ppp config..."
 $SSH "mkdir -p /var/run/rnas && /usr/bin/rnas-config --root /etc/rnas generate accel-ppp -o /var/run/rnas/accel-ppp.conf"
 
