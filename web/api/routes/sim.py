@@ -1,5 +1,5 @@
 """RNAS Simulation API — subscriber dial, fault injection, scenario runner."""
-import asyncio, json
+import asyncio, json, subprocess
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query
 from api.auth import require_auth

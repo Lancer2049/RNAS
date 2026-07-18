@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request, WebSocket, APIRouter, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse, RedirectResponse
-from routes import status, config, tools, system as sys_routes, aaa, sim, extra, auth as auth_routes
+from routes import status, config, tools, system as sys_routes, aaa, sim, extra, auth_endpoints as auth_routes
 from routes import interfaces, firewall as fw_routes, network_services, system_extra
 from api.auth import FEATURE_FLAGS, require_auth
 

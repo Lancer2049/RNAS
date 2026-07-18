@@ -1,7 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { setupAuth } from './auth-helper';
 
 const BASE = 'http://127.0.0.1:8098';
 const SIDEBAR = 'nav.rnas-sidebar';
+
+test.beforeEach(async ({ page }) => {
+  await setupAuth(page);
+});
 
 test('Dashboard loads with RADIUS state and system info visible', async ({ page }) => {
   await page.goto(BASE);

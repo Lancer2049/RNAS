@@ -1,6 +1,12 @@
+import { setupAuth } from './auth-helper';
 import { test, expect } from '@playwright/test';
 
 const BASE = 'http://127.0.0.1:8098';
+
+test.beforeEach(async ({ page }) => {
+  await setupAuth(page);
+});
+
 
 /**
  * 全场景端到端测试
