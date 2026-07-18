@@ -1,62 +1,83 @@
-# RNAS Configuration Files
+# RNAS Configuration Templates
 
-This directory contains configuration templates for accel-ppp and RADIUS integration.
+This directory contains the unified `/etc/rnas/` INI-style configuration tree consumed by `rnas-config` (Python config engine).
 
 ## Directory Structure
 
 ```
 configs/
-├── pppoe.conf           # PPPoE server configuration
-├── ipoe.conf            # IPoE (DHCP+) server configuration
-├── l2tp.conf            # L2TP server configuration
-├── pptp.conf            # PPTP server configuration
-└── sstp.conf            # SSTP server configuration
+├── rnas.conf                # Global RNAS settings
+├── access.d/                # Access protocol configs
+│   ├── core.conf
+│   ├── common.conf
+│   ├── ppp.conf
+│   ├── pppoe.conf
+│   ├── ipoe.conf
+│   ├── l2tp.conf
+│   ├── pptp.conf
+│   ├── sstp.conf
+│   ├── radius.conf
+│   ├── mac-auth.conf
+│   └── client-range.conf
+├── network.d/               # Network stack configs
+│   ├── interface-lan.conf
+│   ├── dhcp.conf
+│   ├── firewall.conf
+│   ├── vlan.conf
+│   ├── ipv6.conf
+│   ├── relay.conf
+│   └── rules/               # nftables rules
+├── vpn.d/                   # VPN service configs
+│   ├── ipsec.conf
+│   ├── wireguard.conf
+│   ├── openvpn.conf
+│   ├── gre.conf
+│   ├── ipip.conf
+│   ├── eoip.conf
+│   └── vxlan.conf
+├── wireless.d/              # Wireless / 802.1X
+│   └── dot1x.conf
+├── dictionary/              # RADIUS vendor dictionaries (13 vendors, 474 attrs)
+├── scenarios/               # Deployment scenario overrides
+├── qos.conf                 # QoS / traffic shaping
+├── monitor.conf             # SNMP / monitoring
+├── hotspot.conf             # Hotspot portal
+└── ha.conf                  # High Availability (VRRP)
 ```
-
-## Protocol Support
-
-| Protocol | Port | Encryption | RADIUS Support |
-|----------|------|-----------|---------------|
-| PPPoE | Ethernet | PAP/CHAP/MPPE | Full |
-| IPoE | Ethernet | DHCP+ | Full |
-| L2TP | UDP 1701 | IPSec | Full |
-| PPTP | TCP 1723 | MPPE | Full |
-| SSTP | TCP 443 | HTTPS/TLS | Full |
 
 ## Usage
 
-Copy the appropriate configuration to your OpenWrt device:
+All configs are INI format with `${VAR:-default}` env var interpolation:
 
-```bash
-# PPPoE configuration
-scp configs/pppoe.conf root@192.168.1.1:/etc/accel-ppp.conf
-
-# IPoE configuration
-scp configs/ipoe.conf root@192.168.1.1:/etc/accel-ppp.conf
-
-# L2TP configuration
-scp configs/l2tp.conf root@192.168.1.1:/etc/accel-ppp.conf
-
-# PPTP configuration
-scp configs/pptp.conf root@192.168.1.1:/etc/accel-ppp.conf
-
-# SSTP configuration
-scp configs/sstp.conf root@192.168.1.1:/etc/accel-ppp.conf
+```ini
+[section "instance"]
+key = value
+another_key = ${RNAS_RADIUS_SECRET:-testing123}
 ```
 
-Then restart accel-ppp:
-
+### Validate
 ```bash
-ssh root@192.168.1.1 "/etc/init.d/accel-ppp restart"
+python3 cmd/rnas-config/rnas_config.py validate --root configs/
 ```
 
-## Configuration Variables
+### Generate service config
+```bash
+python3 cmd/rnas-config/rnas_config.py generate accel-ppp --root configs/
+python3 cmd/rnas-config/rnas_config.py generate dnsmasq --root configs/
+python3 cmd/rnas-config/rnas_config.py generate firewall --root configs/
+```
 
-The following variables can be customized in each configuration file:
+### Show parsed tree
+```bash
+python3 cmd/rnas-config/rnas_config.py show --root configs/
+```
 
-- `RADIUS_SERVER` - RADIUS server IP address
-- `RADIUS_SECRET` - Shared secret for RADIUS communication
-- `NAS_IP` - IP address of this NAS device
-- `RADIUS_AUTH_PORT` - Authentication port (default: 1812)
-- `RADIUS_ACCT_PORT` - Accounting port (default: 1813)
-- `RADIUS_COA_PORT` - CoA port (default: 3799)
+## Environment Variables
+
+| Variable | Default | Used By |
+|----------|---------|---------|
+| `RNAS_RADIUS_SECRET` | `testing123` | RADIUS auth, DAE, hotspot |
+| `RNAS_RADIUS_SERVER` | `192.168.0.202` | RADIUS server |
+| `RNAS_ACCEL_CMD` | `accel-cmd` | Dashboard WebSocket |
+| `RNAS_VM3_HOST` | `192.168.0.203` | Deploy script |
+| `RNAS_VM3_PASS` | `123456` | Deploy script (set to avoid warning) |
