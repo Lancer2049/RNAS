@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from services.accel_cmd import run_accel_cmd, parse_sessions, parse_stat, disconnect_session
 
-router = APIRouter()
+router = APIRouter(tags=["Status"])
 
 
 @router.get("/status")

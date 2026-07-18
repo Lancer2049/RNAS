@@ -3,7 +3,7 @@ import json, os, signal, subprocess, time
 from fastapi import APIRouter, HTTPException, Body, Query
 from typing import Optional
 
-router = APIRouter()
+router = APIRouter(tags=["Diagnostics"])
 RADCLIENT = "/usr/bin/radclient"
 
 

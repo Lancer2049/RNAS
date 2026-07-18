@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter
 from rnas_env import get_env
 
-router = APIRouter()
+router = APIRouter(tags=["AAA RADIUS"])
 
 
 @router.get("/aaa/users")

@@ -3,7 +3,7 @@ import asyncio, json
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 
-router = APIRouter()
+router = APIRouter(tags=["Simulation"])
 
 
 async def _run(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:

@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Body
 
-router = APIRouter()
+router = APIRouter(tags=["System"])
 _SCRIPT_TIMEOUT = 10
 
 

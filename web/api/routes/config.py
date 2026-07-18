@@ -11,7 +11,7 @@ from typing import Dict
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "cmd" / "rnas-config"))
 from rnas_config import walk_config_tree, write_config_section
 
-router = APIRouter()
+router = APIRouter(tags=["Configuration"])
 DEFAULT_ROOT = "/etc/rnas"
 _SCRIPT_TIMEOUT = 30
 

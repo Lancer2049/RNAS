@@ -12,7 +12,7 @@ from fastapi.responses import PlainTextResponse
 from services.traffic import get_history
 from services.oui import lookup
 
-router = APIRouter()
+router = APIRouter(tags=["Network"])
 _SCRIPT_TIMEOUT = 10
 
 

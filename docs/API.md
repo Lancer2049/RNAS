@@ -1,75 +1,37 @@
-# RNAS REST API Reference
+# RNAS REST API
 
-Base URL: `http://192.168.0.203:8099`
+实时 API 文档由 FastAPI 内置的 OpenAPI 自动生成，**无需手动维护端点列表**。
 
-## Status & Health
+## 访问方式
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/health` | `{"status":"ok","version":"3.0"}` |
-| GET | `/api/status` | Service stats + active sessions |
+启动 RNAS API 后（`uvicorn main:app --host 0.0.0.0 --port 8099`），访问以下地址：
 
-## Sessions
+| 地址 | 说明 |
+|------|------|
+| `http://<host>:8099/docs` | **Swagger UI** — 交互式API测试，按 tags 分组 |
+| `http://<host>:8099/redoc` | **ReDoc** — 更美观的文档视图 |
+| `http://<host>:8099/openapi.json` | **OpenAPI Schema** — 机器可读，可用于代码生成 |
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/sessions` | List active sessions with RX/TX bytes |
-| POST | `/api/sessions/{sid}/disconnect` | Terminate session by SID |
+## 路由分组（Swagger tags）
 
-## Configuration (CRUD)
+| Tag | 路由模块 | 主要端点 |
+|-----|----------|----------|
+| **Status** | `routes/status.py` | `/api/health`, `/api/status` |
+| **Configuration** | `routes/config.py` | `/api/config`, `/api/config/apply`, 快照  |
+| **Network** | `routes/extra.py` | 接口/防火墙/抓包/带宽/隧道/VLAN/QoS |
+| **Diagnostics** | `routes/tools.py` | Ping/Trace/DNS/RADIUS/CoA |
+| **System** | `routes/system.py` | 系统状态/日志/证书/服务 |
+| **AAA RADIUS** | `routes/aaa.py` | 用户/计费/组/NAS客户端 |
+| **Simulation** | `routes/sim.py` | 用户拨号仿真 |
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/config` | Export all 42 config sections as JSON |
-| POST | `/api/config/apply` | Regenerate + reload services from `/etc/rnas/` |
-| PUT | `/api/config/{module}` | Write key=value pairs to config section |
-| POST | `/api/config/export` | Full config export with version + timestamp |
-| POST | `/api/config/import` | Bulk import config sections (JSON body) |
-| POST | `/api/config/snapshot` | Create named snapshot of current config |
-| GET | `/api/config/snapshots` | List recent snapshots |
-| POST | `/api/config/snapshot/{id}/restore` | Restore config from snapshot |
-| DELETE | `/api/config/snapshot/{id}` | Delete snapshot |
+## 认证
 
-## RADIUS Dictionary
+Phase 0（2026-07）后引入 JWT Bearer Token 认证，`/api/health` 除外。
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/dictionary` | All attributes (169 entries, 6 vendors) |
-| GET | `/api/dictionary/search?q=` | Search by attribute name or vendor |
+## 代码生成
 
-## System
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/system/status` | All 10 services status + memory/disk |
-| GET | `/api/system/logs` | Recent accel-ppp logs (30 lines) |
-| GET | `/api/airos/status` | AirOS (AIRadius) connectivity check |
-
-## Tools
-
-| Method | Path | Parameters | Description |
-|--------|------|------------|-------------|
-| GET | `/api/tools/ping` | `host` | Ping test (3 packets) |
-| GET | `/api/tools/trace` | `host` | Traceroute (10 hops) |
-| GET | `/api/tools/radius-test` | `user`, `pass`, `attrs` | RADIUS auth test with optional VSA |
-| GET | `/api/tools/coa` | `user` | CoA Disconnect by username |
-
-## WebSocket (Real-time)
-
-| Protocol | Path | Description |
-|----------|------|-------------|
-| WS | `/api/ws` | Push sessions + stats every 3s |
-
-### RADIUS Test with VSA Example
+从前端生成 TS 类型：
 
 ```bash
-curl 'http://192.168.0.203:8099/api/tools/radius-test?user=testuser&pass=testpass&attrs=Huawei-QOS-Profile-Name=gold,WISPr-Bandwidth-Max-Up=5000000'
-```
-
-### Config Import Example
-
-```bash
-curl -X POST http://192.168.0.203:8099/api/config/import \
-  -H 'Content-Type: application/json' \
-  -d '{"config":{"access.d.core":{"pppoe":"yes","l2tp":"yes"}}}'
+npx openapi-typescript http://localhost:8099/openapi.json -o src/types/api.ts
 ```
