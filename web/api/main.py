@@ -5,10 +5,10 @@ import asyncio
 import logging
 import subprocess
 from urllib.parse import parse_qs
-from fastapi import FastAPI, Request, WebSocket
+from fastapi import FastAPI, Request, WebSocket, APIRouter, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse
+from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse, RedirectResponse
 from routes import status, config, tools, system as sys_routes, aaa, sim, extra, auth as auth_routes
 from api.auth import FEATURE_FLAGS, require_auth
 
@@ -32,19 +32,34 @@ if _ENV == "development":
 async def health():
     return {"status": "ok", "version": "3.0.0"}
 
-@app.get("/api/system/features", tags=["System"])
+@app.get("/api/v1/system/features", tags=["System"])
 async def features():
     """Return enabled feature flags for the frontend."""
     return FEATURE_FLAGS
 
 app.include_router(auth_routes.router)
-app.include_router(status.router, prefix="/api")
-app.include_router(config.router, prefix="/api")
-app.include_router(tools.router, prefix="/api")
-app.include_router(sys_routes.router, prefix="/api")
-app.include_router(aaa.router, prefix="/api")
-app.include_router(sim.router, prefix="/api")
-app.include_router(extra.router, prefix="/api")
+
+# ── API v1 router ───────────────────────────────────────────────────────
+v1 = APIRouter(prefix="/api/v1")
+v1.include_router(status.router)         # /api/v1/status, /api/v1/sessions
+v1.include_router(config.router)         # /api/v1/config/*
+v1.include_router(tools.router)          # /api/v1/tools/*
+v1.include_router(sys_routes.router)     # /api/v1/system/*
+v1.include_router(aaa.router)            # /api/v1/aaa/*
+v1.include_router(sim.router)            # /api/v1/sim/*
+v1.include_router(extra.router)          # /api/v1/interfaces, /api/v1/firewall, etc.
+app.include_router(v1)
+
+# Backward compat: /api/* → /api/v1/*
+@app.get("/api/{path:path}", tags=["Status"])
+async def compat_redirect(path: str, request: Request):
+    if path.startswith("v1/"):
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    if path == "health":
+        return {"status": "ok", "version": "3.0.0"}
+    if path == "ws" or path == "terminal":
+        raise HTTPException(status_code=410, detail="Use /api/v1/ws or /api/v1/terminal")
+    return RedirectResponse(url=f"/api/v1/{path}?{request.query_params}", status_code=307)
 
 # Hotspot login POST
 _RADIUS_SECRET = os.environ.get("RNAS_RADIUS_SECRET", "testing123")
