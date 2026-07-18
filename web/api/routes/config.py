@@ -117,24 +117,79 @@ async def update_config_section(module: str, values: Dict[str, str] = Body(...),
 
 @router.post("/config/apply")
 async def apply_config(user=Depends(require_auth)):
+    """Apply configuration with safety guards:
+    1. flock lock (no concurrent applies)
+    2. auto-snapshot (rollback point)
+    3. dry-run validation (nft -c -f / dnsmasq --test)
+    4. service reload
+    """
+    import fcntl
+
+    LOCK_FILE = Path("/var/run/rnas-apply.lock")
+    LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    lock_fd = open(LOCK_FILE, "w")
+
     try:
-        result = subprocess.run(
-            ["rnas-config", "validate", "--root", DEFAULT_ROOT],
-            capture_output=True, text=True, timeout=10
-        )
-        if result.returncode != 0:
-            raise HTTPException(status_code=400, detail=result.stderr.strip())
-        # Regenerate and reload services
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        lock_fd.close()
+        raise HTTPException(status_code=423, detail="Another apply is in progress")
+
+    snapshot_name = f"auto-apply-{datetime.now():%Y%m%d-%H%M%S}"
+
+    try:
+        # Step 1: Auto-snapshot
+        SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+        target = SNAPSHOT_DIR / snapshot_name
+        target.mkdir(parents=True, exist_ok=True)
+        for f in Path(DEFAULT_ROOT).rglob("*.conf"):
+            rel = f.relative_to(Path(DEFAULT_ROOT))
+            d = target / rel
+            d.parent.mkdir(parents=True, exist_ok=True)
+            d.write_text(f.read_text())
+
+        # Step 2: Dry-run validation
+        from rnas_config import walk_config_tree, GEN_MAP
+        from validators import validate_config
+
+        tree = walk_config_tree(Path(DEFAULT_ROOT))
+        errors = []
+        for name in ["accel-ppp", "dnsmasq", "firewall", "ha"]:
+            if name not in GEN_MAP:
+                continue
+            out_path = Path(f"/var/run/rnas/{name}.conf")
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(GEN_MAP[name](tree))
+            err = validate_config(name, out_path)
+            if err:
+                errors.append(err)
+
+        if errors:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Config validation failed:\n" + "\n".join(errors),
+            )
+
+        # Step 3: Regenerate and reload services
         for svc in ["accel-ppp", "dnsmasq", "firewall", "snmp"]:
             subprocess.run(
-                ["rnas-config", "generate", svc, "--root", DEFAULT_ROOT,
+                ["python3", "-m", "rnas_config", "generate", svc, "--root", DEFAULT_ROOT,
                  "-o", f"/var/run/rnas/{svc}.conf"],
-                capture_output=True, timeout=5
+                capture_output=True, timeout=5, cwd="/root/RNAS/cmd/rnas-config"
             )
-        subprocess.run(["systemctl", "reload-or-restart", "rnas.target"], capture_output=True, timeout=10)
-        return {"success": True, "message": "Configuration applied"}
+        subprocess.run(["systemctl", "reload-or-restart", "rnas.target"],
+                      capture_output=True, timeout=10)
+
+        return {
+            "success": True,
+            "message": "Configuration applied",
+            "snapshot": snapshot_name,
+        }
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=504, detail="Config apply timed out")
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        lock_fd.close()
 
 SNAPSHOT_DIR = Path("/etc/rnas/snapshots")
 
