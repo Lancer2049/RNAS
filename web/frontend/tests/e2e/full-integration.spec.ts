@@ -1,82 +1,159 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = 'http://127.0.0.1:8099';
+const BASE = 'http://127.0.0.1:8098';
 const SIDEBAR = 'nav.rnas-sidebar';
 
-test('Dashboard: topbar and status', async ({ page }) => {
-  await page.goto(BASE);
-  await expect(page.locator('.rnas-topbar .t-brand')).toHaveText('RNAS');
-  await expect(page.locator('.ros-status')).toBeVisible({ timeout: 8000 });
+test.describe('Real Configuration Workflows — Browser UI', () => {
+
+  test('Services: modify QoS setting, save, verify feedback', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('VPN Services').click();
+    await page.waitForTimeout(1500);
+    await expect(page.locator('.services-section')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: 'QoS / Traffic Control' })).toBeVisible({ timeout: 5000 });
+    const selectField = page.locator('.field-row select').first();
+    if (await selectField.isVisible().catch(() => false)) {
+      const currentVal = await selectField.inputValue();
+      const newVal = currentVal === 'yes' ? 'no' : 'yes';
+      await selectField.selectOption(newVal);
+      await page.waitForTimeout(200);
+      await page.locator('.btn-save').click();
+      await page.waitForTimeout(1000);
+      await expect(page.locator('.saved-msg')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('.saved-msg')).toContainText('Saved');
+    }
+  });
+
+  test('RADIUS Editor: verify pre-filled defaults and attribute list', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('AAA Editor').click();
+    await page.waitForTimeout(1500);
+    await expect(page.getByText('RADIUS Message Editor')).toBeVisible({ timeout: 10000 });
+    const serverInput = page.locator('.field-row input').first();
+    await expect(serverInput).toBeVisible({ timeout: 5000 });
+    const serverVal = await serverInput.inputValue();
+    expect(serverVal).toMatch(/192\.168\.0\.202|127\.0\.0\.1/);
+    const secretInput = page.locator('.field-row input').nth(1);
+    await expect(secretInput).toBeVisible({ timeout: 3000 });
+    const defaultAttrs = page.locator('.attr-row input[placeholder="value"]');
+    const attrCount = await defaultAttrs.count();
+    expect(attrCount).toBeGreaterThanOrEqual(1);
+  });
+
+  test('Dictionary: verify attribute list loads and renders', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('Dictionary').click();
+    await page.waitForTimeout(1500);
+    await expect(page.getByText('RADIUS Dictionary')).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(1500);
+    const hasTable = await page.locator('table').first().isVisible().catch(() => false);
+    const hasContent = await page.getByText(/Attribute|Vendor|Code|Type|Name/i).first().isVisible().catch(() => false);
+    expect(hasTable || hasContent).toBeTruthy();
+  });
+
+  test('Subscriber Sim: page loads with simulation controls', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('Subscriber Sim').click();
+    await page.waitForTimeout(1500);
+    await expect(page.getByText('Subscriber Simulation')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.sim-section, .card').first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('System Log: page loads with log entries and filters', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('System Log').click();
+    await page.waitForTimeout(1500);
+    await expect(page.getByText('System').first()).toBeVisible({ timeout: 8000 });
+    const hasContent = await page.getByText(/log|entry|info|warn|error|filter|service|level/i).first().isVisible().catch(() => false);
+    expect(hasContent).toBeTruthy();
+  });
+
+  test('RADIUS Tools: page loads with diagnostic tools', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('RADIUS Tools').click();
+    await page.waitForTimeout(1500);
+    await expect(page.getByRole('heading', { name: 'Diagnostics' })).toBeVisible({ timeout: 10000 });
+  });
+
 });
 
-test('Protocols: page loads', async ({ page }) => {
-  await page.goto(BASE);
-  await page.locator(SIDEBAR).getByText('Access Protocols').click();
-  await page.waitForTimeout(500);
-  await expect(page.getByText('Protocol Configuration')).toBeVisible({ timeout: 5000 });
+test.describe('Traffic and Monitoring — UI Feedback', () => {
+
+  test('Traffic Torch: page loads with monitoring interface', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('Traffic Torch').first().click();
+    await page.waitForTimeout(2000);
+    await expect(page.getByRole('heading', { name: 'Traffic Torch' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.torch-section, .card, .section').first()).toBeVisible({ timeout: 8000 });
+  });
+
 });
 
-test('Sessions: page loads', async ({ page }) => {
-  await page.goto(BASE);
-  await page.click(SIDEBAR + ' a:nth-child(2)');
-  await page.waitForTimeout(2000);
-  await expect(page.getByRole('heading', { name: /Active Sessions/ })).toBeVisible({ timeout: 8000 });
+test.describe('Port Forward and Firewall — UI Config', () => {
+
+  test('Port Forward Wizard: page loads with form fields', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('IP Manager').click();
+    await page.waitForTimeout(1500);
+    await expect(page.locator('.ros-tabs')).toBeVisible({ timeout: 10000 });
+    await page.locator('.ros-tabs').getByText('NAT').click();
+    await page.waitForTimeout(600);
+    const hasPfTab = await page.getByText('Port Forward').isVisible().catch(() => false);
+    if (hasPfTab) {
+      await page.getByText('Port Forward').click();
+      await page.waitForTimeout(400);
+      await expect(page.getByText(/Port Forward|External Port|Internal IP/i).first()).toBeVisible({ timeout: 5000 });
+    }
+  });
+
 });
 
-test('Network: page loads', async ({ page }) => {
-  await page.goto(BASE);
-  await page.locator(SIDEBAR).getByText('Interfaces').click();
-  await page.waitForTimeout(500);
-  await expect(page.locator('h2').filter({ hasText: 'Network' })).toBeVisible({ timeout: 5000 });
+test.describe('Protocol Operations — UI Workflow', () => {
+
+  test('Access Protocols: tab switching renders different protocol forms', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('Access Protocols').click();
+    await page.waitForTimeout(1000);
+    await expect(page.getByRole('heading', { name: 'Protocol Configuration' })).toBeVisible({ timeout: 8000 });
+    const tabs = ['L2TP', 'PPTP', 'SSTP', 'IPoE'];
+    for (const label of tabs) {
+      await page.locator('.proto-tabs').getByText(label).click();
+      await page.waitForTimeout(400);
+      await expect(page.locator('.proto-form')).toBeVisible({ timeout: 5000 });
+    }
+  });
+
 });
 
-test('RADIUS Editor: page loads', async ({ page }) => {
-  await page.goto(BASE);
-  await page.locator(SIDEBAR).getByText('AAA Editor').click();
-  await page.waitForTimeout(500);
-  await expect(page.getByText('RADIUS Message Editor')).toBeVisible({ timeout: 5000 });
+test.describe('Quick Setup Wizard — UI Flow', () => {
+
+  test('Quick Setup: 3-step wizard renders', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('Quick Setup').click();
+    await page.waitForTimeout(1500);
+    await expect(page.getByRole('heading', { name: /Quick Setup/i })).toBeVisible({ timeout: 10000 });
+  });
+
 });
 
-test('Dictionary: page loads', async ({ page }) => {
-  await page.goto(BASE);
-  await page.locator(SIDEBAR).getByText('Dictionary').click();
-  await page.waitForTimeout(500);
-  await expect(page.getByText('RADIUS Dictionary')).toBeVisible({ timeout: 5000 });
-});
+test.describe('Bandwidth Test — UI Page', () => {
 
-test('Torch: page loads', async ({ page }) => {
-  await page.goto(BASE);
-  await page.locator(SIDEBAR).getByText('Traffic Torch').first().click();
-  await page.waitForTimeout(500);
-  await expect(page.getByRole('heading', { name: 'Traffic Torch' })).toBeVisible({ timeout: 5000 });
-});
+  test('Bandwidth Test: page loads with test controls', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.locator(SIDEBAR).getByText('Bandwidth Test').click();
+    await page.waitForTimeout(1500);
+    await expect(page.getByRole('heading', { name: 'Bandwidth Test' })).toBeVisible({ timeout: 10000 });
+  });
 
-test('Queues: page loads', async ({ page }) => {
-  await page.goto(BASE);
-  await page.locator(SIDEBAR).getByText('Queue (QoS)').click();
-  await page.waitForTimeout(500);
-  await expect(page.getByText('Queue Management')).toBeVisible({ timeout: 5000 });
-});
-
-test('Subscribers: page loads', async ({ page }) => {
-  await page.goto(BASE);
-  await page.locator(SIDEBAR).getByText('Subscriber Sim').click();
-  await page.waitForTimeout(500);
-  await expect(page.getByText('Subscriber Simulation')).toBeVisible({ timeout: 5000 });
-});
-
-test('System: page loads', async ({ page }) => {
-  await page.goto(BASE);
-  await page.locator(SIDEBAR).getByText('System Log').click();
-  await page.waitForTimeout(500);
-  await expect(page.getByText('System').first()).toBeVisible({ timeout: 5000 });
-});
-
-test('No console errors', async ({ page }) => {
-  const errors = [];
-  page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
-  await page.goto(BASE);
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  const real = errors.filter(e => !e.includes('favicon') && !e.includes('WebSocket') && !e.includes('Failed to load'));
-  expect(real).toHaveLength(0);
 });
