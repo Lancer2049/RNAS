@@ -179,11 +179,24 @@ async def apply_config(user=Depends(require_auth)):
             )
         subprocess.run(["systemctl", "reload-or-restart", "rnas.target"],
                       capture_output=True, timeout=10)
+        import time; time.sleep(2)  # wait for services to stabilize
+
+        # Step 4: Health check — rollback on failure
+        from health_check import health_check, restore_snapshot as do_restore
+        if not health_check():
+            do_restore(snapshot_name)
+            subprocess.run(["systemctl", "reload-or-restart", "rnas.target"],
+                          capture_output=True, timeout=10)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Config applied but health check failed. Rolled back to snapshot {snapshot_name}.",
+            )
 
         return {
             "success": True,
             "message": "Configuration applied",
             "snapshot": snapshot_name,
+            "health": "passed",
         }
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=504, detail="Config apply timed out")

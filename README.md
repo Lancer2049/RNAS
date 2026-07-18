@@ -35,7 +35,7 @@ Open `http://<host>:8099` to access the RouterOS-style dashboard.
 └────────────────────────┬────────────────────────────────────┘
                          │ REST + WebSocket
 ┌────────────────────────▼────────────────────────────────────┐
-│                 FastAPI Backend (uvicorn 4 workers)          │
+│                 FastAPI Backend (uvicorn, single worker)     │
 │  8 route modules: status · config · tools · system · aaa    │
 │  · sim · extra · WebSocket /api/ws (3s push)                │
 └────────────────────────┬────────────────────────────────────┘
