@@ -1,0 +1,9 @@
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version = "3.0.0"
+version_files = [
+    "web/api/main.py:version",
+    "web/frontend/package.json:version",
+]
+update_changelog_on_bump = true

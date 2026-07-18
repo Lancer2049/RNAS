@@ -1,0 +1,16 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.0
+    hooks:
+      - id: ruff
+        args: [--fix, --select=E,F,I,N,UP,B,SIM]
+        files: ^(web/|cmd/).*\.py$
+      - id: ruff-format
+        files: ^(web/|cmd/).*\.py$
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.31.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+      - id: commitizen-branch
+        stages: [push]
