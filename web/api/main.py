@@ -97,40 +97,34 @@ if os.path.isdir(sd):
             return FileResponse(fp)
         return FileResponse(os.path.join(sd, "index.html"))
 
-_ACCEL_CMD = os.environ.get("RNAS_ACCEL_CMD", "accel-cmd")
+# ── Startup ────────────────────────────────────────────────────────────────
+
+@app.on_event("startup")
+async def startup_collector():
+    from state_collector import start_collector
+    start_collector()
+
+# ── WebSocket (event-driven) ───────────────────────────────────────────────
 
 @app.websocket("/api/ws")
 async def ws_dashboard(ws: WebSocket):
+    from event_bus import register_subscriber, unregister_subscriber, get_full_state
+
     await ws.accept()
+    queue = register_subscriber()
     try:
+        # Send full snapshot on connect
+        await ws.send_text(json.dumps(get_full_state()))
         while True:
             try:
-                stat = subprocess.run([_ACCEL_CMD, "show", "stat"], capture_output=True, text=True, timeout=3).stdout
-                sessions_raw = subprocess.run([_ACCEL_CMD, "show", "sessions", "sid,ifname,username,ip,type,state,uptime-raw,rx-bytes-raw,tx-bytes-raw"], capture_output=True, text=True, timeout=3).stdout
-            except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-                logger.warning("accel-cmd failed: %s", e)
-                await asyncio.sleep(3)
-                continue
-            svc = {}
-            for key, pat in [("uptime", r"uptime:\s*(\S+)"), ("cpu", r"cpu:\s*(\S+)"), ("mem", r"mem\(rss/virt\):\s*(\S+)"), ("radius_state", r"state:\s*(\S+)"), ("auth_sent", r"auth sent:\s*(\d+)"), ("acct_sent", r"acct sent:\s*(\d+)"), ("sessions_active", r"sessions:.*?active:\s*(\d+)")]:
-                m = re.search(pat, stat, re.DOTALL)
-                if m: svc[key] = m.group(1)
-            sess = []
-            for line in sessions_raw.splitlines()[1:]:
-                parts = [p.strip() for p in line.split("|")]
-                if len(parts) >= 9:
-                    sid = parts[0]
-                    if sid and not sid.startswith("-") and not sid.startswith("sid"):
-                        sess.append({
-                            "sid": parts[0],"ifname": parts[1],"username": parts[2],"ip": parts[3],
-                            "type": parts[4],"state": parts[5],"uptime_raw": parts[6],
-                            "rx_bytes_raw": parts[7],"tx_bytes_raw": parts[8],
-                        })
-            await ws.send_text(json.dumps({"service":svc,"sessions":sess,"sessions_count":len(sess)}))
-            await asyncio.sleep(3)
+                msg = await asyncio.wait_for(queue.get(), timeout=30)
+                await ws.send_text(msg)
+            except asyncio.TimeoutError:
+                await ws.send_text(json.dumps({"type": "ping"}))
     except Exception as e:
-        logger.error("ws_dashboard disconnected: %s", e)
+        logger.debug("ws_dashboard disconnected: %s", e)
     finally:
+        unregister_subscriber(queue)
         try:
             await ws.close()
         except Exception:
