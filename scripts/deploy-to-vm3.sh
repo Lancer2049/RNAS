@@ -4,7 +4,12 @@
 set -e
 
 VM3_HOST="${RNAS_VM3_HOST:-192.168.0.203}"
-VM3_PASS="${RNAS_VM3_PASS:-123456}"
+if [ -n "$RNAS_VM3_PASS" ]; then
+    VM3_PASS="$RNAS_VM3_PASS"
+else
+    echo "WARNING: Using default VM3 password. Set RNAS_VM3_PASS env var for security." >&2
+    VM3_PASS="${RNAS_VM3_PASS:-123456}"
+fi
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 SSH="sshpass -p ${VM3_PASS} ssh -o StrictHostKeyChecking=no root@${VM3_HOST}"

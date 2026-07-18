@@ -6,7 +6,7 @@
     <div class="proto-tabs">
       <button v-for="p in protocols" :key="p.id" :class="{active:active===p.id}" @click="active=p.id;loadProto(p.id)">
         {{ p.icon }} {{ p.name }}
-        <span class="status-dot" :class="p.enabled?'on':'off'"></span>
+        <span class="status-dot" :class="loaded ? (p.enabled?'on':'off') : 'loading'"></span>
       </button>
     </div>
 
@@ -64,6 +64,7 @@ const saving = ref(false), applying = ref(false)
 const msg = ref(''), msgType = ref('ok')
 const interfaces = ref(['ens33','lo','eth0'])
 const showAdvanced = ref(false)
+const loaded = ref(false)
 
 const protocols = reactive([
   {id:'pppoe',name:'PPPoE',icon:'📡',enabled:false,section:'access.d.pppoe', module:'pppoe',
@@ -142,7 +143,6 @@ let configCache = null
 
 async function loadProto(id) {
   const p = protocols.find(p=>p.id===id); if (!p) return
-  // Show fields immediately with defaults while loading real values
   current.value = { ...p, values: {...Object.fromEntries(p.fields.filter(f=>f.default).map(f=>[f.key, f.default]))} }
   try {
     if (!configCache) {
@@ -154,7 +154,8 @@ async function loadProto(id) {
     p.enabled = core[p.module] === 'yes'
     current.value = { ...p, values: {...data} }
     current.value.enabled = p.enabled
-  } catch {}
+    loaded.value = true
+  } catch { loaded.value = true }
 }
 
 async function save() {
@@ -172,6 +173,7 @@ async function save() {
 
 async function apply() {
   applying.value = true
+  msg.value = 'Restarting services...'; msgType.value = 'info'
   try {
     await fetch('/api/config/apply', {method:'POST'})
     msg.value='Applied & restarted'; msgType.value='ok'
@@ -194,7 +196,7 @@ onMounted(() => { loadProto('pppoe'); loadInterfaces() })
 .proto-tabs button{padding:6px 14px;border:1px solid var(--border);background:var(--bg);border-radius:3px 3px 0 0;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;transition:all .15s;color:var(--fg2);font-family:var(--font)}
 .proto-tabs button.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
 .proto-tabs button:hover:not(.active){background:var(--bg3)}
-.status-dot{width:8px;height:8px;border-radius:50%}.status-dot.on{background:var(--green)}.status-dot.off{background:var(--border)}
+.status-dot{width:8px;height:8px;border-radius:50%}.status-dot.on{background:var(--green)}.status-dot.off{background:var(--border)}.status-dot.loading{background:var(--fg3);opacity:0.4;animation:pulse 1s infinite}@keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
 .proto-tabs button.active .status-dot.off{background:rgba(0,0,0,.3)}
 .proto-form{background:var(--bg2);padding:14px;border-radius:0 3px 3px 3px;border:1px solid var(--border)}
 .form-header{margin-bottom:14px}
@@ -211,5 +213,5 @@ onMounted(() => { loadProto('pppoe'); loadInterfaces() })
 .btn-primary{padding:5px 16px;background:var(--bg3);color:var(--accent);border:1px solid var(--accent);border-radius:3px;cursor:pointer;font-size:11px;font-family:var(--font)}
 .btn-primary:hover{background:var(--accent);color:#000}
 .btn-primary:disabled{opacity:0.4}
-.msg{font-size:12px;font-weight:500}.ok{color:var(--green)}.err{color:var(--red)}
+.msg{font-size:12px;font-weight:500}.ok{color:var(--green)}.err{color:var(--red)}.info{color:var(--accent)}
 </style>

@@ -2,6 +2,8 @@
 Description=RNAS NAS Platform
 Documentation=https://github.com/Lancer2049/RNAS
 Wants=rnas-accel-ppp.service rnas-dnsmasq.service rnas-firewall.service rnas-snmpd.service rnas-qos.service rnas-ipsec.service rnas-wireguard.service rnas-ha.service
+After=network-online.target
+Wants=network-online.target
 
 [Install]
 WantedBy=multi-user.target

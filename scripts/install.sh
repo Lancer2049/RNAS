@@ -52,7 +52,7 @@ systemctl start rnas-accel-ppp 2>/dev/null || echo "Start rnas-accel-ppp manuall
 echo ""
 echo "=== RNAS v2.0 installed! ==="
 echo "Config:    /etc/rnas/"
-echo "Dashboard: http://$(hostname -I | awk '{print $1}'):5173"
+echo "Dashboard: http://$(hostname -I | awk '{print $1}'):8099"
 echo "API:       http://$(hostname -I | awk '{print $1}'):8099/api/health"
 echo "Services:  systemctl list-units 'rnas-*'"
 echo "Logs:      journalctl -u rnas-accel-ppp -f"

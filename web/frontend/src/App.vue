@@ -51,6 +51,10 @@
           <a :class="{sel:page==='setup'}" @click="page='setup'"><span class="si">◉</span> Quick Setup</a>
           <a :class="{sel:page==='terminal'}" @click="page='terminal'"><span class="si">◉</span> Terminal</a>
           <a :class="{sel:page==='certs'}" @click="page='certs'"><span class="si">◉</span> Certificates</a>
+          <a :class="{sel:page==='aaa-users'}" @click="page='aaa-users'"><span class="si">◉</span> AAA Users</a>
+          <a :class="{sel:page==='acct-records'}" @click="page='acct-records'"><span class="si">◉</span> Accounting</a>
+          <a :class="{sel:page==='user-groups'}" @click="page='user-groups'"><span class="si">◉</span> User Groups</a>
+          <a :class="{sel:page==='nas-clients'}" @click="page='nas-clients'"><span class="si">◉</span> NAS Clients</a>
         </div>
         <div class="menu-group">
           <div class="menu-label">Simulation</div>
@@ -113,6 +117,10 @@
         <NetflowDhcp v-if="page==='netflow'" />
         <IPManager v-if="page==='ip'" />
         <SystemLog v-if="page==='log'" />
+        <AAAUsers v-if="page==='aaa-users'" />
+        <AcctRecords v-if="page==='acct-records'" />
+        <UserGroups v-if="page==='user-groups'" />
+        <NASClients v-if="page==='nas-clients'" />
       </main>
     </div>
     <div class="toast-container"><div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">{{ t.msg }}</div></div>
@@ -121,7 +129,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent, provide } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, defineAsyncComponent, provide, h } from 'vue'
 // Always-loaded (dashboard core)
 import StatusCard from './components/StatusCard.vue'
 import QuickActions from './components/QuickActions.vue'
@@ -130,37 +138,55 @@ import SystemResources from './components/SystemResources.vue'
 import ActivityFeed from './components/ActivityFeed.vue'
 import SessionsTable from './components/SessionsTable.vue'
 import TrafficMonitor from './components/TrafficMonitor.vue'
+
+// Shared async component loader: delay before showing loader, retry once on error
+function lazy(name, loader) {
+  return defineAsyncComponent({
+    loader,
+    delay: 200,
+    timeout: 10000,
+    onError(error, retry, fail, attempts) {
+      if (attempts < 2) { retry(); return }
+      console.error(`Failed to load ${name}:`, error)
+      fail()
+    },
+  })
+}
 // Lazy-loaded (page components)
-const SessionDetail = defineAsyncComponent(() => import('./components/SessionDetail.vue'))
-const NetworkConfig = defineAsyncComponent(() => import('./components/NetworkConfig.vue'))
-const InterfaceDetail = defineAsyncComponent(() => import('./components/InterfaceDetail.vue'))
-const ConfigEditor = defineAsyncComponent(() => import('./components/ConfigEditor.vue'))
-const ServicesConfig = defineAsyncComponent(() => import('./components/ServicesConfig.vue'))
-const ProtocolConfig = defineAsyncComponent(() => import('./components/ProtocolConfig.vue'))
-const ToolsPage = defineAsyncComponent(() => import('./components/ToolsPage.vue'))
-const RADIUSEditor = defineAsyncComponent(() => import('./components/RADIUSEditor.vue'))
-const DictionaryBrowser = defineAsyncComponent(() => import('./components/DictionaryBrowser.vue'))
-const RoutingPage = defineAsyncComponent(() => import('./components/RoutingPage.vue'))
-const TunnelManager = defineAsyncComponent(() => import('./components/TunnelManager.vue'))
-const VlanManager = defineAsyncComponent(() => import('./components/VlanManager.vue'))
-const HotspotManager = defineAsyncComponent(() => import('./components/HotspotManager.vue'))
-const NetflowDhcp = defineAsyncComponent(() => import('./components/NetflowDhcp.vue'))
-const IPManager = defineAsyncComponent(() => import('./components/IPManager.vue'))
-const SystemLog = defineAsyncComponent(() => import('./components/SystemLog.vue'))
-const SubscriberSim = defineAsyncComponent(() => import('./components/SubscriberSim.vue'))
-const ProtoMonitor = defineAsyncComponent(() => import('./components/ProtoMonitor.vue'))
-const TrafficTorch = defineAsyncComponent(() => import('./components/TrafficTorch.vue'))
-const QueueManager = defineAsyncComponent(() => import('./components/QueueManager.vue'))
-const PacketSniffer = defineAsyncComponent(() => import('./components/PacketSniffer.vue'))
-const Scheduler = defineAsyncComponent(() => import('./components/Scheduler.vue'))
-const ScenarioRunner = defineAsyncComponent(() => import('./components/ScenarioRunner.vue'))
-const FaultInject = defineAsyncComponent(() => import('./components/FaultInject.vue'))
-const SystemPage = defineAsyncComponent(() => import('./components/SystemPage.vue'))
-const TestResults = defineAsyncComponent(() => import('./components/TestResults.vue'))
-const BandwidthTest = defineAsyncComponent(() => import('./components/BandwidthTest.vue'))
-const QuickSetup = defineAsyncComponent(() => import('./components/QuickSetup.vue'))
-const WebTerminal = defineAsyncComponent(() => import('./components/WebTerminal.vue'))
-const CertManager = defineAsyncComponent(() => import('./components/CertManager.vue'))
+const SessionDetail = lazy('SessionDetail', () => import('./components/SessionDetail.vue'))
+const NetworkConfig = lazy('NetworkConfig', () => import('./components/NetworkConfig.vue'))
+const InterfaceDetail = lazy('InterfaceDetail', () => import('./components/InterfaceDetail.vue'))
+const ConfigEditor = lazy('ConfigEditor', () => import('./components/ConfigEditor.vue'))
+const ServicesConfig = lazy('ServicesConfig', () => import('./components/ServicesConfig.vue'))
+const ProtocolConfig = lazy('ProtocolConfig', () => import('./components/ProtocolConfig.vue'))
+const ToolsPage = lazy('ToolsPage', () => import('./components/ToolsPage.vue'))
+const RADIUSEditor = lazy('RADIUSEditor', () => import('./components/RADIUSEditor.vue'))
+const DictionaryBrowser = lazy('DictionaryBrowser', () => import('./components/DictionaryBrowser.vue'))
+const RoutingPage = lazy('RoutingPage', () => import('./components/RoutingPage.vue'))
+const TunnelManager = lazy('TunnelManager', () => import('./components/TunnelManager.vue'))
+const VlanManager = lazy('VlanManager', () => import('./components/VlanManager.vue'))
+const HotspotManager = lazy('HotspotManager', () => import('./components/HotspotManager.vue'))
+const NetflowDhcp = lazy('NetflowDhcp', () => import('./components/NetflowDhcp.vue'))
+const IPManager = lazy('IPManager', () => import('./components/IPManager.vue'))
+const SystemLog = lazy('SystemLog', () => import('./components/SystemLog.vue'))
+const SubscriberSim = lazy('SubscriberSim', () => import('./components/SubscriberSim.vue'))
+const ProtoMonitor = lazy('ProtoMonitor', () => import('./components/ProtoMonitor.vue'))
+const TrafficTorch = lazy('TrafficTorch', () => import('./components/TrafficTorch.vue'))
+const QueueManager = lazy('QueueManager', () => import('./components/QueueManager.vue'))
+const PacketSniffer = lazy('PacketSniffer', () => import('./components/PacketSniffer.vue'))
+const Scheduler = lazy('Scheduler', () => import('./components/Scheduler.vue'))
+const ScenarioRunner = lazy('ScenarioRunner', () => import('./components/ScenarioRunner.vue'))
+const FaultInject = lazy('FaultInject', () => import('./components/FaultInject.vue'))
+const SystemPage = lazy('SystemPage', () => import('./components/SystemPage.vue'))
+const TestResults = lazy('TestResults', () => import('./components/TestResults.vue'))
+const BandwidthTest = lazy('BandwidthTest', () => import('./components/BandwidthTest.vue'))
+const QuickSetup = lazy('QuickSetup', () => import('./components/QuickSetup.vue'))
+const WebTerminal = lazy('WebTerminal', () => import('./components/WebTerminal.vue'))
+const CertManager = lazy('CertManager', () => import('./components/CertManager.vue'))
+const AAAUsers = lazy('AAAUsers', () => import('./components/AAAUsers.vue'))
+const AcctRecords = lazy('AcctRecords', () => import('./components/AcctRecords.vue'))
+const UserGroups = lazy('UserGroups', () => import('./components/UserGroups.vue'))
+const NASClients = lazy('NASClients', () => import('./components/NASClients.vue'))
 
 const page = ref(location.hash ? location.hash.replace('#/','') || 'overview' : 'overview')
 const pageLoading = ref(false)

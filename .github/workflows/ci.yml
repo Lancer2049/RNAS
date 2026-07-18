@@ -6,11 +6,22 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/cmd/rnas-config
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Config engine unit tests
+        run: |
+          pip install pytest 2>&1
+          python3 -m pytest cmd/rnas-config/tests/ -v --tb=short
 
       - name: Python syntax check
         run: |
@@ -39,22 +50,22 @@ jobs:
           echo "$count vendor dictionaries validated"
           [ "$count" -ge 10 ] || exit 1
 
-      - name: rnas-config generator test
+      - name: rnas-config generator integration test
         run: |
           mkdir -p /tmp/rnas-test/etc/rnas/access.d
-          cp configs/access.d/*.conf /tmp/rnas-test/etc/rnas/access.d/ 2>/dev/null || true
-          cp configs/network.d/*.conf /tmp/rnas-test/etc/rnas/ 2>/dev/null || true
-          cp configs/*.conf /tmp/rnas-test/etc/rnas/ 2>/dev/null || true
+          cp configs/access.d/*.conf /tmp/rnas-test/etc/rnas/access.d/ || true
+          cp configs/network.d/*.conf /tmp/rnas-test/etc/rnas/ || true
+          cp configs/*.conf /tmp/rnas-test/etc/rnas/ || true
           mkdir -p /tmp/rnas-test/var/run
           for svc in accel-ppp dnsmasq firewall snmp qos ipsec wireguard openvpn hotspot ha dhcp-relay dot1x; do
-            python3 cmd/rnas-config/rnas_config.py --root /tmp/rnas-test/etc/rnas generate $svc -o /tmp/rnas-test/var/run/$svc.conf 2>/dev/null && echo "$svc: OK" || echo "$svc: skipped"
+            python3 cmd/rnas-config/rnas_config.py --root /tmp/rnas-test/etc/rnas generate $svc -o /tmp/rnas-test/var/run/$svc.conf 2>&1 && echo "$svc: OK" || echo "$svc: skipped"
           done
 
       - name: Frontend build check
         run: |
           cd web/frontend
-          npm install 2>/dev/null || true
-          npm run build 2>/dev/null && echo "Frontend build OK" || echo "Frontend build skipped (npm not available)"
+          npm install 2>&1 || true
+          npm run build 2>&1 && echo "Frontend build OK" || echo "Frontend build skipped (npm not available)"
 
       - name: Playwright E2E
         if: false  # Requires live VM3, skip in CI for now
