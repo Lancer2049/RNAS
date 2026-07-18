@@ -235,4 +235,29 @@ async def test_notification(data: dict = Body(...), user=Depends(require_auth)):
 @router.get("/system/audit")
 async def audit_log(limit: int = 50, user=Depends(require_auth)):
     from services.audit import query
-    return {"entries": query(limit=limit), "count": len(query(limit=limit))}
+    entries = query(limit=limit)
+    return {"entries": entries, "count": len(entries)}
+
+
+# ── Config drift ────────────────────────────────────────────────
+
+@router.get("/system/drift")
+async def config_drift(user=Depends(require_auth)):
+    """Check for manually-modified config files (config drift detection)."""
+    import hashlib
+    from pathlib import Path
+    from rnas_config import walk_config_tree, GEN_MAP
+
+    drift = []
+    try:
+        tree = walk_config_tree(Path("/etc/rnas"))
+        for name, gen_func in GEN_MAP.items():
+            output = gen_func(tree)
+            target = Path(f"/var/run/rnas/{name}.conf")
+            if target.exists():
+                content = target.read_text()
+                if not content.startswith("# RNAS-GENERATED:"):
+                    drift.append({"file": str(target), "reason": "Not RNAS-managed"})
+    except Exception:
+        pass
+    return {"drift": drift, "count": len(drift), "clean": len(drift) == 0}

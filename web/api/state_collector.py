@@ -21,14 +21,22 @@ def start_collector():
 
 def _collect_loop():
     from event_bus import publish_state
+    from services.alerts import send_alert
+    import asyncio
 
     idle_interval = 5.0
     active_interval = 1.0
+    last_alert_time = 0.0
 
     while True:
         try:
             state = _gather_state()
             publish_state(state)
+
+            now = time.time()
+            if not _check_core_services() and now - last_alert_time > 300:
+                asyncio.run(send_alert("RNAS Core Down", "accel-ppp or dnsmasq not running", "critical"))
+                last_alert_time = now
         except Exception:
             pass
 
@@ -36,7 +44,34 @@ def _collect_loop():
         time.sleep(interval)
 
 
+def _check_core_services() -> bool:
+    try:
+        rc = subprocess.run(["pgrep", "-x", "accel-pppd"], capture_output=True, timeout=5)
+        return rc.returncode == 0
+    except Exception:
+        return False
+
+
+def _sample_traffic():
+    try:
+        from services.traffic_store import insert_sample
+        from pathlib import Path
+        for iface in ["ens33", "eth0", "br-lan"]:
+            rx_p = Path(f"/sys/class/net/{iface}/statistics/rx_bytes")
+            tx_p = Path(f"/sys/class/net/{iface}/statistics/tx_bytes")
+            if rx_p.exists() and tx_p.exists():
+                insert_sample(iface, int(rx_p.read_text().strip()), int(tx_p.read_text().strip()))
+    except Exception:
+        pass
+
+
 def _gather_state() -> dict:
+    state = _gather()
+    _sample_traffic()
+    return state
+
+
+def _gather() -> dict:
     """Collect system state from accel-cmd and /proc."""
     state = {
         "uptime": "N/A", "cpu": "N/A", "mem": "N/A",

@@ -78,6 +78,14 @@ async def interface_history(name: str, range_sec: int = 3600, user=Depends(requi
     return {"iface": name, "data": data, "points": len(data)}
 
 
+@router.get("/traffic/history")
+async def traffic_history(interface: str, period: str = "5m", user=Depends(require_auth)):
+    """Return traffic history from SQLite store (5m/1h/1d aggregation)."""
+    from services.traffic_store import get_history as store_history
+    data = store_history(interface, period)
+    return {"interface": interface, "period": period, "data": data, "points": len(data)}
+
+
 @router.get("/interfaces/{name}")
 async def interface_detail(name: str, user=Depends(require_auth)):
     link = subprocess.run(["ip", "link", "show", name], capture_output=True, text=True, timeout=5).stdout
