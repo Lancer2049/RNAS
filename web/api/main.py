@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse, RedirectResponse
 from routes import status, config, tools, system as sys_routes, aaa, sim, extra, auth as auth_routes
+from routes import interfaces, firewall as fw_routes, network_services, system_extra
 from api.auth import FEATURE_FLAGS, require_auth
 
 logger = logging.getLogger("rnas-api")
@@ -47,7 +48,11 @@ v1.include_router(tools.router)          # /api/v1/tools/*
 v1.include_router(sys_routes.router)     # /api/v1/system/*
 v1.include_router(aaa.router)            # /api/v1/aaa/*
 v1.include_router(sim.router)            # /api/v1/sim/*
-v1.include_router(extra.router)          # /api/v1/interfaces, /api/v1/firewall, etc.
+v1.include_router(extra.router)              # /api/v1/* (backward compat, delegates to new modules)
+v1.include_router(interfaces.router)         # /api/v1/interfaces, /api/v1/routing, /api/v1/tunnels, /api/v1/vlans
+v1.include_router(fw_routes.router)          # /api/v1/ip/firewall, /api/v1/ip/arp
+v1.include_router(network_services.router)   # /api/v1/netflow, /api/v1/dhcp-relay, /api/v1/hotspot
+v1.include_router(system_extra.router)       # /api/v1/system/log, /api/v1/protocol/events, /api/v1/setup, /api/v1/certs
 app.include_router(v1)
 
 # Backward compat: /api/* → /api/v1/*
