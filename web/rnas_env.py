@@ -93,9 +93,23 @@ class RNASEnv:
 
     def db_query(self, sql: str, timeout: int = 15) -> str:
         """Run a remote PostgreSQL query via SSH and return stdout.
-           Wraps the shell call internally to keep callers free of shell=True."""
-        cmd = self.db_query_str(sql)
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+
+        Uses argv list (no shell=True). PGPASSWORD is passed in the remote
+        command string for the remote psql process only.
+        """
+        connect_host, port = self.ssh_connect_params(self.radius_host)
+        remote_cmd = (
+            f"PGPASSWORD={self.db_pass} psql -h {self.db_host} "
+            f"-U {self.db_user} -d {self.db_name} -t -c '{sql}'"
+        )
+        cmd = [
+            "sshpass", "-p", self.ssh_pass,
+            "ssh", "-o", "StrictHostKeyChecking=no",
+        ]
+        if port != 22:
+            cmd += ["-p", str(port)]
+        cmd += [f"{self.ssh_user}@{connect_host}", remote_cmd]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         return result.stdout
 
     def ssh_cmd_str(self, host: str, command: str) -> str:

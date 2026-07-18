@@ -14,8 +14,19 @@ from api.auth import FEATURE_FLAGS, require_auth
 
 logger = logging.getLogger("rnas-api")
 
+_ENV = os.environ.get("RNAS_ENV", "production")
+
 app = FastAPI(title="RNAS API", version="3.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# CORS: closed in production (frontend served from same origin by FastAPI).
+# In development, frontend runs on Vite dev server (localhost:5173) and needs CORS.
+if _ENV == "development":
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 @app.get("/api/health")
 async def health():
@@ -112,7 +123,12 @@ async def ws_dashboard(ws: WebSocket):
 
 @app.websocket("/api/terminal")
 async def terminal_shell(ws: WebSocket):
-    """WebSocket shell — spawns bash and bridges I/O"""
+    """WebSocket shell — gated by RNAS_FEATURE_TERMINAL env flag."""
+    if not FEATURE_FLAGS.get("web_terminal", False):
+        await ws.accept()
+        await ws.send_text("Terminal is disabled. Set RNAS_FEATURE_TERMINAL=true to enable.")
+        await ws.close()
+        return
     await ws.accept()
     process = await asyncio.create_subprocess_exec(
         "bash", "-c", "stty rows 24 cols 80 -echo && bash",

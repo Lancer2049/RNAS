@@ -2,6 +2,7 @@
 import json, os, signal, subprocess, time
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from api.auth import require_auth
+from api.validators import validate_ip_or_hostname
 from typing import Optional
 
 router = APIRouter(tags=["Diagnostics"])
@@ -90,6 +91,7 @@ async def get_dictionary(user=Depends(require_auth)):
 
 @router.get("/tools/ping")
 async def ping(host: str = Query("8.8.8.8"), user=Depends(require_auth)):
+    host = validate_ip_or_hostname(host)
     out = subprocess.run(["ping", "-c", "3", "-W", "2", host],
                          capture_output=True, text=True, timeout=10).stdout
     return {"output": out}
@@ -97,6 +99,7 @@ async def ping(host: str = Query("8.8.8.8"), user=Depends(require_auth)):
 
 @router.get("/tools/trace")
 async def traceroute(host: str = Query("8.8.8.8"), user=Depends(require_auth)):
+    host = validate_ip_or_hostname(host)
     out = subprocess.run(["traceroute", "-m", "10", host],
                          capture_output=True, text=True, timeout=15).stdout
     return {"output": out}
