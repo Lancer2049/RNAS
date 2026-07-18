@@ -4,7 +4,7 @@ import re
 import json
 import subprocess
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from api.auth import require_auth
 
 router = APIRouter(tags=["System"])
@@ -228,3 +228,11 @@ async def test_notification(data: dict = Body(...), user=Depends(require_auth)):
         except Exception:
             results.append({"channel": "webhook", "ok": False})
     return {"results": results}
+
+
+# ── Audit log ───────────────────────────────────────────────────
+
+@router.get("/system/audit")
+async def audit_log(limit: int = 50, user=Depends(require_auth)):
+    from services.audit import query
+    return {"entries": query(limit=limit), "count": len(query(limit=limit))}

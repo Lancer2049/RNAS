@@ -198,6 +198,8 @@ async def apply_config(user=Depends(require_auth)):
             "snapshot": snapshot_name,
             "health": "passed",
         }
+    except HTTPException:
+        raise
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=504, detail="Config apply timed out")
     finally:
