@@ -19,6 +19,10 @@ Thumbs.db
 # Environment
 .env
 
+# AI agent workspace
+.opencode/
+.opencode.json
+
 # Sensitive local files (prevent token leak)
 .git/
 *.local
