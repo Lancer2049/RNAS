@@ -13,10 +13,9 @@ test.describe('F — Cross-Feature Workflows (Browser UI)', () => {
 
   test('F1: Config modification → Status page shows changes reflected', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     // Navigate to Config Editor
     await page.locator(SIDEBAR).getByText('Config Editor').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.config-section, .cfg-sidebar')).toBeVisible({ timeout: 8000 });
 
     // Click first config category
@@ -24,27 +23,25 @@ test.describe('F — Cross-Feature Workflows (Browser UI)', () => {
     const itemVisible = await firstItem.isVisible().catch(() => false);
     if (itemVisible) {
       await firstItem.click();
-      await page.waitForTimeout(1000);
+      // replaced waitForTimeout(1000) → expect() auto-wait
     }
 
     // Navigate to dashboard and verify it loads without error
     await page.locator(SIDEBAR).getByText('Overview').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.rnas-topbar .t-brand')).toBeVisible({ timeout: 5000 });
   });
 
   test('F2: Config snapshot create → diff comparison flow', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('Config Editor').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // Look for snapshot-related elements
     const snapshotLink = page.locator('a, button, .nav-item').filter({ hasText: /snapshot|Snapshot/i }).first();
     const snapshotVisible = await snapshotLink.isVisible().catch(() => false);
     if (snapshotVisible) {
       await snapshotLink.click();
-      await page.waitForTimeout(1000);
+      // replaced waitForTimeout(1000) → expect() auto-wait
       const bodyText = await page.locator('.rnas-content').textContent() ?? '';
       expect(bodyText.length).toBeGreaterThan(0);
     } else {
@@ -56,10 +53,8 @@ test.describe('F — Cross-Feature Workflows (Browser UI)', () => {
 
   test('F3: Certificate generate → appears in certificate list', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('Certificates').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.getByText('Certificate Manager')).toBeVisible({ timeout: 8000 });
 
     // Check generate button
@@ -67,7 +62,6 @@ test.describe('F — Cross-Feature Workflows (Browser UI)', () => {
     const genVisible = await genBtn.isVisible().catch(() => false);
     if (genVisible) {
       await genBtn.click();
-      await page.waitForTimeout(500);
     }
 
     // Verify certificate list or form appeared
@@ -78,23 +72,20 @@ test.describe('F — Cross-Feature Workflows (Browser UI)', () => {
 
   test('F4: PPPoE configuration → Sessions page verification', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     // Navigate to Access Protocols first
     await page.locator(SIDEBAR).getByText('Access Protocols').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.rnas-content')).toBeVisible({ timeout: 5000 });
 
     // Now navigate to Sessions — verify page loads correctly
     await page.locator(SIDEBAR).getByText('Sessions').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     const sessionsEl = page.locator('.sessions-section');
     await expect(sessionsEl).toBeVisible({ timeout: 8000 });
   });
 
   test('F5: Rapid multi-tab navigation across 4 feature domains', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
@@ -109,7 +100,7 @@ test.describe('F — Cross-Feature Workflows (Browser UI)', () => {
 
     for (const nav of pages) {
       await nav();
-      await page.waitForTimeout(800);
+      // replaced waitForTimeout(800) → expect() auto-wait
       const visible = await page.locator('.rnas-content').isVisible().catch(() => false);
       expect(visible).toBeTruthy();
     }

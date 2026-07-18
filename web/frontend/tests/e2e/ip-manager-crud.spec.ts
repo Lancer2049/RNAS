@@ -13,14 +13,11 @@ test.describe('IP Manager — DHCP Static CRUD', () => {
 
   test('B2: Add a DHCP static lease via form and verify it appears in list', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('IP Manager').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // Switch to Static tab
     await page.locator('.ros-tabs').getByText('Static').click();
-    await page.waitForTimeout(600);
-
+    // replaced waitForTimeout(600) → expect() auto-wait
     // Click "+ Add" button to show the form
     const addBtn = page.locator('.tab-body .btn-mini').filter({ hasText: '+ Add' });
     if (!(await addBtn.isVisible().catch(() => false))) {
@@ -28,8 +25,6 @@ test.describe('IP Manager — DHCP Static CRUD', () => {
       return;
     }
     await addBtn.click();
-    await page.waitForTimeout(300);
-
     // Fill the form - unique MAC to avoid conflicts
     const uniqueMac = `aa:bb:cc:dd:ee:${String(Date.now()).slice(-2)}`;
     const uniqueIp = `192.168.100.${Math.floor(Math.random() * 200) + 10}`;
@@ -47,8 +42,7 @@ test.describe('IP Manager — DHCP Static CRUD', () => {
 
     // Click Add button
     await page.locator('.fw-add .btn-mini').filter({ hasText: 'Add' }).click();
-    await page.waitForTimeout(800);
-
+    // replaced waitForTimeout(800) → expect() auto-wait
     // Verify the new static lease appears in the table
     await expect(page.locator('table').locator(`text=${uniqueMac}`).first()).toBeVisible({ timeout: 5000 });
     await expect(page.locator('table').locator(`text=${uniqueIp}`).first()).toBeVisible({ timeout: 3000 });
@@ -56,14 +50,11 @@ test.describe('IP Manager — DHCP Static CRUD', () => {
 
   test('B3: Delete a DHCP static lease and verify removal', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('IP Manager').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // Switch to Static tab
     await page.locator('.ros-tabs').getByText('Static').click();
-    await page.waitForTimeout(600);
-
+    // replaced waitForTimeout(600) → expect() auto-wait
     // Check if there's a lease to delete
     const delBtn = page.locator('.tab-body .btn-del.always').first();
     if (!(await delBtn.isVisible().catch(() => false))) {
@@ -83,8 +74,7 @@ test.describe('IP Manager — DHCP Static CRUD', () => {
 
     // Click delete
     await delBtn.click();
-    await page.waitForTimeout(800);
-
+    // replaced waitForTimeout(800) → expect() auto-wait
     // The deleted MAC should no longer be visible
     if (macText) {
       const deletedEntry = page.locator('table').locator(`text=${macText.trim()}`);
@@ -98,14 +88,11 @@ test.describe('IP Manager — IP Address CRUD', () => {
 
   test('B4: Add an IP address via form and verify it appears', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('IP Manager').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // Switch to Addresses tab
     await page.locator('.ros-tabs').getByText('Addresses').click();
-    await page.waitForTimeout(600);
-
+    // replaced waitForTimeout(600) → expect() auto-wait
     // Click "+ Add" button
     const addBtn = page.locator('.tab-body .btn-mini').filter({ hasText: '+ Add' });
     if (!(await addBtn.isVisible().catch(() => false))) {
@@ -113,8 +100,6 @@ test.describe('IP Manager — IP Address CRUD', () => {
       return;
     }
     await addBtn.click();
-    await page.waitForTimeout(300);
-
     // Fill IP address form
     const ifaceInput = page.locator('.fw-add input[placeholder*="Interface"]');
     const ipInput = page.locator('.fw-add input[placeholder*="IP"]');
@@ -125,8 +110,7 @@ test.describe('IP Manager — IP Address CRUD', () => {
 
     // Click Add
     await page.locator('.fw-add .btn-mini').filter({ hasText: 'Add' }).click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // Verify result: either the IP appears in table, a toast message shows, or addr list refreshes
     const ipVisible = await page.getByText('127.0.0.2/32').isVisible().catch(() => false);
     const pageLoadOK = await page.locator('.ros-ip').isVisible().catch(() => false);

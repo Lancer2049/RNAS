@@ -13,11 +13,8 @@ test.describe('Diagnostic Tools — Ping/Trace/DNS/RADIUS', () => {
 
   test('C1: Ping tab loads with default host and button', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('RADIUS Tools').click();
-    await page.waitForTimeout(2000);
-    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
-
+    // replaced waitForTimeout(2000) → expect() auto-wait
     await expect(page.locator('.diag-tabs')).toBeVisible({ timeout: 20000 });
 
     const pingCard = page.locator('.card').first();
@@ -37,9 +34,8 @@ test.describe('Diagnostic Tools — Ping/Trace/DNS/RADIUS', () => {
 
   test('C1b: Execute ping and see output', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('RADIUS Tools').click();
-    await page.waitForTimeout(2000);
+    // replaced waitForTimeout(2000) → expect() auto-wait
     await expect(page.locator('.diag-tabs')).toBeVisible({ timeout: 15000 });
 
     const pingCard = page.locator('.card').first();
@@ -49,8 +45,6 @@ test.describe('Diagnostic Tools — Ping/Trace/DNS/RADIUS', () => {
     const hostInput = pingCard.locator('input').first();
     await expect(hostInput).toBeVisible({ timeout: 5000 });
     await hostInput.fill('127.0.0.1');
-    await page.waitForTimeout(100);
-
     // Click Ping button
     await pingCard.locator('button').filter({ hasText: 'Ping' }).click();
     await page.waitForTimeout(3000);
@@ -64,21 +58,16 @@ test.describe('Diagnostic Tools — Ping/Trace/DNS/RADIUS', () => {
 
   test('C2: Traceroute tab renders and executes', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('RADIUS Tools').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.diag-tabs')).toBeVisible({ timeout: 10000 });
 
     await page.locator('.diag-tabs').getByText('Traceroute').click();
-    await page.waitForTimeout(300);
-
     const traceCard = page.locator('.card').first();
     await expect(traceCard.locator('h3')).toHaveText('Traceroute');
 
     const hostInput = traceCard.locator('input').first();
     await hostInput.fill('127.0.0.1');
-    await page.waitForTimeout(100);
-
     await traceCard.locator('button').filter({ hasText: 'Trace' }).click();
     await page.waitForTimeout(3000);
 
@@ -88,39 +77,30 @@ test.describe('Diagnostic Tools — Ping/Trace/DNS/RADIUS', () => {
 
   test('C3: DNS Lookup tab executes query', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('RADIUS Tools').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.diag-tabs')).toBeVisible({ timeout: 10000 });
 
     await page.locator('.diag-tabs').getByText('DNS').click();
-    await page.waitForTimeout(300);
-
     const dnsCard = page.locator('.card').first();
     await expect(dnsCard.locator('h3')).toHaveText('DNS Lookup');
 
     // Default host should be google.com or similar
     const hostInput = dnsCard.locator('input').first();
     await hostInput.fill('localhost');
-    await page.waitForTimeout(100);
-
     await dnsCard.locator('button').filter({ hasText: 'Lookup' }).click();
-    await page.waitForTimeout(2000);
-
+    // replaced waitForTimeout(2000) → expect() auto-wait
     const output = dnsCard.locator('.output');
     await expect(output).toBeVisible({ timeout: 10000 });
   });
 
   test('C4: RADIUS auth test executes with default credentials', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('RADIUS Tools').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.diag-tabs')).toBeVisible({ timeout: 10000 });
 
     await page.locator('.diag-tabs').getByText('RADIUS').click();
-    await page.waitForTimeout(300);
-
     const radCard = page.locator('.card').first();
     await expect(radCard.locator('h3')).toHaveText('RADIUS Test');
 
@@ -133,8 +113,7 @@ test.describe('Diagnostic Tools — Ping/Trace/DNS/RADIUS', () => {
 
     // Execute auth test
     await radCard.locator('button').filter({ hasText: 'Auth Test' }).click();
-    await page.waitForTimeout(2000);
-
+    // replaced waitForTimeout(2000) → expect() auto-wait
     const output = radCard.locator('.output');
     await expect(output).toBeVisible({ timeout: 10000 });
     const outputText = await output.textContent();
@@ -143,14 +122,11 @@ test.describe('Diagnostic Tools — Ping/Trace/DNS/RADIUS', () => {
 
   test('C5: CoA tab renders with input fields', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('RADIUS Tools').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.diag-tabs')).toBeVisible({ timeout: 10000 });
 
     await page.locator('.diag-tabs').getByText('CoA').click();
-    await page.waitForTimeout(300);
-
     const coaCard = page.locator('.card').first();
     await expect(coaCard.locator('h3')).toHaveText('CoA Disconnect');
 
@@ -163,14 +139,11 @@ test.describe('Diagnostic Tools — Ping/Trace/DNS/RADIUS', () => {
 
   test('C6: Capture tab renders with start/stop/status', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('RADIUS Tools').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.diag-tabs')).toBeVisible({ timeout: 10000 });
 
     await page.locator('.diag-tabs').getByText('Capture').click();
-    await page.waitForTimeout(300);
-
     const capCard = page.locator('.card').first();
     await expect(capCard.locator('h3')).toHaveText('Packet Capture');
 
@@ -181,8 +154,7 @@ test.describe('Diagnostic Tools — Ping/Trace/DNS/RADIUS', () => {
 
     // Check Status should work without errors
     await capCard.locator('button').filter({ hasText: 'Status' }).click();
-    await page.waitForTimeout(1000);
-
+    // replaced waitForTimeout(1000) → expect() auto-wait
     // Output div uses v-if="capMsg" — only appears after API responds
     const msg = capCard.locator('.output');
     await expect(msg).toBeVisible({ timeout: 10000 });

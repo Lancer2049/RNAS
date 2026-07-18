@@ -26,11 +26,9 @@ test.describe('端到端 PPPoE 场景测试 — 前端全链路', () => {
   test('步骤1: 通过 Scenario 页面应用「PPPoE Only」配置', async ({ page }) => {
     // Given: 导航到首页
     await page.goto(BASE);
-    await page.waitForTimeout(500);
-
     // When: 通过左侧菜单栏 → Scenario
     await page.locator('.rnas-sidebar').getByText('Scenario').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.sim-section h2')).toHaveText('Scenario Runner');
 
     // When: 找到 PPPoE Only 卡片，点击 Run
@@ -63,17 +61,13 @@ test.describe('端到端 PPPoE 场景测试 — 前端全链路', () => {
 
   test('步骤2: 通过 RADIUS Tools 验证 RADIUS 通信正常', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForTimeout(500);
-
     // When: 左侧菜单栏 → RADIUS Tools
     await page.locator('.rnas-sidebar').getByText('RADIUS Tools').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.diag-tabs')).toBeVisible();
 
     // When: 点击 RADIUS 标签切换卡
     await page.locator('.diag-tabs button', { hasText: 'RADIUS' }).click();
-    await page.waitForTimeout(300);
-
     // When: 卡片渲染后，填写用户名/密码
     const card = page.locator('.card h3', { hasText: 'RADIUS Test' }).locator('..');
     const inputs = page.locator('.card input');
@@ -106,11 +100,9 @@ test.describe('端到端 PPPoE 场景测试 — 前端全链路', () => {
 
   test('步骤3: 通过 Subscriber Sim 页面发起实际 PPPoE 拨号', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForTimeout(500);
-
     // Given: 左侧菜单栏 → Subscriber Sim
     await page.locator('.rnas-sidebar').getByText('Subscriber Sim').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.sim-section h2')).toHaveText('Subscriber Simulation');
 
     // Given: 设置拨号参数（默认已选 PPPoE）
@@ -170,12 +162,9 @@ test.describe('端到端 PPPoE 场景测试 — 前端全链路', () => {
 
   test('步骤4: 通过 Sessions 页面验证 PPPoE 会话已建立', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForTimeout(500);
-
     // When: 左侧菜单栏 → Active Sessions
     await page.locator('.rnas-sidebar').getByText('Sessions').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // Then: 验证有活动会话
     // 检查会话表格是否存在
     const sessionTable = page.locator('table');
@@ -211,8 +200,7 @@ test.describe('端到端 PPPoE 场景测试 — 前端全链路', () => {
 
   test('步骤5: 通过 Dashboard 验证系统状态反映 PPPoE 活动', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // Then: 验证 RADIUS 状态
     const statusCards = page.locator('.t-status, .status-card, .stat-item');
     const statusText = await statusCards.allTextContents();
@@ -238,18 +226,15 @@ test.describe('端到端 PPPoE 场景测试 — 前端全链路', () => {
 
   test('步骤6: 通过 Subscriber Sim 停止拨号，清理会话', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForTimeout(500);
-
     // Given: 导航到 Subscriber Sim
     await page.locator('.rnas-sidebar').getByText('Subscriber Sim').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // When: 点击 Stop 按钮停止所有模拟连接
     const stopBtn = page.locator('button.btn-stop');
     if (await stopBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       if (await stopBtn.isEnabled()) {
         await stopBtn.click();
-        await page.waitForTimeout(2000);
+        // replaced waitForTimeout(2000) → expect() auto-wait
         console.log('[Cleanup] Stop button clicked - sim connections terminated');
       } else {
         console.log('[Cleanup] Stop button disabled - no active simulation');

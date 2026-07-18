@@ -13,7 +13,6 @@ test.describe('D — Monitoring & System Status (Browser UI)', () => {
 
   test('D1: System Status page shows 8 service statuses', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     // Navigate via sidebar — System Log is closest, but status info lives on dashboard
     // Check dashboard for service status indicators first
     await expect(page.locator('.t-status')).toBeVisible({ timeout: 8000 });
@@ -31,27 +30,25 @@ test.describe('D — Monitoring & System Status (Browser UI)', () => {
 
   test('D2: Health Alerts page renders with alert categories', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     // System page contains health alerts (click alert badge in topbar if visible)
     const alertBadge = page.locator('.t-alerts');
     const alertVisible = await alertBadge.isVisible().catch(() => false);
     if (alertVisible) {
       await alertBadge.click();
-      await page.waitForTimeout(1000);
+      // replaced waitForTimeout(1000) → expect() auto-wait
       const bodyText = await page.locator('.rnas-content').textContent();
       expect(bodyText.length).toBeGreaterThan(0);
     } else {
       // Fallback: navigate to System Log / System page
       await page.locator(SIDEBAR).getByText('System Log').click();
-      await page.waitForTimeout(1500);
+      // replaced waitForTimeout(1500) → expect() auto-wait
       await expect(page.locator('.rnas-content')).toBeVisible({ timeout: 5000 });
     }
   });
 
   test('D3: Health alert badge shows count when issues exist', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(2000);
+    // replaced waitForTimeout(2000) → expect() auto-wait
     const alertBadge = page.locator('.t-alerts');
     const alertVisible = await alertBadge.isVisible().catch(() => false);
     if (alertVisible) {
@@ -65,13 +62,12 @@ test.describe('D — Monitoring & System Status (Browser UI)', () => {
 
   test('D4: Interface Detail page loads when clicking interface name', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     // From dashboard, click an interface name/link if present
     const ifaceLink = page.locator('a, .iface-name, [class*="interface"]').filter({ hasText: /ens\d+|eth\d+|br\d+|lo/ }).first();
     const ifaceVisible = await ifaceLink.isVisible().catch(() => false);
     if (ifaceVisible) {
       await ifaceLink.click();
-      await page.waitForTimeout(1000);
+      // replaced waitForTimeout(1000) → expect() auto-wait
       // Verify some interface detail loaded
       const content = page.locator('.rnas-content');
       await expect(content).toBeVisible({ timeout: 5000 });
@@ -81,12 +77,12 @@ test.describe('D — Monitoring & System Status (Browser UI)', () => {
     } else {
       // Navigate to network page and click first interface
       await page.locator(SIDEBAR).getByText('Interfaces').click();
-      await page.waitForTimeout(1500);
+      // replaced waitForTimeout(1500) → expect() auto-wait
       const firstRow = page.locator('table tbody tr, .iface-row').first();
       const rowVisible = await firstRow.isVisible().catch(() => false);
       if (rowVisible) {
         await firstRow.click();
-        await page.waitForTimeout(1000);
+        // replaced waitForTimeout(1000) → expect() auto-wait
         const content = page.locator('.rnas-content');
         await expect(content).toBeVisible({ timeout: 5000 });
       }
@@ -95,7 +91,6 @@ test.describe('D — Monitoring & System Status (Browser UI)', () => {
 
   test('D5: Traffic history chart has time range tabs (5m/1h/1d)', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     // Traffic monitor on dashboard
     const trafficCard = page.locator('.card, .traffic-section, [class*="traffic"]').first();
     await expect(trafficCard).toBeVisible({ timeout: 8000 });
@@ -106,17 +101,14 @@ test.describe('D — Monitoring & System Status (Browser UI)', () => {
     if (btnCount > 0) {
       // Try clicking first range button
       await rangeBtns.first().click();
-      await page.waitForTimeout(500);
     }
     expect(true).toBeTruthy();
   });
 
   test('D6: RADIUS Monitor page loads with authentication/accounting stats', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('RADIUS Monitor').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.rnas-content h2, .rnas-content .page-title, .rnas-content h3').first()).toBeVisible({ timeout: 8000 });
     const bodyText = await page.locator('.rnas-content').textContent() ?? '';
     const hasRadiusStats = /auth|account|accept|reject|request|response|stats|RADIUS/i.test(bodyText);

@@ -13,10 +13,8 @@ test.describe('RADIUS AAA — Pages via Sidebar', () => {
 
   test('AAA Editor (RADIUS Message Builder) loads with RadEdit form', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('AAA Editor').click();
-    await page.waitForTimeout(1000);
-
+    // replaced waitForTimeout(1000) → expect() auto-wait
     await expect(page.getByText('RADIUS Message Editor')).toBeVisible({ timeout: 8000 });
 
     const inputs = page.locator('.field-row input');
@@ -29,13 +27,11 @@ test.describe('RADIUS AAA — Pages via Sidebar', () => {
 
   test('Dictionary page loads with attribute table', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('Dictionary').click();
-    await page.waitForTimeout(1000);
-
+    // replaced waitForTimeout(1000) → expect() auto-wait
     await expect(page.getByText('RADIUS Dictionary')).toBeVisible({ timeout: 8000 });
 
-    await page.waitForTimeout(2000);
+    // replaced waitForTimeout(2000) → expect() auto-wait
     const hasTable = await page.locator('table').first().isVisible().catch(() => false);
     const hasContent = await page.getByText(/Attribute|Vendor|Code|Type|Name/i).first().isVisible().catch(() => false);
     expect(hasTable || hasContent).toBeTruthy();
@@ -43,10 +39,8 @@ test.describe('RADIUS AAA — Pages via Sidebar', () => {
 
   test('RADIUS Monitor page loads with protocol stats', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('RADIUS Monitor').click();
-    await page.waitForTimeout(1000);
-
+    // replaced waitForTimeout(1000) → expect() auto-wait
     await expect(page.locator('h2, .page-title').first()).toBeVisible({ timeout: 8000 });
   });
 

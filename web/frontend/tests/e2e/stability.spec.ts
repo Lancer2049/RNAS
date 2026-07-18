@@ -13,8 +13,6 @@ test.describe('G — Performance & Stability (Browser UI)', () => {
 
   test('G1: Fast page hopping across 5 pages without crash', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
@@ -26,7 +24,6 @@ test.describe('G — Performance & Stability (Browser UI)', () => {
     }
 
     // Final page should still be rendered
-    await page.waitForTimeout(500);
     const topbarVisible = await page.locator('.rnas-topbar').isVisible().catch(() => false);
     expect(topbarVisible).toBeTruthy();
 
@@ -41,17 +38,13 @@ test.describe('G — Performance & Stability (Browser UI)', () => {
 
   test('G2: Page refresh preserves routing and content', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-
     // Navigate to a specific page
     await page.locator(SIDEBAR).getByText('IP Manager').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.rnas-content')).toBeVisible({ timeout: 5000 });
 
     // Reload the page
     await page.reload();
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-
     // After reload, topbar should still be visible (no white screen)
     await expect(page.locator('.rnas-topbar')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('.rnas-topbar .t-brand')).toHaveText('RNAS', { timeout: 5000 });
@@ -59,8 +52,6 @@ test.describe('G — Performance & Stability (Browser UI)', () => {
 
   test('G3: 30-second open stability — no console error accumulation', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 

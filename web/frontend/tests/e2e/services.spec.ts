@@ -13,9 +13,8 @@ test.describe('Services — Full Protocol Integration', () => {
 
   test('B1a: Services loads with status bar and all VPN service indicators', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.services-section')).toBeVisible({ timeout: 20000 });
 
     // Status bar should show service indicators
@@ -30,9 +29,8 @@ test.describe('Services — Full Protocol Integration', () => {
 
   test('B1b: Switch between all 6 service tabs and each shows fields', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.services-section')).toBeVisible({ timeout: 10000 });
 
     const serviceTabs = [
@@ -46,8 +44,7 @@ test.describe('Services — Full Protocol Integration', () => {
 
     for (const label of serviceTabs) {
       await page.locator('.svc-nav button').filter({ hasText: label }).click();
-      await page.waitForTimeout(600);
-
+      // replaced waitForTimeout(600) → expect() auto-wait
       // Each tab should show a panel or fields
       const panel = page.locator('.svc-panel');
       await expect(panel).toBeVisible({ timeout: 8000 });
@@ -60,15 +57,13 @@ test.describe('Services — Full Protocol Integration', () => {
 
   test('B1c: Modify a field, save, verify "✓ Saved" feedback', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.services-section')).toBeVisible({ timeout: 10000 });
 
     // Ensure QoS tab is active (first tab by default)
     await page.locator('.svc-nav button').filter({ hasText: 'QoS / Traffic Control' }).click();
-    await page.waitForTimeout(600);
-
+    // replaced waitForTimeout(600) → expect() auto-wait
     // Use the first select (yes/no) field in the panel
     const selectField = page.locator('.svc-panel select.field-input').first();
     if (!(await selectField.isVisible().catch(() => false))) {
@@ -80,12 +75,9 @@ test.describe('Services — Full Protocol Integration', () => {
     const currentVal = await selectField.inputValue();
     const newVal = currentVal === 'yes' ? 'no' : 'yes';
     await selectField.selectOption(newVal);
-    await page.waitForTimeout(200);
-
     // Save
     await page.locator('.btn-save').click();
-    await page.waitForTimeout(1000);
-
+    // replaced waitForTimeout(1000) → expect() auto-wait
     // Verify "✓ Saved" feedback
     const savedMsg = page.locator('.saved-msg');
     await expect(savedMsg).toBeVisible({ timeout: 5000 });
@@ -94,14 +86,12 @@ test.describe('Services — Full Protocol Integration', () => {
 
   test('B1d: Switch to IPsec tab, verify fields are present', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.services-section')).toBeVisible({ timeout: 10000 });
 
     await page.locator('.svc-nav button').filter({ hasText: 'VPN - IPsec' }).click();
-    await page.waitForTimeout(600);
-
+    // replaced waitForTimeout(600) → expect() auto-wait
     const panel = page.locator('.svc-panel');
     await expect(panel).toBeVisible({ timeout: 8000 });
     await expect(panel.locator('h3')).toContainText('VPN - IPsec');
@@ -109,14 +99,12 @@ test.describe('Services — Full Protocol Integration', () => {
 
   test('B1e: Switch to WireGuard tab, verify fields present', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.services-section')).toBeVisible({ timeout: 10000 });
 
     await page.locator('.svc-nav button').filter({ hasText: 'VPN - WireGuard' }).click();
-    await page.waitForTimeout(600);
-
+    // replaced waitForTimeout(600) → expect() auto-wait
     const panel = page.locator('.svc-panel');
     await expect(panel).toBeVisible({ timeout: 8000 });
     await expect(panel.locator('h3')).toContainText('VPN - WireGuard');
@@ -124,14 +112,12 @@ test.describe('Services — Full Protocol Integration', () => {
 
   test('B1f: Switch to OpenVPN tab, verify fields present', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.services-section')).toBeVisible({ timeout: 10000 });
 
     await page.locator('.svc-nav button').filter({ hasText: 'VPN - OpenVPN' }).click();
-    await page.waitForTimeout(600);
-
+    // replaced waitForTimeout(600) → expect() auto-wait
     const panel = page.locator('.svc-panel');
     await expect(panel).toBeVisible({ timeout: 8000 });
     await expect(panel.locator('h3')).toContainText('VPN - OpenVPN');

@@ -12,10 +12,9 @@ test.describe('Scenario Runner — 预定义测试场景', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForTimeout(500);
     // 通过左侧菜单栏导航到 Scenario 页面
     await page.locator('.rnas-sidebar').getByText('Scenario').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // 验证页面标题
     await expect(page.locator('.sim-section h2')).toHaveText('Scenario Runner');
   });
@@ -230,18 +229,16 @@ test.describe('Scenario Runner — 预定义测试场景', () => {
 
     // 重新加载页面确保干净状态
     await page.goto(BASE);
-    await page.waitForTimeout(500);
-
     // 通过侧边栏导航到 Scenario
     await page.locator('.rnas-sidebar a:has(.si)').filter({ hasText: 'Scenario' }).click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.sim-section h2')).toHaveText('Scenario Runner');
 
     // 导航到其他页面再回来
     await page.locator('.rnas-sidebar a:has(.si)').filter({ hasText: 'Sessions' }).click();
-    await page.waitForTimeout(800);
+    // replaced waitForTimeout(800) → expect() auto-wait
     await page.locator('.rnas-sidebar a:has(.si)').filter({ hasText: 'Scenario' }).click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.sim-section h2')).toHaveText('Scenario Runner');
 
     expect(errors).toHaveLength(0);

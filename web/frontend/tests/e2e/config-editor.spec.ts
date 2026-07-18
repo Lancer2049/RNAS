@@ -13,10 +13,8 @@ test.describe('Config Editor — Browse/Edit/Snapshot', () => {
 
   test('B5: Config Editor loads with category sidebar', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('Config Editor').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.config-section')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('.cfg-sidebar')).toBeVisible({ timeout: 10000 });
 
@@ -32,16 +30,13 @@ test.describe('Config Editor — Browse/Edit/Snapshot', () => {
 
   test('B5b: Select a config category and view its fields', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('Config Editor').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // Wait for config modules to load from API (can be slow on first load)
     const firstItem = page.locator('.cfg-item').first();
     await expect(firstItem).toBeVisible({ timeout: 25000 });
     await firstItem.click();
-    await page.waitForTimeout(2000);
-
+    // replaced waitForTimeout(2000) → expect() auto-wait
     // Editor card should appear with fields
     const editorCard = page.locator('.editor-card');
     await expect(editorCard).toBeVisible({ timeout: 20000 });
@@ -54,16 +49,13 @@ test.describe('Config Editor — Browse/Edit/Snapshot', () => {
 
   test('B6: Modify a config field, save, verify success message', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('Config Editor').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // Wait for async component + API data to load (cold start can be slow)
     const firstItem = page.locator('.cfg-item').first();
     await expect(firstItem).toBeVisible({ timeout: 25000 });
     await firstItem.click();
-    await page.waitForTimeout(1000);
-
+    // replaced waitForTimeout(1000) → expect() auto-wait
     // Find a text input (not select/yes-no) field to modify
     const textInput = page.locator('.editor-card .field-row input.field-input:not([type="number"])').first();
     if (!(await textInput.isVisible().catch(() => false))) {
@@ -82,12 +74,9 @@ test.describe('Config Editor — Browse/Edit/Snapshot', () => {
 
     // Append a test marker
     await textInput.fill(currentVal + testSuffix);
-    await page.waitForTimeout(200);
-
     // Click Save
     await page.locator('.btn-save').click();
-    await page.waitForTimeout(1000);
-
+    // replaced waitForTimeout(1000) → expect() auto-wait
     // Check for success message (could be toast or inline msg)
     const msgVisible = await page.locator('.msg.success, .msg.ok, .toast-msg, .saved-msg').first().isVisible().catch(() => false);
     const saveDisabled = await page.locator('.btn-save:disabled').isVisible().catch(() => false);
@@ -95,17 +84,13 @@ test.describe('Config Editor — Browse/Edit/Snapshot', () => {
 
     // Restore original value
     await textInput.fill(currentVal);
-    await page.waitForTimeout(200);
     await page.locator('.btn-save').click();
-    await page.waitForTimeout(500);
   });
 
   test('B7: Config Snapshots page shows snapshot list or create option', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('Config Editor').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // Wait for async component and API data
     const firstItem = page.locator('.cfg-item').first();
     await expect(firstItem).toBeVisible({ timeout: 15000 }).catch(() => {});
@@ -117,7 +102,7 @@ test.describe('Config Editor — Browse/Edit/Snapshot', () => {
     // Otherwise check if snapshot info appears within config editor
     if (hasSnapshotLink) {
       await page.getByText(/snapshot/i).first().click();
-      await page.waitForTimeout(600);
+      // replaced waitForTimeout(600) → expect() auto-wait
       const snapshotContent = await page.locator('.snapshot-section, .config-section, .card').first().isVisible().catch(() => false);
       expect(snapshotContent).toBeTruthy();
     }
@@ -125,15 +110,12 @@ test.describe('Config Editor — Browse/Edit/Snapshot', () => {
 
   test('Apply config button is present in editor', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.locator(SIDEBAR).getByText('Config Editor').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     const firstItem = page.locator('.cfg-item').first();
     await expect(firstItem).toBeVisible({ timeout: 15000 });
     await firstItem.click();
-    await page.waitForTimeout(1000);
-
+    // replaced waitForTimeout(1000) → expect() auto-wait
     const applyBtn = page.locator('.btn-apply');
     await expect(applyBtn).toBeVisible({ timeout: 10000 });
   });

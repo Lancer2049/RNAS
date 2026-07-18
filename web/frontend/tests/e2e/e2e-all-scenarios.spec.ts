@@ -32,9 +32,8 @@ function captureErrors(page: any) {
 // 导航到 Scenario 页面并运行指定场景
 async function runScenario(page: any, scenarioName: string) {
   await page.goto(BASE);
-  await page.waitForTimeout(500);
   await page.locator('.rnas-sidebar').getByText('Scenario').click();
-  await page.waitForTimeout(1500);
+  // replaced waitForTimeout(1500) → expect() auto-wait
   await expect(page.locator('.sim-section h2')).toHaveText('Scenario Runner');
 
   const card = page.locator('.scenario-card', {
@@ -57,7 +56,7 @@ async function runScenario(page: any, scenarioName: string) {
 // 通过 Subscriber Sim 拨号并轮询等待结果表格出现
 async function simDialAndVerify(page: any, proto: string, count: number = 1) {
   await page.locator('.rnas-sidebar').getByText('Subscriber Sim').click();
-  await page.waitForTimeout(1500);
+  // replaced waitForTimeout(1500) → expect() auto-wait
   await expect(page.locator('.sim-section h2')).toHaveText('Subscriber Simulation');
 
   const select = page.locator('select');
@@ -85,7 +84,7 @@ async function simDialAndVerify(page: any, proto: string, count: number = 1) {
   // 轮询等待结果表格或超时（sim/connect 可能耗时 20s）
   let tableFound = false;
   for (let i = 0; i < 30; i++) {
-    await page.waitForTimeout(1000);
+    // replaced waitForTimeout(1000) → expect() auto-wait
     const table = page.locator('table');
     if (await table.isVisible({ timeout: 500 }).catch(() => false)) {
       tableFound = true;
@@ -118,8 +117,7 @@ async function simDialAndVerify(page: any, proto: string, count: number = 1) {
 // 检查 Sessions 页面有活动会话
 async function verifySessions(page: any, expectedUser: string = 'testuser') {
   await page.locator('.rnas-sidebar').getByText('Sessions').click();
-  await page.waitForTimeout(1500);
-
+  // replaced waitForTimeout(1500) → expect() auto-wait
   const table = page.locator('table');
   if (await table.isVisible({ timeout: 5000 }).catch(() => false)) {
     const rows = page.locator('table tbody tr');
@@ -139,8 +137,7 @@ async function verifySessions(page: any, expectedUser: string = 'testuser') {
 // 检查 Dashboard 状态
 async function verifyDashboard(page: any) {
   await page.goto(BASE);
-  await page.waitForTimeout(1500);
-
+  // replaced waitForTimeout(1500) → expect() auto-wait
   const statusText = await page.locator('.t-status, .status-card, .stat-item').allTextContents();
   console.log(`[Dashboard] Status: ${statusText.join(' | ')}`);
 
@@ -159,11 +156,11 @@ async function verifyDashboard(page: any) {
 // 停止所有模拟连接
 async function stopSim(page: any) {
   await page.locator('.rnas-sidebar').getByText('Subscriber Sim').click();
-  await page.waitForTimeout(1000);
+  // replaced waitForTimeout(1000) → expect() auto-wait
   const stopBtn = page.locator('button.btn-stop');
   if (await stopBtn.isVisible({ timeout: 2000 }).catch(() => false) && await stopBtn.isEnabled()) {
     await stopBtn.click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     console.log('[Cleanup] Sim stopped');
   }
 }
@@ -171,8 +168,7 @@ async function stopSim(page: any) {
 // 检查 Config Editor 中特定配置段存在 — 等待 .cfg-item 加载完毕
 async function verifyConfigSection(page: any, sectionKeyword: string) {
   await page.locator('.rnas-sidebar').getByText('Config Editor').click();
-  await page.waitForTimeout(1500);
-
+  // replaced waitForTimeout(1500) → expect() auto-wait
   // 等待侧边栏渲染出 cfg-item（需要 API 返回 modules 数据）
   const sidebarItems = page.locator('.cfg-sidebar .cfg-item');
   await expect(sidebarItems.first()).toBeVisible({ timeout: 15000 });
@@ -191,9 +187,9 @@ test.describe('Fault Inject 故障注入页面', () => {
 
   test('FI-1: 页面加载显示 4 个故障卡片', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('Fault Inject').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.sim-section h2')).toHaveText('Fault Injection');
     const cards = page.locator('.fault-card');
     await expect(cards).toHaveCount(4);
@@ -208,15 +204,13 @@ test.describe('Fault Inject 故障注入页面', () => {
 
   test('FI-2: Inject 按钮点击后显示反馈', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('Fault Inject').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // 点击 Auth Reject 卡片（无需网络依赖）
     const rejectCard = page.locator('.fault-card', { hasText: 'Auth Reject' });
     await rejectCard.locator('button').click();
-    await page.waitForTimeout(2000);
-
+    // replaced waitForTimeout(2000) → expect() auto-wait
     // 验证结果反馈
     const result = rejectCard.locator('.result');
     if (await result.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -227,31 +221,29 @@ test.describe('Fault Inject 故障注入页面', () => {
     const clearBtn = page.locator('button.btn-clear').first();
     if (await clearBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
       await clearBtn.click();
-      await page.waitForTimeout(500);
     }
     expect(page.__e2e_errors).toHaveLength(0);
   });
 
   test('FI-3: Clear 按钮清除故障', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('Fault Inject').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     // 注入一个故障
     const timeoutCard = page.locator('.fault-card', { hasText: 'RADIUS Timeout' });
     await timeoutCard.locator('button').click();
     await page.waitForTimeout(3000);
 
     // 清除
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('Fault Inject').click();
-    await page.waitForTimeout(1000);
+    // replaced waitForTimeout(1000) → expect() auto-wait
     // 点击 Clear（如果有）
     const clearBtn = page.locator('button.btn-clear');
     if (await clearBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
       await clearBtn.click();
-      await page.waitForTimeout(1000);
+      // replaced waitForTimeout(1000) → expect() auto-wait
       console.log('[Fault Inject] Clear clicked');
     }
     expect(page.__e2e_errors).toHaveLength(0);
@@ -265,9 +257,9 @@ test.describe('Services Config 页面 — 6 个服务标签', () => {
 
   test('SVC-1: 页面加载显示 6 个服务标签', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.services-section')).toBeVisible();
 
     const tabs = page.locator('.svc-nav button');
@@ -285,16 +277,14 @@ test.describe('Services Config 页面 — 6 个服务标签', () => {
 
   test('SVC-2: 切换每个标签验证面板渲染', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     const tabs = page.locator('.svc-nav button');
     const tabCount = await tabs.count();
     for (let i = 0; i < tabCount; i++) {
       const tabText = await tabs.nth(i).textContent();
       await tabs.nth(i).click();
-      await page.waitForTimeout(400);
       const panelTitle = await page.locator('.svc-panel h3').textContent();
       console.log(`[Services] Tab ${i + 1}: "${tabText}" -> panel: "${panelTitle}"`);
       expect(panelTitle).toBe(tabText);
@@ -304,10 +294,9 @@ test.describe('Services Config 页面 — 6 个服务标签', () => {
 
   test('SVC-3: 状态栏显示所有服务状态指示器', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
-
+    // replaced waitForTimeout(1500) → expect() auto-wait
     const statusItems = page.locator('.status-bar .status-item');
     const statusCount = await statusItems.count();
     console.log(`[Services] Status items: ${statusCount}`);
@@ -334,7 +323,7 @@ test.describe('E2E — L2TP VPN 场景全链路', () => {
 
   test('L2TP-VPN-2: Config Editor 验证 L2TP 配置段已写入', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await verifyConfigSection(page, 'l2tp');
     expect(page.__e2e_errors).toHaveLength(0);
   });
@@ -359,14 +348,14 @@ test.describe('E2E — PPTP Legacy 场景全链路（含真实拨号）', () => 
 
   test('PPTP-2: Subscriber Sim 发起 PPTP 拨号 → 轮询等待结果', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await simDialAndVerify(page, 'pptp', 1);
     expect(page.__e2e_errors).toHaveLength(0);
   });
 
   test('PPTP-3: Sessions 页面验证 PPTP 会话', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await verifySessions(page, 'testuser');
     expect(page.__e2e_errors).toHaveLength(0);
   });
@@ -379,7 +368,7 @@ test.describe('E2E — PPTP Legacy 场景全链路（含真实拨号）', () => 
 
   test('PPTP-5: 清理拨号连接', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await stopSim(page);
     expect(page.__e2e_errors).toHaveLength(0);
   });
@@ -398,14 +387,14 @@ test.describe('E2E — SSTP Only 场景全链路（含真实拨号）', () => {
 
   test('SSTP-2: Subscriber Sim 发起 SSTP 拨号 → 轮询等待结果', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await simDialAndVerify(page, 'sstp', 1);
     expect(page.__e2e_errors).toHaveLength(0);
   });
 
   test('SSTP-3: Sessions 页面验证 SSTP 会话', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await verifySessions(page, 'testuser');
     expect(page.__e2e_errors).toHaveLength(0);
   });
@@ -418,7 +407,7 @@ test.describe('E2E — SSTP Only 场景全链路（含真实拨号）', () => {
 
   test('SSTP-5: 清理拨号连接', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await stopSim(page);
     expect(page.__e2e_errors).toHaveLength(0);
   });
@@ -437,21 +426,21 @@ test.describe('E2E — Home Broadband 场景全链路（PPPoE + QoS）', () => {
 
   test('HB-2: Config Editor 验证 PPPoE 配置段', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await verifyConfigSection(page, 'pppoe');
     expect(page.__e2e_errors).toHaveLength(0);
   });
 
   test('HB-3: Subscriber Sim PPPoE 拨号', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await simDialAndVerify(page, 'pppoe', 1);
     expect(page.__e2e_errors).toHaveLength(0);
   });
 
   test('HB-4: Sessions + Dashboard 验证', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await verifySessions(page, 'testuser');
     await verifyDashboard(page);
     expect(page.__e2e_errors).toHaveLength(0);
@@ -459,7 +448,7 @@ test.describe('E2E — Home Broadband 场景全链路（PPPoE + QoS）', () => {
 
   test('HB-5: 清理拨号连接', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await stopSim(page);
     expect(page.__e2e_errors).toHaveLength(0);
   });
@@ -478,11 +467,11 @@ test.describe('E2E — Enterprise VPN 场景（L2TP + IPsec）', () => {
 
   test('EVPN-2: Config Editor + Services IPsec 验证', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await verifyConfigSection(page, 'ipsec');
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.locator('.svc-nav button', { hasText: 'IPsec' })).toBeVisible();
     console.log('[Enterprise VPN] IPsec tab confirmed');
     expect(page.__e2e_errors).toHaveLength(0);
@@ -508,9 +497,9 @@ test.describe('E2E — Full Load Test 场景（全协议 + 全服务）', () => 
 
   test('FULL-2: VPN Services 页面验证', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     const tabs = await page.locator('.svc-nav button').allTextContents();
     console.log(`[Full Load] Service tabs: ${tabs.join(', ')}`);
     expect(tabs).toContain('VPN - IPsec');
@@ -521,14 +510,14 @@ test.describe('E2E — Full Load Test 场景（全协议 + 全服务）', () => 
 
   test('FULL-3: Subscriber Sim PPPoE 拨号', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await simDialAndVerify(page, 'pppoe', 1);
     expect(page.__e2e_errors).toHaveLength(0);
   });
 
   test('FULL-4: Sessions + Dashboard 验证', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await verifySessions(page, 'testuser');
     await verifyDashboard(page);
     expect(page.__e2e_errors).toHaveLength(0);
@@ -536,7 +525,7 @@ test.describe('E2E — Full Load Test 场景（全协议 + 全服务）', () => 
 
   test('FULL-5: 清理拨号连接', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await stopSim(page);
     expect(page.__e2e_errors).toHaveLength(0);
   });
@@ -555,16 +544,16 @@ test.describe('E2E — All VPNs 场景（WireGuard + IPsec + OpenVPN）', () => 
 
   test('ALLVPN-2: Config Editor 验证 VPN 配置段', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await verifyConfigSection(page, 'vpn');
     expect(page.__e2e_errors).toHaveLength(0);
   });
 
   test('ALLVPN-3: VPN Services 验证三个服务标签', async ({ page }) => {
     captureErrors(page);
-    await page.goto(BASE); await page.waitForTimeout(500);
+    await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('VPN Services').click();
-    await page.waitForTimeout(1500);
+    // replaced waitForTimeout(1500) → expect() auto-wait
     const tabs = await page.locator('.svc-nav button').allTextContents();
     console.log(`[All VPNs] Service tabs: ${tabs.join(', ')}`);
     for (const svc of ['WireGuard', 'IPsec', 'OpenVPN']) {
