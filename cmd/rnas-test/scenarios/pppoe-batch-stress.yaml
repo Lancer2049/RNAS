@@ -1,0 +1,44 @@
+name: PPPoE 批量并发压力测试
+description: 100 用户 PPPoE 并发拨号 + 会话验证
+version: "1.0"
+
+topology:
+  cpe_count: 100
+  protocol: pppoe
+  rate: 5/s
+  credentials:
+    username_prefix: testuser
+    password: testpass
+
+actions:
+  - name: 建立 PPPoE 会话
+    command: connect
+    target: all
+    rate: 5/s
+
+  - name: 等待会话建立
+    command: wait
+    timeout: 60s
+    condition:
+      sessions_active: 100
+
+  - name: 验证所有会话
+    command: assert
+    checks:
+      - sessions_active == 100
+      - radius_auth_accepted == 100
+      - radius_acct_start == 100
+
+  - name: 断开所有会话
+    command: disconnect
+    target: all
+
+  - name: 验证清理
+    command: assert
+    checks:
+      - sessions_active == 0
+      - radius_acct_stop == 100
+
+report:
+  format: [junit, json]
+  output: /var/log/rnas/scenarios/
