@@ -1,8 +1,8 @@
 """RNAS Environment Configuration — all topology-specific values in one place."""
-import os
+import os, subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional
+from typing import ClassVar, Dict, Optional
 
 
 @dataclass
@@ -16,6 +16,10 @@ class RNASEnv:
     # ── SSH credentials ──
     ssh_user: str = field(default_factory=lambda: os.environ.get("RNAS_SSH_USER", "root"))
     ssh_pass: str = field(default_factory=lambda: os.environ.get("RNAS_SSH_PASS", "123456"))
+    # Port-forwarded SSH ports (VMware NAT: 2201→.201:22, 2202→.202:22, 2203→.203:22)
+    cpe_ssh_port: int = int(os.environ.get("RNAS_CPE_SSH_PORT", "2201"))
+    radius_ssh_port: int = int(os.environ.get("RNAS_RADIUS_SSH_PORT", "2202"))
+    nas_ssh_port: int = int(os.environ.get("RNAS_NAS_SSH_PORT", "2203"))
 
     # ── RADIUS ──
     radius_auth_port: int = 1812
@@ -41,27 +45,66 @@ class RNASEnv:
     rnas_config_root: Path = Path("/etc/rnas")
     accel_cmd_bin: str = "/usr/bin/accel-cmd"
 
+    # Port-forwarded host map: original IP → (reachable_address, port)
+    # VMware NAT on the Windows host forwards 2201→.201:22, 2202→.202:22, 2203→.203:22
+    # From WSL (mirrored networking), connect to 127.0.0.1 on the forwarded port.
+    _NAT_MAP: ClassVar[Dict[str, tuple[str, int]]] = {}
+
+    @property
+    def _nat_map(self) -> Dict[str, tuple[str, int]]:
+        if not self._NAT_MAP:
+            self.__class__._NAT_MAP = {
+                self.cpe_host: ("127.0.0.1", self.cpe_ssh_port),
+                self.radius_host: ("127.0.0.1", self.radius_ssh_port),
+                self.nas_host: ("127.0.0.1", self.nas_ssh_port),
+            }
+        return self._NAT_MAP
+
+    def ssh_connect_params(self, host: str) -> tuple[str, int]:
+        """Map a configured host IP through VMware NAT to reachable address + port."""
+        if host in self._nat_map:
+            return self._nat_map[host]
+        return (host, 22)
+
     def ssh_cmd(self, host: str, command: str) -> list[str]:
         """Build an sshpass-based SSH command (for dev/test only)."""
-        return [
+        connect_host, port = self.ssh_connect_params(host)
+        cmd = [
             "sshpass", "-p", self.ssh_pass,
             "ssh", "-o", "StrictHostKeyChecking=no",
-            f"{self.ssh_user}@{host}", command,
         ]
+        if port != 22:
+            cmd += ["-p", str(port)]
+        cmd += [f"{self.ssh_user}@{connect_host}", command]
+        return cmd
 
     def db_query_str(self, sql: str) -> str:
-        """Build a shell command string for remote PostgreSQL query (for subprocess shell=True)."""
+        """Build a shell command string for remote PostgreSQL query (kept for compatibility)."""
+        connect_host, port = self.ssh_connect_params(self.radius_host)
+        port_flag = f" -p {port}" if port != 22 else ""
         cmd = (
             f"PGPASSWORD={self.db_pass} psql -h {self.db_host} "
             f"-U {self.db_user} -d {self.db_name} -t -c '{sql}'"
         )
-        return f"sshpass -p {self.ssh_pass} ssh -o StrictHostKeyChecking=no {self.ssh_user}@{self.radius_host} '{cmd}'"
+        return (
+            f'sshpass -p {self.ssh_pass} ssh -o StrictHostKeyChecking=no'
+            f'{port_flag} {self.ssh_user}@{connect_host} \'{cmd}\''
+        )
+
+    def db_query(self, sql: str, timeout: int = 15) -> str:
+        """Run a remote PostgreSQL query via SSH and return stdout.
+           Wraps the shell call internally to keep callers free of shell=True."""
+        cmd = self.db_query_str(sql)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+        return result.stdout
 
     def ssh_cmd_str(self, host: str, command: str) -> str:
         """Build an sshpass shell command string (for subprocess shell=True)."""
+        connect_host, port = self.ssh_connect_params(host)
+        port_flag = f" -p {port}" if port != 22 else ""
         return (
-            f'sshpass -p {self.ssh_pass} ssh -o StrictHostKeyChecking=no '
-            f'{self.ssh_user}@{host} \'{command}\''
+            f'sshpass -p {self.ssh_pass} ssh -o StrictHostKeyChecking=no'
+            f'{port_flag} {self.ssh_user}@{connect_host} \'{command}\''
         )
 
     def radius_test_payload(self, user: str = "testuser", password: str = "testpass", extra_attrs: str = "") -> str:

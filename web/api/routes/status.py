@@ -11,10 +11,11 @@ async def get_status():
         "show", "sessions",
         "sid,ifname,username,ip,type,state,uptime-raw,rx-bytes-raw,tx-bytes-raw"
     )
+    sessions = parse_sessions(sessions_raw)
     return {
         "service": parse_stat(stat_raw),
-        "sessions": parse_sessions(sessions_raw),
-        "sessions_count": len(parse_sessions(sessions_raw)),
+        "sessions": sessions,
+        "sessions_count": len(sessions),
     }
 
 

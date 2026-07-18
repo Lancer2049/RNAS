@@ -1,27 +1,54 @@
+"""Extra API routes — interfaces, routing, tunnels, vlans, firewall, DHCP, certificates."""
+import os
+import re
+import json
+import glob
+import time
+import subprocess
 from pathlib import Path
-"""Extra API routes migrated from server.py — routing, tunnels, vlans, etc."""
-import subprocess, os, time
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Body, Query
 from fastapi.responses import PlainTextResponse
-from typing import Optional
 from services.traffic import get_history
+from services.oui import lookup
 
 router = APIRouter()
+_SCRIPT_TIMEOUT = 10
 
-from oui import lookup
 
+# ── helpers ────────────────────────────────────────────────────────────────
+
+def _sysfs_stat(path: str, default: int = 0) -> int:
+    try:
+        return int(Path(path).read_text().strip())
+    except Exception:
+        return default
+
+
+def _vendor(mac: str) -> str:
+    """Look up OUI vendor for a MAC address."""
+    try:
+        return lookup(mac)
+    except Exception:
+        return ""
+
+
+# ── Interfaces ─────────────────────────────────────────────────────────────
 
 @router.get("/interfaces")
 async def interfaces():
-    """ Real-time interface stats (RouterOS-style bandwidth) """
-    import re
-    out = subprocess.run("ip -d -s link show up", shell=True, capture_output=True, text=True, timeout=3).stdout
+    out = subprocess.run(
+        ["ip", "-d", "-s", "link", "show", "up"],
+        capture_output=True, text=True, timeout=_SCRIPT_TIMEOUT
+    ).stdout
     ifaces = []
     for block in re.split(r"\n(?=\d+: )", out):
         lines = block.strip().splitlines()
-        if not lines: continue
+        if not lines:
+            continue
         m0 = re.match(r"\d+:\s+(\S+):\s+<(.*?)>.*?mtu\s+(\d+)", lines[0])
-        if not m0: continue
+        if not m0:
+            continue
         name, flags, mtu = m0.group(1), m0.group(2), m0.group(3)
         mac, rx_b, rx_p, rx_e, rx_d = "", 0, 0, 0, 0
         tx_b, tx_p, tx_e, tx_d = 0, 0, 0, 0
@@ -29,104 +56,249 @@ async def interfaces():
             s = line.strip()
             if s.startswith("link/") and not mac and not s.startswith("link/none") and not s.startswith("link/ppp"):
                 mm = re.search(r"link/\S+\s+(\S+)", s)
-                if mm: mac = mm.group(1)
-            if s.startswith("RX:") and i+1 < len(lines):
-                v = lines[i+1].strip().split()
-                if len(v) >= 4: rx_b, rx_p, rx_e, rx_d = int(v[0]), int(v[1]), int(v[2]), int(v[3])
-            if s.startswith("TX:") and i+1 < len(lines):
-                v = lines[i+1].strip().split()
-                if len(v) >= 4: tx_b, tx_p, tx_e, tx_d = int(v[0]), int(v[1]), int(v[2]), int(v[3])
+                if mm:
+                    mac = mm.group(1)
+            if s.startswith("RX:") and i + 1 < len(lines):
+                v = lines[i + 1].strip().split()
+                if len(v) >= 4:
+                    rx_b, rx_p, rx_e, rx_d = int(v[0]), int(v[1]), int(v[2]), int(v[3])
+            if s.startswith("TX:") and i + 1 < len(lines):
+                v = lines[i + 1].strip().split()
+                if len(v) >= 4:
+                    tx_b, tx_p, tx_e, tx_d = int(v[0]), int(v[1]), int(v[2]), int(v[3])
         ifaces.append({
             "name": name, "mac": mac, "mtu": int(mtu), "running": "UP" in flags,
             "rx_bytes": rx_b, "rx_packets": rx_p, "rx_errors": rx_e, "rx_dropped": rx_d,
             "tx_bytes": tx_b, "tx_packets": tx_p, "tx_errors": tx_e, "tx_dropped": tx_d,
         })
     return {"interfaces": ifaces, "count": len(ifaces)}
+
+
+@router.get("/interfaces/history")
+async def interface_history(name: str, range_sec: int = 3600):
+    data = get_history(name, range_sec)
+    return {"iface": name, "data": data, "points": len(data)}
+
+
+@router.get("/interfaces/{name}")
+async def interface_detail(name: str):
+    link = subprocess.run(["ip", "link", "show", name], capture_output=True, text=True, timeout=5).stdout
+    addr = subprocess.run(["ip", "-4", "addr", "show", name], capture_output=True, text=True, timeout=5).stdout
+    m = re.search(r"<([^>]+)>", link)
+    flags = m.group(1) if m else ""
+    mac = ""
+    mm = re.search(r"link/\S+\s+(\S+)", link)
+    if mm:
+        mac = mm.group(1)
+    ip = ""
+    mi = re.search(r"inet\s+(\S+)", addr)
+    if mi:
+        ip = mi.group(1)
+    rx_b = _sysfs_stat(f"/sys/class/net/{name}/statistics/rx_bytes")
+    tx_b = _sysfs_stat(f"/sys/class/net/{name}/statistics/tx_bytes")
+    rx_p = _sysfs_stat(f"/sys/class/net/{name}/statistics/rx_packets")
+    tx_p = _sysfs_stat(f"/sys/class/net/{name}/statistics/tx_packets")
+    rx_e = _sysfs_stat(f"/sys/class/net/{name}/statistics/rx_errors")
+    tx_e = _sysfs_stat(f"/sys/class/net/{name}/statistics/tx_errors")
+    sess_out = subprocess.run(
+        ["accel-cmd", "show", "sessions", "sid,ifname,username,ip,type,state,uptime-raw,rx-bytes-raw,tx-bytes-raw"],
+        capture_output=True, text=True, timeout=5,
+    ).stdout
+    sessions = []
+    for line in sess_out.splitlines()[1:]:
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) >= 9 and parts[1] == name:
+            sessions.append({
+                "sid": parts[0], "username": parts[2], "ip": parts[3],
+                "type": parts[4], "state": parts[5], "uptime": parts[6],
+                "rx": parts[7], "tx": parts[8],
+            })
+    return {
+        "name": name, "mac": mac, "ip": ip, "flags": flags,
+        "running": "UP" in flags,
+        "rx_bytes": rx_b, "tx_bytes": tx_b,
+        "rx_packets": rx_p, "tx_packets": tx_p,
+        "rx_errors": rx_e, "tx_errors": tx_e,
+        "sessions": sessions, "sessions_count": len(sessions),
+    }
+
+
+# ── Routing ────────────────────────────────────────────────────────────────
+
 @router.get("/routing/status")
 async def routing_status():
     ospf, bgp = {"neighbors": []}, {"peers": [], "routes": []}
     try:
-        out = subprocess.run(["vtysh", "-c", "show ip ospf neighbor"], capture_output=True, text=True, timeout=5).stdout
+        out = subprocess.run(
+            ["vtysh", "-c", "show ip ospf neighbor"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout
         for line in out.splitlines():
             if line.strip() and not line.startswith("Neighbor") and "-" not in line[:10]:
                 cols = line.split()
                 if len(cols) >= 5:
-                    ospf["neighbors"].append({"id": cols[0], "state": cols[2], "address": cols[4], "iface": cols[5] if len(cols) > 5 else ""})
-    except: pass
+                    ospf["neighbors"].append({
+                        "id": cols[0], "state": cols[2],
+                        "address": cols[4], "iface": cols[5] if len(cols) > 5 else "",
+                    })
+    except Exception:
+        pass
     try:
-        out = subprocess.run(["vtysh", "-c", "show bgp summary"], capture_output=True, text=True, timeout=5).stdout
+        out = subprocess.run(
+            ["vtysh", "-c", "show bgp summary"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout
         for line in out.splitlines():
             cols = line.split()
             if len(cols) >= 10 and "." in cols[0]:
-                bgp["peers"].append({"peer": cols[0], "as": cols[2], "rcv": cols[3], "sent": cols[4], "uptime": cols[8], "state": cols[9] if len(cols) > 9 else ""})
-    except: pass
+                bgp["peers"].append({
+                    "peer": cols[0], "as": cols[2], "rcv": cols[3],
+                    "sent": cols[4], "uptime": cols[8], "state": cols[9] if len(cols) > 9 else "",
+                })
+    except Exception:
+        pass
     return {"ospf": ospf, "bgp": bgp}
+
+
+# ── Tunnels ────────────────────────────────────────────────────────────────
 
 @router.get("/tunnels")
 async def tunnels():
     try:
-        out = subprocess.run(["ip", "-br", "-d", "link"], capture_output=True, text=True, timeout=5).stdout
-        tunnels = []
+        out = subprocess.run(
+            ["ip", "-br", "-d", "link"], capture_output=True, text=True, timeout=5,
+        ).stdout
+        tunnels_list = []
         for line in out.splitlines():
             for t in ["gre", "ipip", "vxlan", "eoip"]:
                 if t in line.lower() and "gretap" not in line.lower():
                     parts = line.split()
-                    tunnels.append({"name": parts[0], "up": "UP" in line, "type": t, "local": "", "remote": "", "inner_ip": ""})
-        return {"tunnels": tunnels}
-    except: return {"tunnels": []}
+                    tunnels_list.append({
+                        "name": parts[0], "up": "UP" in line, "type": t,
+                        "local": "", "remote": "", "inner_ip": "",
+                    })
+        return {"tunnels": tunnels_list}
+    except Exception:
+        return {"tunnels": []}
+
+
+# ── VLANs ───────────────────────────────────────────────────────────────────
 
 @router.get("/vlans")
 async def vlans():
-    mod_loaded = subprocess.run("lsmod | grep -q 8021q", shell=True).returncode == 0
+    mod_loaded = False
     try:
-        out = subprocess.run(["ip", "-br", "link"], capture_output=True, text=True, timeout=5).stdout
+        proc_modules = Path("/proc/modules").read_text()
+        mod_loaded = "8021q" in proc_modules
+    except Exception:
+        pass
+    try:
+        out = subprocess.run(
+            ["ip", "-br", "link"], capture_output=True, text=True, timeout=5,
+        ).stdout
         ifaces = []
         for line in out.splitlines():
-            if "." in line.split()[0]:
-                parts = line.split()
-                name = parts[0]; parent = name.split(".")[0]
-                ifaces.append({"name": name, "id": name.split(".")[-1], "up": "UP" in line, "parent": parent})
-        return {"module": "loaded" if mod_loaded else "missing", "kernel": "loaded" if mod_loaded else "missing", "interfaces": ifaces[:20]}
-    except: return {"module": "unknown", "kernel": "unknown", "interfaces": []}
+            parts = line.split()
+            if "." in parts[0]:
+                name = parts[0]
+                ifaces.append({
+                    "name": name,
+                    "id": name.split(".")[-1],
+                    "up": "UP" in line,
+                    "parent": name.split(".")[0],
+                })
+        return {
+            "module": "loaded" if mod_loaded else "missing",
+            "interfaces": ifaces[:20],
+        }
+    except Exception:
+        return {"module": "unknown", "interfaces": []}
+
+
+# ── NetFlow / DHCP Relay ───────────────────────────────────────────────────
 
 @router.get("/netflow")
 async def netflow():
-    running = subprocess.run(["systemctl", "is-active", "softflowd"], capture_output=True, text=True).stdout.strip() == "active"
-    return {"running": running, "collector": "192.168.0.202:2055", "interface": "ens33", "format": "netflow_v5"}
+    try:
+        running = subprocess.run(
+            ["systemctl", "is-active", "softflowd"],
+            capture_output=True, text=True,
+        ).stdout.strip() == "active"
+    except Exception:
+        running = False
+    return {
+        "running": running,
+        "collector": "192.168.0.202:2055",
+        "interface": "ens33",
+        "format": "netflow_v5",
+    }
+
 
 @router.get("/dhcp-relay")
 async def dhcp_relay():
-    running = subprocess.run(["systemctl", "is-active", "rnas-dhcp-relay"], capture_output=True, text=True).stdout.strip() == "active"
+    try:
+        running = subprocess.run(
+            ["systemctl", "is-active", "rnas-dhcp-relay"],
+            capture_output=True, text=True,
+        ).stdout.strip() == "active"
+    except Exception:
+        running = False
     return {"running": running, "upstream": "192.168.0.202:67", "giaddr": "192.168.100.1"}
+
+
+# ── Hotspot ─────────────────────────────────────────────────────────────────
 
 @router.get("/hotspot/status")
 async def hotspot_status():
-    portal_active = os.path.exists("/opt/rnas-web/static/hotspot/login.html")
-    ipt = "Active" if subprocess.run("iptables -t nat -L rnas-hotspot -n 2>/dev/null | grep -q DNAT", shell=True).returncode == 0 else "Inactive"
-    return {"portal": "Active" if portal_active else "Inactive", "auth": "Active", "iptables": ipt}
+    portal_active = Path("/opt/rnas-web/static/hotspot/login.html").exists()
+    try:
+        ipt = subprocess.run(
+            ["iptables", "-t", "nat", "-L", "rnas-hotspot", "-n"],
+            capture_output=True, text=True, timeout=3,
+        ).stdout
+        ipt_status = "Active" if "DNAT" in ipt else "Inactive"
+    except Exception:
+        ipt_status = "Inactive"
+    return {"portal": "Active" if portal_active else "Inactive", "auth": "Active", "iptables": ipt_status}
+
+
+# ── Config Export ───────────────────────────────────────────────────────────
 
 @router.get("/config-export")
 async def config_export():
-    import json as _json
     from rnas_config import walk_config_tree
-    from pathlib import Path
     config = walk_config_tree(Path("/etc/rnas"))
-    return {"rnas_version": "3.0", "exported_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "config": {k: dict(v) for k, v in config.items()}}
+    return {
+        "rnas_version": "3.0",
+        "exported_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "config": {k: dict(v) for k, v in config.items()},
+    }
+
+
+# ── IP: ARP, Firewall, DHCP ────────────────────────────────────────────────
 
 @router.get("/ip/arp")
 async def arp_table():
-    out = subprocess.run(["ip", "neigh", "show"], capture_output=True, text=True, timeout=5).stdout
+    out = subprocess.run(
+        ["ip", "neigh", "show"], capture_output=True, text=True, timeout=5,
+    ).stdout
     entries = []
     for line in out.splitlines():
         parts = line.split()
         if len(parts) >= 5:
-            vendor = lookup(parts[4])
-            entries.append({"ip": parts[0], "dev": parts[2], "mac": parts[4], "state": parts[5] if len(parts) > 5 else "", "vendor": vendor})
+            entries.append({
+                "ip": parts[0], "dev": parts[2], "mac": parts[4],
+                "state": parts[5] if len(parts) > 5 else "",
+                "vendor": _vendor(parts[4]),
+            })
     return {"arp": entries}
+
 
 @router.get("/ip/firewall")
 async def firewall_rules():
-    out = subprocess.run(["nft", "list", "ruleset"], capture_output=True, text=True, timeout=5).stdout
+    out = subprocess.run(
+        ["nft", "list", "ruleset"], capture_output=True, text=True, timeout=5,
+    ).stdout
     chains = []
     current_chain = None
     for line in out.splitlines():
@@ -140,10 +312,8 @@ async def firewall_rules():
     return {"chains": chains, "raw": out}
 
 
-
 @router.post("/ip/firewall")
 async def add_firewall_rule(data: dict = Body(...)):
-    """Add nftables rule: { chain: str, table: str, rule: str }"""
     chain = data.get("chain", "rnas-hotspot")
     table = data.get("table", "nat")
     rule = data.get("rule", "")
@@ -153,7 +323,7 @@ async def add_firewall_rule(data: dict = Body(...)):
     try:
         res = subprocess.run(
             ["nft", "add", "rule", family, table, chain] + rule.split(),
-            capture_output=True, text=True, timeout=5
+            capture_output=True, text=True, timeout=5,
         )
         if res.returncode != 0:
             raise HTTPException(400, res.stderr.strip())
@@ -163,9 +333,9 @@ async def add_firewall_rule(data: dict = Body(...)):
     except Exception as e:
         raise HTTPException(500, str(e))
 
+
 @router.delete("/ip/firewall")
 async def delete_firewall_rule(data: dict = Body(...)):
-    """Delete nftables rule by handle: { family: str, table: str, chain: str, handle: int }"""
     family = data.get("family", "ip")
     table = data.get("table", "nat")
     chain = data.get("chain", "rnas-hotspot")
@@ -175,7 +345,7 @@ async def delete_firewall_rule(data: dict = Body(...)):
     try:
         res = subprocess.run(
             ["nft", "delete", "rule", family, table, chain, "handle", str(handle)],
-            capture_output=True, text=True, timeout=5
+            capture_output=True, text=True, timeout=5,
         )
         if res.returncode != 0:
             raise HTTPException(400, res.stderr.strip())
@@ -185,11 +355,13 @@ async def delete_firewall_rule(data: dict = Body(...)):
     except Exception as e:
         raise HTTPException(500, str(e))
 
+
 @router.get("/ip/firewall-full")
 async def firewall_full():
-    """Firewall rules with handles for delete operations"""
     chains = []
-    out = subprocess.run(["nft", "-a", "list", "ruleset"], capture_output=True, text=True, timeout=5).stdout
+    out = subprocess.run(
+        ["nft", "-a", "list", "ruleset"], capture_output=True, text=True, timeout=5,
+    ).stdout
     current_chain = None
     current_table = ""
     current_family = "ip"
@@ -204,13 +376,14 @@ async def firewall_full():
         if s.startswith("chain"):
             parts = s.split()
             if len(parts) >= 2:
-                current_chain = {"name": parts[1], "table": current_table, "family": current_family, "type": "", "handle": 0, "rules": []}
+                current_chain = {
+                    "name": parts[1], "table": current_table,
+                    "family": current_family, "type": "", "handle": 0, "rules": [],
+                }
                 chains.append(current_chain)
             elif current_chain and "type" in s:
                 current_chain["type"] = s
         elif current_chain and s and not s.startswith(("{", "}", "table", "chain")):
-            # Check for handle annotation
-            import re
             h = re.search(r"#\s*handle\s+(\d+)", s)
             pc = re.search(r"counter\s+packets\s+(\d+)\s+bytes\s+(\d+)", s)
             pkts = int(pc.group(1)) if pc else 0
@@ -224,14 +397,13 @@ async def firewall_full():
                 "text": rule_text,
                 "handle": handle_counter if h else 0,
                 "packets": pkts,
-                "bytes": bytes_n
+                "bytes": bytes_n,
             })
     return {"chains": chains}
 
 
 @router.put("/ip/firewall/reorder")
 async def reorder_firewall_rule(data: dict = Body(...)):
-    """Reorder nftables rule: { chain: str, table: str, family: str, handle: int, position: int }"""
     chain = data.get("chain", "")
     table = data.get("table", "filter")
     family = data.get("family", "ip")
@@ -240,17 +412,17 @@ async def reorder_firewall_rule(data: dict = Body(...)):
     if not chain or not handle:
         raise HTTPException(400, "chain and handle are required")
     try:
-        res = subprocess.run(
+        subprocess.run(
             ["nft", "add", "rule", family, table, chain, "position", str(position)],
-            capture_output=True, text=True, timeout=5
+            capture_output=True, text=True, timeout=5,
         )
         return {"ok": True}
     except Exception as e:
         raise HTTPException(500, str(e))
 
+
 @router.put("/ip/firewall/{handle}/toggle")
 async def toggle_firewall_rule(handle: int, data: dict = Body(...)):
-    """Enable/disable nftables rule by handle. disabled = add reject rule before it"""
     enabled = data.get("enabled", True)
     chain = data.get("chain", "")
     table = data.get("table", "filter")
@@ -259,16 +431,14 @@ async def toggle_firewall_rule(handle: int, data: dict = Body(...)):
         raise HTTPException(400, "chain is required")
     try:
         if enabled:
-            # Re-enable: delete the reject rule that was added
             res = subprocess.run(
                 ["nft", "delete", "rule", family, table, chain, "handle", str(handle)],
-                capture_output=True, text=True, timeout=5
+                capture_output=True, text=True, timeout=5,
             )
         else:
-            # Disable: add a reject rule at the same position
             res = subprocess.run(
                 ["nft", "add", "rule", family, table, chain, "position", str(handle), "counter", "drop"],
-                capture_output=True, text=True, timeout=5
+                capture_output=True, text=True, timeout=5,
             )
         if res.returncode != 0:
             raise HTTPException(400, res.stderr.strip())
@@ -278,27 +448,33 @@ async def toggle_firewall_rule(handle: int, data: dict = Body(...)):
     except Exception as e:
         raise HTTPException(500, str(e))
 
+
 @router.get("/ip/dhcp")
 async def dhcp_leases():
-    out = subprocess.run("cat /var/lib/misc/dnsmasq.leases 2>/dev/null || echo ", shell=True, capture_output=True, text=True, timeout=5).stdout
+    lease_path = Path("/var/lib/misc/dnsmasq.leases")
+    try:
+        text = lease_path.read_text()
+    except Exception:
+        text = ""
     leases = []
-    for line in out.splitlines():
+    for line in text.splitlines():
         if line.strip():
             parts = line.split()
             if len(parts) >= 5:
-                leases.append({"timestamp": parts[0], "mac": parts[1], "ip": parts[2], "hostname": parts[3], "client_id": parts[4], "vendor": _vendor(parts[1])})
+                leases.append({
+                    "timestamp": parts[0], "mac": parts[1], "ip": parts[2],
+                    "hostname": parts[3], "client_id": parts[4],
+                    "vendor": _vendor(parts[1]),
+                })
     return {"leases": leases, "count": len(leases)}
-
 
 
 @router.get("/ip/dhcp-static")
 async def dhcp_static():
-    """DHCP static leases from dnsmasq config"""
-    import re
-    static_file = "/etc/dnsmasq.d/static.conf"
+    static_file = Path("/etc/dnsmasq.d/static.conf")
     try:
-        lines = open(static_file).readlines()
-    except:
+        lines = static_file.read_text().splitlines()
+    except Exception:
         lines = []
     entries = []
     for line in lines:
@@ -309,47 +485,53 @@ async def dhcp_static():
             mac = parts[0] if len(parts) > 0 else ""
             ip = parts[1] if len(parts) > 1 else ""
             hostname = parts[2] if len(parts) > 2 else ""
-            entries.append({"mac": mac, "ip": ip, "hostname": hostname, "enabled": not line.startswith("#")})
+            entries.append({
+                "mac": mac, "ip": ip, "hostname": hostname,
+                "enabled": not line.startswith("#"),
+            })
     return {"static": entries, "count": len(entries)}
+
 
 @router.post("/ip/dhcp-static")
 async def add_dhcp_static(data: dict = Body(...)):
-    """Add DHCP static lease: { mac, ip, hostname? }"""
     mac = data.get("mac", "")
     ip = data.get("ip", "")
     hostname = data.get("hostname", "")
     if not mac or not ip:
         raise HTTPException(400, "mac and ip are required")
-    static_file = "/etc/dnsmasq.d/static.conf"
+    static_file = Path("/etc/dnsmasq.d/static.conf")
+    static_file.parent.mkdir(parents=True, exist_ok=True)
     line = f"dhcp-host={mac},{ip}" + (f",{hostname}" if hostname else "") + "\n"
     with open(static_file, "a") as fh:
         fh.write(line)
     subprocess.run(["systemctl", "restart", "dnsmasq"], capture_output=True, timeout=5)
     return {"ok": True, "mac": mac, "ip": ip}
 
+
 @router.delete("/ip/dhcp-static")
 async def del_dhcp_static(data: dict = Body(...)):
-    """Delete DHCP static lease by mac"""
     mac = data.get("mac", "")
     if not mac:
         raise HTTPException(400, "mac is required")
-    static_file = "/etc/dnsmasq.d/static.conf"
+    static_file = Path("/etc/dnsmasq.d/static.conf")
     try:
-        lines = open(static_file).readlines()
-    except:
+        lines = static_file.read_text().splitlines()
+    except Exception:
         raise HTTPException(404, "no static config")
     new_lines = [l for l in lines if mac.upper() not in l.upper()]
     if len(new_lines) == len(lines):
         raise HTTPException(404, f"mac {mac} not found")
-    with open(static_file, "w") as fh:
-        fh.writelines(new_lines)
+    static_file.write_text("\n".join(new_lines) + "\n")
     subprocess.run(["systemctl", "restart", "dnsmasq"], capture_output=True, timeout=5)
     return {"ok": True, "mac": mac}
 
+
 @router.get("/ip/addresses")
 async def ip_addresses():
-    """Interface IP addresses"""
-    out = subprocess.run("ip -4 -br addr show", shell=True, capture_output=True, text=True, timeout=3).stdout
+    out = subprocess.run(
+        ["ip", "-4", "-br", "addr", "show"],
+        capture_output=True, text=True, timeout=3,
+    ).stdout
     addrs = []
     for line in out.splitlines():
         parts = line.split()
@@ -358,9 +540,9 @@ async def ip_addresses():
             addrs.append({"name": parts[0], "ip": parts[2], "state": state})
     return {"addresses": addrs, "count": len(addrs)}
 
+
 @router.post("/ip/addresses")
 async def add_ip_address(data: dict = Body(...)):
-    """Add IP to interface: { iface: str, ip: str }"""
     iface = data.get("iface", "")
     ip = data.get("ip", "")
     if not iface or not ip:
@@ -370,9 +552,9 @@ async def add_ip_address(data: dict = Body(...)):
         raise HTTPException(400, res.stderr.strip())
     return {"ok": True, "iface": iface, "ip": ip}
 
+
 @router.delete("/ip/addresses")
 async def del_ip_address(data: dict = Body(...)):
-    """Delete IP from interface: { iface: str, ip: str }"""
     iface = data.get("iface", "")
     ip = data.get("ip", "")
     if not iface or not ip:
@@ -381,30 +563,35 @@ async def del_ip_address(data: dict = Body(...)):
     if res.returncode != 0:
         raise HTTPException(400, res.stderr.strip())
     return {"ok": True, "iface": iface, "ip": ip}
+
+
+# ── System Log ──────────────────────────────────────────────────────────────
+
 @router.get("/system/log")
 async def system_log(lines: int = 50, unit: str = "", level: str = ""):
     cmd = ["journalctl", "--no-pager", "-n", str(lines)]
-    if unit: cmd += ["-u", unit]
-    if level: cmd += ["-p", level]
-    out = subprocess.run(cmd, capture_output=True, text=True, timeout=5).stdout
+    if unit:
+        cmd += ["-u", unit]
+    if level:
+        cmd += ["-p", level]
+    try:
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=5).stdout
+    except Exception:
+        out = "Logs unavailable"
     return {"log": out, "lines": len(out.splitlines())}
 
 
+# ── Protocol Events ─────────────────────────────────────────────────────────
 
 @router.get("/protocol/events")
 async def protocol_events(lines: int = 50):
-    """Parse accel-ppp log for RADIUS protocol events"""
-    import re
-    log_file = "/var/log/accel-ppp/accel-ppp.log"
+    log_file = Path("/var/log/accel-ppp/accel-ppp.log")
     try:
-        with open(log_file) as fh:
-            all_lines = fh.readlines()
-    except:
+        all_lines = log_file.read_text().splitlines()
+    except Exception:
         return {"events": [], "count": 0}
-    
-    # Take the last N lines
+
     tail = all_lines[-lines:] if len(all_lines) > lines else all_lines
-    
     events = []
     seen = set()
     last_cause = ""
@@ -413,20 +600,20 @@ async def protocol_events(lines: int = 50):
         if not m:
             continue
         ts, level, msg = m.group(1), m.group(2), m.group(3)
-        
-        # RADIUS send/recv
+
         rm = re.search(r"(send|recv)\s*\[RADIUS\(\d+\)\s*(\S+(?:-Request|-Response|-Accept|-Reject|-ACK|-NAK))\s+id=(\d+)\s*(.*)\]", msg)
         if rm:
             direction, ptype, pid, attrs = rm.group(1), rm.group(2), rm.group(3), rm.group(4).strip()
-            # Extract key attributes
-            username = ""; ip = ""
+            username = ""
+            ip = ""
             u = re.search(r'User-Name\s+"([^"]+)"', attrs)
-            if u: username = u.group(1)
+            if u:
+                username = u.group(1)
             i = re.search(r'Framed-IP-Address\s+(\S+?)(?:>|\s|\]|$)', attrs)
-            if i: ip = i.group(1)
+            if i:
+                ip = i.group(1)
             a = re.search(r'Acct-Status-Type\s+(\S+?)(?:>|\s|\]|$)', attrs)
             acct_type = a.group(1) if a else ""
-            
             event_key = f"{ts}_{ptype}_{pid}"
             if event_key not in seen:
                 seen.add(event_key)
@@ -434,10 +621,9 @@ async def protocol_events(lines: int = 50):
                     "time": ts, "type": ptype, "direction": direction,
                     "username": username, "ip": ip, "id": pid,
                     "acct_type": acct_type,
-                    "detail": attrs[:200] if len(attrs) > 200 else attrs
+                    "detail": attrs[:200] if len(attrs) > 200 else attrs,
                 })
-        
-        # authentication succeeded/failed
+
         am = re.search(r"(\S+):\s+authentication\s+(succeeded|failed)", msg)
         if am:
             uname, result = am.group(1), am.group(2)
@@ -446,15 +632,13 @@ async def protocol_events(lines: int = 50):
                 seen.add(ek)
                 events.append({
                     "time": ts, "type": "auth_" + result, "direction": "local",
-                    "username": uname, "detail": f"Authentication {result}"
+                    "username": uname, "detail": f"Authentication {result}",
                 })
-        
-        # Check for Acct-Terminate-Cause in Accounting-Request Stop
+
         stop_cause = re.search(r'Acct-Terminate-Cause\s+([\w-]+)', msg)
         if stop_cause:
             last_cause = stop_cause.group(1)
-        
-        # disconnected
+
         dm = re.search(r"(\S+):\s+disconnected", msg)
         if dm:
             iface = dm.group(1)
@@ -464,23 +648,21 @@ async def protocol_events(lines: int = 50):
                 seen.add(ek)
                 events.append({
                     "time": ts, "type": "Disconnect", "direction": "local",
-                    "username": "", "detail": f"{iface} disconnected ({cause})" if cause else f"{iface} disconnected"
+                    "username": "",
+                    "detail": f"{iface} disconnected ({cause})" if cause else f"{iface} disconnected",
                 })
-    
-    events.reverse()  # chronological order
+
+    events.reverse()
     return {"events": events, "count": len(events)}
+
+
+# ── Scheduler ───────────────────────────────────────────────────────────────
 
 @router.get("/scheduler")
 async def get_scheduler():
-    """Load scheduled tasks from JSON file"""
-    import json, os
-    path = "/etc/rnas/scheduler.json"
+    sched_path = Path("/etc/rnas/scheduler.json")
     try:
-        with open(path) as fh:
-            content = fh.read()
-        if not content.strip():
-            return {"tasks": [], "count": 0, "error": str(e)}
-        tasks = json.loads(content)
+        tasks = json.loads(sched_path.read_text())
         if isinstance(tasks, list):
             return {"tasks": tasks, "count": len(tasks)}
         return {"tasks": tasks, "count": 0}
@@ -488,60 +670,16 @@ async def get_scheduler():
         return {"tasks": [], "count": 0, "error": str(e)}
 
 
-@router.get("/interfaces/history")
-async def interface_history(name: str, range_sec: int = 3600):
-    """Get interface traffic history"""
-    data = get_history(name, range_sec)
-    return {"iface": name, "data": data, "points": len(data)}
+# ── Setup ───────────────────────────────────────────────────────────────────
 
-
-@router.get("/interfaces/{name}")
-async def interface_detail(name: str):
-    """Detailed interface info with associated sessions"""
-    import subprocess, re, os
-    
-    # Link info
-    link = subprocess.run(["ip", "link", "show", name], capture_output=True, text=True, timeout=5).stdout
-    addr = subprocess.run(["ip", "-4", "addr", "show", name], capture_output=True, text=True, timeout=5).stdout
-    m = re.search(r"<([^>]+)>", link)
-    flags = m.group(1) if m else ""
-    mac = ""
-    mm = re.search(r"link/\S+\s+(\S+)", link)
-    if mm: mac = mm.group(1)
-    ip = ""
-    mi = re.search(r"inet\s+(\S+)", addr)
-    if mi: ip = mi.group(1)
-    
-    # Stats from sysfs (reliable)
-    rx_b = int(open(f"/sys/class/net/{name}/statistics/rx_bytes").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/rx_bytes") else 0
-    tx_b = int(open(f"/sys/class/net/{name}/statistics/tx_bytes").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/tx_bytes") else 0
-    rx_p = int(open(f"/sys/class/net/{name}/statistics/rx_packets").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/rx_packets") else 0
-    tx_p = int(open(f"/sys/class/net/{name}/statistics/tx_packets").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/tx_packets") else 0
-    rx_e = int(open(f"/sys/class/net/{name}/statistics/rx_errors").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/rx_errors") else 0
-    tx_e = int(open(f"/sys/class/net/{name}/statistics/tx_errors").read().strip()) if os.path.exists(f"/sys/class/net/{name}/statistics/tx_errors") else 0
-    
-    # Associated sessions
-    sess_out = subprocess.run(["accel-cmd", "show", "sessions", "sid,ifname,username,ip,type,state,uptime-raw,rx-bytes-raw,tx-bytes-raw"], capture_output=True, text=True, timeout=5).stdout
-    sessions = []
-    for line in sess_out.splitlines()[1:]:
-        parts = [p.strip() for p in line.split("|")]
-        if len(parts) >= 9 and parts[1] == name:
-            sessions.append({"sid": parts[0], "username": parts[2], "ip": parts[3], "type": parts[4], "state": parts[5], "uptime": parts[6], "rx": parts[7], "tx": parts[8]})
-    
-    return {"name": name, "mac": mac, "ip": ip, "flags": flags, "running": "UP" in flags,
-        "rx_bytes": rx_b, "tx_bytes": tx_b, "rx_packets": rx_p, "tx_packets": tx_p, "rx_errors": rx_e, "tx_errors": tx_e,
-        "sessions": sessions, "sessions_count": len(sessions)}
 @router.get("/setup/status")
 async def setup_status():
-    """Check if RNAS has been configured"""
-    import os
-    configured = os.path.exists("/etc/rnas/rnas.conf")
+    configured = Path("/etc/rnas/rnas.conf").exists()
     return {"configured": configured, "first_run": not configured}
+
 
 @router.post("/setup/apply")
 async def setup_apply(data: dict = Body(...)):
-    """Apply QuickSet configuration"""
-    import os, subprocess
     lan_ip = data.get("lan_ip", "192.168.100.1/24")
     radius_server = data.get("radius_server", "192.168.0.202")
     radius_secret = data.get("radius_secret", "testing123")
@@ -549,75 +687,70 @@ async def setup_apply(data: dict = Body(...)):
     ac_name = data.get("ac_name", "RNAS")
     ip_pool_start = data.get("ip_pool_start", "192.168.100.10")
     ip_pool_end = data.get("ip_pool_end", "192.168.100.200")
-    
-    # Generate radius.conf
-    radius_cfg = f"""[radius]
-auth_host={radius_server}
-acct_host={radius_server}
-secret={radius_secret}
-ip_address=192.168.0.203
-gw_ip_address=192.168.100.1
-"""
-    os.makedirs("/etc/rnas/access.d", exist_ok=True)
-    with open("/etc/rnas/access.d/radius.conf", "w") as f:
-        f.write(radius_cfg)
-    
-    # Generate pppoe.conf
-    pppoe_cfg = f"""[pppoe]
-interface={pppoe_iface}
-ac-name={ac_name}
-service-name=RNAS
-"""
-    with open("/etc/rnas/access.d/pppoe.conf", "w") as f:
-        f.write(pppoe_cfg)
-    
-    # Generate ip-pool.conf
-    pool_cfg = f"""[ip-pool]
-gateway=192.168.100.1
-range={ip_pool_start}-{ip_pool_end}
-"""
-    with open("/etc/rnas/access.d/ip-pool.conf", "w") as f:
-        f.write(pool_cfg)
-    
-    # Generate rnas.conf if not exists
-    if not os.path.exists("/etc/rnas/rnas.conf"):
-        with open("/etc/rnas/rnas.conf", "w") as f:
-            f.write("[global]\nenabled = yes\n")
-    
-    # Restart accel-ppp to apply
+
+    radius_cfg = (
+        f"[radius]\n"
+        f"auth_host={radius_server}\n"
+        f"acct_host={radius_server}\n"
+        f"secret={radius_secret}\n"
+        f"ip_address=192.168.0.203\n"
+        f"gw_ip_address=192.168.100.1\n"
+    )
+    Path("/etc/rnas/access.d").mkdir(parents=True, exist_ok=True)
+    Path("/etc/rnas/access.d/radius.conf").write_text(radius_cfg)
+
+    pppoe_cfg = (
+        f"[pppoe]\n"
+        f"interface={pppoe_iface}\n"
+        f"ac-name={ac_name}\n"
+        f"service-name=RNAS\n"
+    )
+    Path("/etc/rnas/access.d/pppoe.conf").write_text(pppoe_cfg)
+
+    pool_cfg = (
+        f"[ip-pool]\n"
+        f"gateway=192.168.100.1\n"
+        f"range={ip_pool_start}-{ip_pool_end}\n"
+    )
+    Path("/etc/rnas/access.d/ip-pool.conf").write_text(pool_cfg)
+
+    rnas_conf = Path("/etc/rnas/rnas.conf")
+    if not rnas_conf.exists():
+        rnas_conf.write_text("[global]\nenabled = yes\n")
+
     subprocess.run(["systemctl", "restart", "rnas-accel-ppp"], capture_output=True)
     return {"status": "applied", "services": ["radius.conf", "pppoe.conf", "ip-pool.conf"]}
 
 
+# ── Certificates ────────────────────────────────────────────────────────────
+
 @router.get("/system/certificates")
 async def list_certificates():
-    """List SSL/TLS certificates"""
-    import os, glob
     certs = []
     for pattern in ["/etc/rnas/ssl/*.pem", "/etc/rnas/ssl/*.crt", "/etc/rnas/ssl/*.key"]:
         for fp in glob.glob(pattern):
             name = os.path.basename(fp)
-            mtime = os.path.getmtime(fp)
-            size = os.path.getsize(fp)
             kind = "key" if name.endswith(".key") else "cert" if name.endswith(".crt") else "pem"
-            certs.append({"name": name, "path": fp, "kind": kind, "size": size, "modified": mtime})
+            certs.append({
+                "name": name, "path": fp, "kind": kind,
+                "size": os.path.getsize(fp),
+                "modified": os.path.getmtime(fp),
+            })
     return {"certificates": certs, "count": len(certs)}
+
 
 @router.post("/system/certificates/generate")
 async def generate_certificate(data: dict = Body(...)):
-    """Generate a self-signed SSL certificate"""
-    import subprocess, os
     name = data.get("name", "server")
     days = data.get("days", 3650)
     cn = data.get("cn", "RNAS Server")
-    os.makedirs("/etc/rnas/ssl", exist_ok=True)
     key_path = f"/etc/rnas/ssl/{name}.key"
     cert_path = f"/etc/rnas/ssl/{name}.crt"
-    # Generate key
+    Path("/etc/rnas/ssl").mkdir(parents=True, exist_ok=True)
     subprocess.run(["openssl", "genrsa", "-out", key_path, "2048"], capture_output=True)
-    # Generate self-signed cert
-    subprocess.run(["openssl", "req", "-new", "-x509", "-key", key_path,
+    subprocess.run([
+        "openssl", "req", "-new", "-x509", "-key", key_path,
         "-out", cert_path, "-days", str(days),
-        "-subj", f"/CN={cn}/O=RNAS"], capture_output=True)
+        "-subj", f"/CN={cn}/O=RNAS",
+    ], capture_output=True)
     return {"status": "created", "key": key_path, "cert": cert_path}
-

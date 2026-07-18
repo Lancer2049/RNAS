@@ -1,5 +1,5 @@
 """RNAS Tools API — ping, traceroute, RADIUS test/CoA, packet sniffer."""
-import json, os, subprocess, time
+import json, os, signal, subprocess, time
 from fastapi import APIRouter, HTTPException, Body, Query
 from typing import Optional
 
@@ -144,9 +144,10 @@ async def coa_disconnect(
     server: str = Query("127.0.0.1"), port: int = Query(3799),
     secret: str = Query("testing123"),
 ):
+    payload = f"User-Name={user}"
     out = subprocess.run(
-        f"echo 'User-Name={user}' | radclient -r 1 -t 5 {server}:{port} disconnect {secret}",
-        shell=True, capture_output=True, text=True, timeout=10).stdout
+        [RADCLIENT, "-r", "1", "-t", "5", f"{server}:{port}", "disconnect", secret],
+        input=payload, capture_output=True, text=True, timeout=10).stdout
     return {"output": out}
 
 
@@ -154,8 +155,9 @@ async def coa_disconnect(
 
 @router.get("/sniffer/status")
 async def sniffer_status():
-    running = subprocess.run("pgrep -f 'tcpdump.*rnas-sniffer'",
-                              shell=True, capture_output=True).returncode == 0
+    running = subprocess.run(
+        ["pgrep", "-f", "tcpdump.*rnas-sniffer"],
+        capture_output=True).returncode == 0
     size = 0
     try:
         size = os.path.getsize("/tmp/rnas-sniffer.pcap")
@@ -166,16 +168,17 @@ async def sniffer_status():
 
 @router.post("/sniffer/start")
 async def sniffer_start():
-    subprocess.run("pkill tcpdump 2>/dev/null", shell=True)
-    subprocess.run(
-        "nohup tcpdump -i any -w /tmp/rnas-sniffer.pcap udp port 1812 or udp port 1813 or udp port 3799 &",
-        shell=True, timeout=5)
+    subprocess.run(["pkill", "tcpdump"], capture_output=True)
+    subprocess.Popen(
+        ["tcpdump", "-i", "any", "-w", "/tmp/rnas-sniffer.pcap",
+         "udp", "port", "1812", "or", "udp", "port", "1813", "or", "udp", "port", "3799"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return {"success": True, "message": "Sniffer started"}
 
 
 @router.post("/sniffer/stop")
 async def sniffer_stop():
-    subprocess.run("pkill tcpdump 2>/dev/null", shell=True, timeout=5)
+    subprocess.run(["pkill", "tcpdump"], capture_output=True, timeout=5)
     return {"success": True, "message": "Sniffer stopped"}
 
 
@@ -198,7 +201,6 @@ async def dns_lookup(host: str, type: str = "a"):
 @router.post("/tools/capture")
 async def capture_packets(data: dict = Body(...)):
     """Start/stop packet capture"""
-    import subprocess, os, signal
     action = data.get("action", "start")
     interface = data.get("interface", "ens33")
     port = data.get("port", 0)
@@ -211,7 +213,8 @@ async def capture_packets(data: dict = Body(...)):
                 old_pid = int(open(pid_file).read().strip())
                 os.kill(old_pid, 0)
                 return {"status": "already_running", "pid": old_pid}
-            except: pass
+            except Exception:
+                pass
         filter_expr = f"port {port}" if port else ""
         cmd = ["tcpdump", "-i", interface, "-c", str(count), "-w", f"/tmp/capture-{interface}.pcap"]
         if filter_expr: cmd += [filter_expr]
@@ -227,7 +230,8 @@ async def capture_packets(data: dict = Body(...)):
                 os.kill(pid, signal.SIGTERM)
                 os.remove(pid_file)
                 return {"status": "stopped", "pid": pid}
-            except: pass
+            except Exception:
+                pass
         return {"status": "not_running"}
     
     elif action == "status":
@@ -237,7 +241,8 @@ async def capture_packets(data: dict = Body(...)):
                 pid = int(open(pid_file).read().strip())
                 os.kill(pid, 0)
                 running = True
-            except: pass
+            except Exception:
+                pass
         return {"running": running, "interface": interface}
     
     return {"status": "error", "error": "invalid action"}

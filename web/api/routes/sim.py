@@ -1,9 +1,33 @@
 """RNAS Simulation API — subscriber dial, fault injection, scenario runner."""
-import subprocess, time, json
+import asyncio, json
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter()
+
+
+async def _run(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:
+    """Run a shell command in a thread pool so the event loop is not blocked."""
+    import subprocess
+    kwargs.setdefault("shell", True)
+    kwargs.setdefault("timeout", 15)
+    try:
+        return await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True, **kwargs)
+    except Exception as e:
+        print(f"[sim] _run error: {e}")
+
+
+async def _ssh(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:
+    """SSH to a remote host. Returns None if the host is unreachable."""
+    import subprocess
+    kwargs.setdefault("shell", True)
+    kwargs.setdefault("timeout", 10)
+    try:
+        return await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True, **kwargs)
+    except subprocess.TimeoutExpired:
+        print(f"[sim] SSH timeout: {cmd[:80]}")
+    except Exception as e:
+        print(f"[sim] SSH error: {e}")
 
 
 @router.get("/sim/connect")
@@ -15,15 +39,11 @@ async def sim_connect(
     env = get_env()
 
     if proto == "l2tp":
-        subprocess.run(
-            env.ssh_cmd_str(env.cpe_host,
-                "systemctl start xl2tpd 2>/dev/null; sleep 4; echo c rnas > /var/run/xl2tpd/l2tp-control"),
-            shell=True, timeout=15)
-        time.sleep(8)
-        out2 = subprocess.run(
-            env.ssh_cmd_str(env.cpe_host, "ip addr show dev ppp0 2>&1 | grep inet"),
-            shell=True, capture_output=True, text=True, timeout=10)
-        ip = out2.stdout.strip().split()[-1].split('/')[0] if 'inet' in out2.stdout else None
+        await _ssh(env.ssh_cmd_str(env.cpe_host,
+            "systemctl start xl2tpd 2>/dev/null; echo c rnas > /var/run/xl2tpd/l2tp-control"))
+        await asyncio.sleep(8)
+        out2 = await _ssh(env.ssh_cmd_str(env.cpe_host, "ip addr show dev ppp0 2>&1 | grep inet"))
+        ip = out2.stdout.strip().split()[-1].split('/')[0] if out2 and 'inet' in out2.stdout else None
         return {"success": ip is not None, "ip": ip, "protocol": proto}
     else:
         peer_map = {"pppoe": "rnas-pppoe", "pptp": "rnas-pptp", "sstp": "rnas-sstp"}
@@ -31,13 +51,16 @@ async def sim_connect(
         cmd = env.ssh_cmd_str(
             env.cpe_host,
             f"timeout 12 pppd call {peer} user {user} password {passwd} nodetach 2>&1")
-        out = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=20)
+        out = await _ssh(cmd)
         ip = None
-        for line in out.stdout.splitlines():
-            if 'local  IP address' in line:
-                ip = line.split()[-1]
-                break
-        ok = 'PAP authentication succeeded' in out.stdout
+        if out:
+            for line in out.stdout.splitlines():
+                if 'local  IP address' in line:
+                    ip = line.split()[-1]
+                    break
+            ok = 'PAP authentication succeeded' in out.stdout
+        else:
+            ok = False
         return {"success": ok, "ip": ip, "protocol": proto}
 
 
@@ -45,9 +68,8 @@ async def sim_connect(
 async def sim_stop():
     from rnas_env import get_env
     env = get_env()
-    subprocess.run(env.ssh_cmd_str(env.cpe_host, "pkill pppd; pkill xl2tpd; pkill sstpc"),
-                   shell=True, timeout=10)
-    subprocess.run("accel-cmd terminate all 2>/dev/null", shell=True, timeout=5)
+    await _ssh(env.ssh_cmd_str(env.cpe_host, "pkill pppd; pkill xl2tpd; pkill sstpc"))
+    await _run("accel-cmd terminate all 2>/dev/null")
     return {"success": True}
 
 
@@ -57,20 +79,18 @@ async def fault_inject(fault_type: str):
     env = get_env()
 
     if fault_type == "radius-timeout":
-        subprocess.run(env.ssh_cmd_str(env.radius_host,
-            "iptables -A INPUT -p udp --dport 1812 -j DROP"), shell=True, timeout=10)
+        await _ssh(env.ssh_cmd_str(env.radius_host,
+            "iptables -A INPUT -p udp --dport 1812 -j DROP"))
     elif fault_type == "radius-reject":
         return {"success": True, "info": "Use wrong password in Subscriber Sim"}
     elif fault_type == "latency":
-        subprocess.run("tc qdisc add dev ens33 root netem delay 200ms 50ms 2>/dev/null",
-                       shell=True, timeout=5)
+        await _run("tc qdisc add dev ens33 root netem delay 200ms 50ms 2>/dev/null")
     elif fault_type == "packet-loss":
-        subprocess.run("tc qdisc add dev ens33 root netem loss 10% 2>/dev/null",
-                       shell=True, timeout=5)
+        await _run("tc qdisc add dev ens33 root netem loss 10% 2>/dev/null")
     elif fault_type == "clear":
-        subprocess.run(env.ssh_cmd_str(env.radius_host,
-            "iptables -D INPUT -p udp --dport 1812 -j DROP 2>/dev/null"), shell=True, timeout=10)
-        subprocess.run("tc qdisc del dev ens33 root 2>/dev/null", shell=True, timeout=5)
+        await _ssh(env.ssh_cmd_str(env.radius_host,
+            "iptables -D INPUT -p udp --dport 1812 -j DROP 2>/dev/null"))
+        await _run("tc qdisc del dev ens33 root 2>/dev/null")
     else:
         raise HTTPException(status_code=400, detail=f"Unknown fault: {fault_type}")
     return {"success": True}

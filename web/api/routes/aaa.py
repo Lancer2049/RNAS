@@ -1,39 +1,39 @@
 """RNAS AAA API — RADIUS users, accounting, groups, NAS clients, AIROS."""
-import subprocess
-from fastapi import APIRouter, Query
+from pathlib import Path
+from fastapi import APIRouter
+from rnas_env import get_env
 
 router = APIRouter()
 
 
 @router.get("/aaa/users")
 async def aaa_users():
-    import os, subprocess
     users = []
     # Try RADIUS user files first
     for fp in ["/etc/freeradius/3.0/mods-config/files/authorize", "/etc/freeradius/users"]:
-        if not os.path.exists(fp):
+        p = Path(fp)
+        if not p.exists():
             continue
-        with open(fp) as fh:
-            for line in fh:
-                line = line.strip()
-                if not line or line.startswith("#") or line.startswith("DEFAULT"):
-                    continue
-                parts = line.split(None, 3)
-                if len(parts) >= 3:
-                    users.append({"username": parts[0], "attribute": parts[1].rstrip(","), "value": parts[3].strip(chr(34)) if len(parts)>3 else ""})
+        for line in p.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or line.startswith("DEFAULT"):
+                continue
+            parts = line.split(None, 3)
+            if len(parts) >= 3:
+                users.append({"username": parts[0], "attribute": parts[1].rstrip(","), "value": parts[3].strip(chr(34)) if len(parts)>3 else ""})
         if users:
             break
     # Fallback to SQL
     if not users:
-        from rnas_env import get_env
         env = get_env()
-        result = subprocess.run(env.db_query_str("SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50"),
-            shell=True, capture_output=True, text=True, timeout=15).stdout
+        result = env.db_query("SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50")
         for line in result.splitlines():
             parts = line.strip().split("|")
             if len(parts) >= 3:
                 users.append({"username": parts[0].strip(), "attribute": parts[1].strip(), "value": parts[2].strip()})
     return {"users": users, "count": len(users)}
+
+
 @router.get("/aaa/logs")
 async def aaa_logs():
     return {"logs": []}
@@ -41,11 +41,12 @@ async def aaa_logs():
 
 @router.get("/aaa/acct")
 async def aaa_acct():
-    from rnas_env import get_env
     env = get_env()
-    result = subprocess.run(
-        env.db_query_str("SELECT radacctid, username, nasipaddress, acctstarttime, acctstoptime, acctsessiontime, framedipaddress, acctinputoctets, acctoutputoctets, acctterminatecause FROM radacct ORDER BY radacctid DESC LIMIT 100"),
-        shell=True, capture_output=True, text=True, timeout=15).stdout
+    result = env.db_query(
+        "SELECT radacctid, username, nasipaddress, acctstarttime, acctstoptime, "
+        "acctsessiontime, framedipaddress, acctinputoctets, acctoutputoctets, "
+        "acctterminatecause FROM radacct ORDER BY radacctid DESC LIMIT 100"
+    )
     records = []
     for line in result.splitlines():
         parts = [p.strip() for p in line.split("|")]
@@ -58,11 +59,10 @@ async def aaa_acct():
 
 @router.get("/aaa/groups")
 async def aaa_groups():
-    from rnas_env import get_env
     env = get_env()
-    result = subprocess.run(
-        env.db_query_str("SELECT id, username, groupname, priority FROM radusergroup ORDER BY priority, username LIMIT 100"),
-        shell=True, capture_output=True, text=True, timeout=15).stdout
+    result = env.db_query(
+        "SELECT id, username, groupname, priority FROM radusergroup ORDER BY priority, username LIMIT 100"
+    )
     groups = []
     for line in result.splitlines():
         parts = [p.strip() for p in line.split("|")]
@@ -74,11 +74,10 @@ async def aaa_groups():
 
 @router.get("/aaa/nas")
 async def aaa_nas():
-    from rnas_env import get_env
     env = get_env()
-    result = subprocess.run(
-        env.db_query_str("SELECT id, nasname, shortname, type, ports, secret, server FROM nas ORDER BY id"),
-        shell=True, capture_output=True, text=True, timeout=15).stdout
+    result = env.db_query(
+        "SELECT id, nasname, shortname, type, ports, secret, server FROM nas ORDER BY id"
+    )
     nas_list = []
     for line in result.splitlines():
         parts = [p.strip() for p in line.split("|")]
@@ -92,7 +91,6 @@ async def aaa_nas():
 @router.get("/airos/status")
 async def airos_status():
     import urllib.request
-    from rnas_env import get_env
     env = get_env()
     try:
         req = urllib.request.Request(f"{env.airos_url}/docs", method="GET")

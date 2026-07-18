@@ -27,7 +27,7 @@ def _prune_old(keep_seconds=86400):
         conn.execute("DELETE FROM traffic WHERE ts < ?", (cutoff,))
         conn.commit()
         conn.close()
-    except:
+    except Exception:
         pass
 
 def _load_recent(iface: str, seconds: int = 3600):
@@ -41,7 +41,7 @@ def _load_recent(iface: str, seconds: int = 3600):
         ).fetchall()
         conn.close()
         return [{"ts": r[0], "rx": r[1], "tx": r[2]} for r in rows]
-    except:
+    except Exception:
         return []
 
 def _collect():
@@ -57,7 +57,7 @@ def _collect():
             try:
                 rx = int(open(rx_path).read().strip())
                 tx = int(open(tx_path).read().strip())
-            except:
+            except Exception:
                 continue
             if iface in last:
                 prev = last[iface]
@@ -85,7 +85,7 @@ def _collect():
                 conn.close()
                 last_write = now
                 _prune_old()
-            except:
+            except Exception:
                 pass
 
 threading.Thread(target=_collect, daemon=True).start()

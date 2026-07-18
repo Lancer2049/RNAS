@@ -7,7 +7,6 @@ from urllib.parse import urlparse, parse_qs
 from rnas_config import write_config_section, walk_config_tree
 from rnas_dict.dictionary import load_all, search as dict_search
 from rnas_env import get_env
-from rnas_env import get_env
 
 _env = get_env()
 
@@ -141,7 +140,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
                     frame = b'\x81' + bytes([127]) + len(data).to_bytes(8, 'big') + data
                 self.wfile.write(frame)
                 time.sleep(3)
-            except:
+            except Exception:
                 break
 
     def handle_config_put(self, path):
@@ -216,9 +215,10 @@ class RNASHandler(SimpleHTTPRequestHandler):
         elif path == "/api/tools/coa":
             qs = parse_qs(urlparse(self.path).query)
             user = qs.get("user", [""])[0]
+            payload = f"User-Name={user}"
             out = subprocess.run(
-                f"echo 'User-Name={user}' | radclient -r 1 -t 5 127.0.0.1:{_env.radius_coa_port} disconnect {_env.radius_secret}",
-                shell=True, capture_output=True, text=True, timeout=10).stdout
+                ["radclient", "-r", "1", "-t", "5", f"127.0.0.1:{_env.radius_coa_port}", "disconnect", _env.radius_secret],
+                input=payload, capture_output=True, text=True, timeout=10).stdout
             self.json(dict(output=out))
         elif path == "/api/system/status":
             svcs = []
@@ -235,7 +235,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
                 try:
                     active = subprocess.run(["systemctl", "is-active", name],
                                             capture_output=True, text=True, timeout=3).stdout.strip()
-                except:
+                except Exception:
                     active = "unknown"
                 svcs.append(dict(name=name, active=active, desc=desc))
             mem = subprocess.run(["free", "-h"], capture_output=True, text=True).stdout.splitlines()[1]
@@ -245,7 +245,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
             try:
                 out = subprocess.run(["journalctl", "-u", "rnas-accel-ppp", "--no-pager", "-n", "30"],
                                      capture_output=True, text=True, timeout=5).stdout
-            except:
+            except Exception:
                 out = "Logs unavailable"
             self.json(dict(logs=out))
         elif path == "/api/network/status":
@@ -256,20 +256,21 @@ class RNASHandler(SimpleHTTPRequestHandler):
                 if len(parts) >= 3:
                     iface = parts[0]
                     stats = {"name": iface, "state": parts[1], "ip": parts[2]}
-                    rx = subprocess.run(f"cat /sys/class/net/{iface}/statistics/rx_bytes 2>/dev/null || echo 0", shell=True, capture_output=True, text=True).stdout.strip()
-                    tx = subprocess.run(f"cat /sys/class/net/{iface}/statistics/tx_bytes 2>/dev/null || echo 0", shell=True, capture_output=True, text=True).stdout.strip()
+                    rx = Path(f"/sys/class/net/{iface}/statistics/rx_bytes").read_text().strip()
+                    tx = Path(f"/sys/class/net/{iface}/statistics/tx_bytes").read_text().strip()
                     stats["rx"] = int(rx) if rx.isdigit() else 0
                     stats["tx"] = int(tx) if tx.isdigit() else 0
                     interfaces.append(stats)
             routes = subprocess.run(["ip", "route"], capture_output=True, text=True, timeout=3).stdout.strip()
             arp = subprocess.run(["ip", "neigh"], capture_output=True, text=True, timeout=3).stdout.strip()
-            leases = subprocess.run("cat /var/lib/misc/dnsmasq.leases 2>/dev/null || echo ''", shell=True, capture_output=True, text=True, timeout=3).stdout.strip()
+            try:
+                leases = Path("/var/lib/misc/dnsmasq.leases").read_text().strip()
+            except Exception:
+                leases = ""
             firewall = subprocess.run(["nft", "list", "ruleset"], capture_output=True, text=True, timeout=3).stdout.strip()
             self.json(dict(interfaces=interfaces, routes=routes, arp=arp, leases=leases, firewall=firewall))
         elif path == "/api/aaa/users":
-            result = subprocess.run(
-                _env.db_query("SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50"),
-                capture_output=True, text=True, timeout=15).stdout
+            result = _env.db_query("SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50")
             users = []
             for line in result.splitlines():
                 parts = line.strip().split("|")
@@ -281,22 +282,29 @@ class RNASHandler(SimpleHTTPRequestHandler):
         elif path == "/api/radius/stats":
             raw = run_accel_cmd("show", "stat")
             stat = parse_stat(raw)
-            stat["radius_port_status"] = "up" if subprocess.run("ss -ulnp | grep -q ':1812'", shell=True).returncode == 0 else "down"
+            try:
+                ss_out = subprocess.run(["ss", "-ulnp"], capture_output=True, text=True, timeout=3).stdout
+                stat["radius_port_status"] = "up" if ":1812" in ss_out else "down"
+            except Exception:
+                stat["radius_port_status"] = "unknown"
             self.json(dict(radius=stat))
         elif path == "/api/queues":
             self.json(dict(queues=[]))
         elif path == "/api/sniffer/start":
-            subprocess.run("pkill tcpdump 2>/dev/null", shell=True)
-            subprocess.run("nohup tcpdump -i any -w /tmp/rnas-sniffer.pcap udp port 1812 or udp port 1813 or udp port 3799 &", shell=True, timeout=5)
+            subprocess.run(["pkill", "tcpdump"], capture_output=True)
+            subprocess.Popen(
+                ["tcpdump", "-i", "any", "-w", "/tmp/rnas-sniffer.pcap",
+                 "udp", "port", "1812", "or", "udp", "port", "1813", "or", "udp", "port", "3799"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             self.json(dict(success=True, message="Sniffer started"))
         elif path == "/api/sniffer/stop":
-            subprocess.run("pkill tcpdump 2>/dev/null", shell=True, timeout=5)
+            subprocess.run(["pkill", "tcpdump"], capture_output=True, timeout=5)
             self.json(dict(success=True, message="Sniffer stopped"))
         elif path == "/api/sniffer/status":
-            running = subprocess.run("pgrep -f 'tcpdump.*rnas-sniffer'", shell=True, capture_output=True).returncode == 0
+            running = subprocess.run(["pgrep", "-f", "tcpdump.*rnas-sniffer"], capture_output=True).returncode == 0
             size = 0
             try: size = os.path.getsize("/tmp/rnas-sniffer.pcap")
-            except: pass
+            except Exception: pass
             self.json(dict(running=running, size=size))
         elif path == "/api/scheduler":
             self.json(dict(tasks=[]))
@@ -338,20 +346,18 @@ class RNASHandler(SimpleHTTPRequestHandler):
         elif path == "/api/sim/fault/radius-reject":
             self.json(dict(success=True, info="Use wrong password in Subscriber Sim"))
         elif path == "/api/sim/fault/latency":
-            subprocess.run("tc qdisc add dev ens33 root netem delay 200ms 50ms 2>/dev/null", shell=True, timeout=5)
+            subprocess.run(["tc", "qdisc", "add", "dev", "ens33", "root", "netem", "delay", "200ms", "50ms"], capture_output=True, timeout=5)
             self.json(dict(success=True))
         elif path == "/api/sim/fault/packet-loss":
-            subprocess.run("tc qdisc add dev ens33 root netem loss 10% 2>/dev/null", shell=True, timeout=5)
+            subprocess.run(["tc", "qdisc", "add", "dev", "ens33", "root", "netem", "loss", "10%"], capture_output=True, timeout=5)
             self.json(dict(success=True))
         elif path == "/api/sim/fault/clear":
             subprocess.run(_env.ssh_cmd(_env.radius_host,
                 'iptables -D INPUT -p udp --dport 1812 -j DROP 2>/dev/null'), timeout=10)
-            subprocess.run("tc qdisc del dev ens33 root 2>/dev/null", shell=True, timeout=5)
+            subprocess.run(["tc", "qdisc", "del", "dev", "ens33", "root"], capture_output=True, timeout=5)
             self.json(dict(success=True))
         elif path == "/api/aaa/acct":
-            result = subprocess.run(
-                _env.db_query_str("SELECT radacctid, username, nasipaddress, acctstarttime, acctstoptime, acctsessiontime, framedipaddress, acctinputoctets, acctoutputoctets, acctterminatecause FROM radacct ORDER BY radacctid DESC LIMIT 100"),
-                shell=True, capture_output=True, text=True, timeout=15).stdout
+            result = _env.db_query("SELECT radacctid, username, nasipaddress, acctstarttime, acctstoptime, acctsessiontime, framedipaddress, acctinputoctets, acctoutputoctets, acctterminatecause FROM radacct ORDER BY radacctid DESC LIMIT 100")
             records = []
             for line in result.splitlines():
                 parts = [p.strip() for p in line.split("|")]
@@ -359,9 +365,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
                     records.append({"id":parts[0],"username":parts[1],"nas":parts[2],"start":parts[3],"stop":parts[4],"duration":parts[5],"ip":parts[6],"rx":parts[7],"tx":parts[8],"cause":parts[9]})
             self.json(dict(records=records))
         elif path == "/api/aaa/groups":
-            result = subprocess.run(
-                _env.db_query_str("SELECT id, username, groupname, priority FROM radusergroup ORDER BY priority, username LIMIT 100"),
-                shell=True, capture_output=True, text=True, timeout=15).stdout
+            result = _env.db_query("SELECT id, username, groupname, priority FROM radusergroup ORDER BY priority, username LIMIT 100")
             groups = []
             for line in result.splitlines():
                 parts = [p.strip() for p in line.split("|")]
@@ -369,9 +373,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
                     groups.append({"id":parts[0],"username":parts[1],"groupname":parts[2],"priority":parts[3]})
             self.json(dict(groups=groups))
         elif path == "/api/aaa/nas":
-            result = subprocess.run(
-                _env.db_query_str("SELECT id, nasname, shortname, type, ports, secret, server FROM nas ORDER BY id"),
-                shell=True, capture_output=True, text=True, timeout=15).stdout
+            result = _env.db_query("SELECT id, nasname, shortname, type, ports, secret, server FROM nas ORDER BY id")
             nas_list = []
             for line in result.splitlines():
                 parts = [p.strip() for p in line.split("|")]
@@ -393,7 +395,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
                 req = urllib.request.Request(f"{_env.airos_url}/docs", method="GET")
                 urllib.request.urlopen(req, timeout=3)
                 self.json(dict(online=True, url=_env.airos_url, freeradius_port=_env.radius_auth_port))
-            except:
+            except Exception:
                 self.json(dict(online=False, url=_env.airos_url))
         elif path == "/api/config":
             config = walk_config_tree(Path("/etc/rnas"))
@@ -406,7 +408,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
                 try:
                     data = json.loads(f.read_text())
                     scenarios.append({"id": f.stem, "name": data.get("name", f.stem), "description": data.get("description", ""), "sections": len(data.get("config", {}))})
-                except:
+                except Exception:
                     pass
             self.json(dict(scenarios=scenarios))
         elif path.startswith("/api/scenarios/") and path.endswith("/load"):
@@ -496,7 +498,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
                         cols = line.split()
                         if len(cols) >= 5: neighbors.append({"id": cols[0], "state": cols[2], "address": cols[4], "iface": cols[5] if len(cols)>5 else ""})
                 ospf["neighbors"] = neighbors
-            except: ospf["neighbors"] = []
+            except Exception: ospf["neighbors"] = []
             try:
                 out = subprocess.run(["vtysh", "-c", "show bgp summary"], capture_output=True, text=True, timeout=5).stdout
                 peers, routes = [], []
@@ -510,7 +512,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
                     if len(parts) >= 2 and parts[0][0] in "OBCK" and ">" in line:
                         routes.append({"network": parts[1] if len(parts)>1 else "", "nexthop": parts[2] if len(parts)>2 else "", "proto": parts[0]})
                 bgp = {"peers": peers, "routes": routes[:20]}
-            except: bgp = {"peers": [], "routes": []}
+            except Exception: bgp = {"peers": [], "routes": []}
             self.json({"ospf": ospf, "bgp": bgp})
         elif path == "/api/tunnels":
             try:
@@ -522,10 +524,14 @@ class RNASHandler(SimpleHTTPRequestHandler):
                             parts = line.split()
                             tunnels.append({"name": parts[0], "up": "UP" in line, "type": t, "local": "", "remote": "", "inner_ip": ""})
                 self.json({"tunnels": tunnels})
-            except: self.json({"tunnels": []})
+            except Exception: self.json({"tunnels": []})
         elif path == "/api/vlans":
-            mod_loaded = subprocess.run("lsmod | grep -q 8021q", shell=True).returncode == 0
-            vlan_mon = subprocess.run("lsmod | grep -q vlan_mon", shell=True).returncode == 0 or True
+            try:
+                mod_lines = Path("/proc/modules").read_text()
+                mod_loaded = "8021q" in mod_lines
+            except Exception:
+                mod_loaded = False
+            vlan_mon = True  # vlan_mon is a kernel feature, assume available
             try:
                 out = subprocess.run(["ip", "-br", "link"], capture_output=True, text=True, timeout=5).stdout
                 ifaces = []
@@ -535,7 +541,7 @@ class RNASHandler(SimpleHTTPRequestHandler):
                         name = parts[0]; parent = name.split(".")[0]
                         ifaces.append({"name": name, "id": name.split(".")[-1], "up": "UP" in line, "parent": parent})
                 self.json({"module": "loaded" if mod_loaded else "missing", "kernel": "loaded" if mod_loaded else "missing", "interfaces": ifaces[:20]})
-            except: self.json({"module": "unknown", "kernel": "unknown", "interfaces": []})
+            except Exception: self.json({"module": "unknown", "kernel": "unknown", "interfaces": []})
         elif path == "/api/netflow":
             running = subprocess.run(["systemctl", "is-active", "softflowd"], capture_output=True, text=True).stdout.strip() == "active"
             self.json({"running": running, "collector": "192.168.0.202:2055", "interface": "ens33", "format": "netflow_v5"})
@@ -544,7 +550,11 @@ class RNASHandler(SimpleHTTPRequestHandler):
             self.json({"running": running, "upstream": "192.168.0.202:67", "giaddr": "192.168.100.1"})
         elif path == "/api/hotspot/status":
             portal_active = os.path.exists("/opt/rnas-web/static/hotspot/login.html")
-            ipt = "Active" if subprocess.run("iptables -t nat -L rnas-hotspot -n 2>/dev/null | grep -q DNAT", shell=True).returncode == 0 else "Inactive"
+            try:
+                ipt_out = subprocess.run(["iptables", "-t", "nat", "-L", "rnas-hotspot", "-n"], capture_output=True, text=True, timeout=3).stdout
+                ipt = "Active" if "DNAT" in ipt_out else "Inactive"
+            except Exception:
+                ipt = "Inactive"
             self.json({"portal": "Active" if portal_active else "Inactive",
                        "auth": "Active",
                        "iptables": ipt})
