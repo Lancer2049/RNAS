@@ -9,7 +9,8 @@ from fastapi import FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse
-from routes import status, config, tools, system as sys_routes, aaa, sim, extra
+from routes import status, config, tools, system as sys_routes, aaa, sim, extra, auth as auth_routes
+from api.auth import FEATURE_FLAGS, require_auth
 
 logger = logging.getLogger("rnas-api")
 
@@ -20,6 +21,12 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 async def health():
     return {"status": "ok", "version": "3.0.0"}
 
+@app.get("/api/system/features", tags=["System"])
+async def features():
+    """Return enabled feature flags for the frontend."""
+    return FEATURE_FLAGS
+
+app.include_router(auth_routes.router)
 app.include_router(status.router, prefix="/api")
 app.include_router(config.router, prefix="/api")
 app.include_router(tools.router, prefix="/api")

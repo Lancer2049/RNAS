@@ -1,7 +1,8 @@
 """RNAS Simulation API — subscriber dial, fault injection, scenario runner."""
 import asyncio, json
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from api.auth import require_auth
 
 router = APIRouter(tags=["Simulation"])
 
@@ -33,7 +34,7 @@ async def _ssh(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:
 @router.get("/sim/connect")
 async def sim_connect(
     proto: str = Query("pppoe"), user: str = Query("testuser"),
-    passwd: str = Query("testpass"),
+    passwd: str = Query("testpass"), _auth=Depends(require_auth),
 ):
     from rnas_env import get_env
     env = get_env()
@@ -65,7 +66,7 @@ async def sim_connect(
 
 
 @router.post("/sim/stop")
-async def sim_stop():
+async def sim_stop(user=Depends(require_auth)):
     from rnas_env import get_env
     env = get_env()
     await _ssh(env.ssh_cmd_str(env.cpe_host, "pkill pppd; pkill xl2tpd; pkill sstpc"))
@@ -74,7 +75,7 @@ async def sim_stop():
 
 
 @router.post("/sim/fault/{fault_type}")
-async def fault_inject(fault_type: str):
+async def fault_inject(fault_type: str, user=Depends(require_auth)):
     from rnas_env import get_env
     env = get_env()
 
@@ -99,7 +100,7 @@ async def fault_inject(fault_type: str):
 # ── Scenario Runner ──
 
 @router.get("/scenarios")
-async def list_scenarios():
+async def list_scenarios(user=Depends(require_auth)):
     from rnas_config import walk_config_tree, write_config_section
     scenario_dir = Path("/etc/rnas/scenarios")
     scenario_dir.mkdir(parents=True, exist_ok=True)
@@ -118,7 +119,7 @@ async def list_scenarios():
 
 
 @router.post("/scenarios/{scenario_id}/load")
-async def load_scenario(scenario_id: str):
+async def load_scenario(scenario_id: str, user=Depends(require_auth)):
     from rnas_config import write_config_section
     scenario_file = Path(f"/etc/rnas/scenarios/{scenario_id}.json")
     if not scenario_file.exists():

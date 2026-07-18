@@ -1,13 +1,14 @@
 """RNAS AAA API — RADIUS users, accounting, groups, NAS clients, AIROS."""
 from pathlib import Path
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from api.auth import require_auth
 from rnas_env import get_env
 
 router = APIRouter(tags=["AAA RADIUS"])
 
 
 @router.get("/aaa/users")
-async def aaa_users():
+async def aaa_users(user=Depends(require_auth)):
     users = []
     # Try RADIUS user files first
     for fp in ["/etc/freeradius/3.0/mods-config/files/authorize", "/etc/freeradius/users"]:
@@ -35,12 +36,12 @@ async def aaa_users():
 
 
 @router.get("/aaa/logs")
-async def aaa_logs():
+async def aaa_logs(user=Depends(require_auth)):
     return {"logs": []}
 
 
 @router.get("/aaa/acct")
-async def aaa_acct():
+async def aaa_acct(user=Depends(require_auth)):
     env = get_env()
     result = env.db_query(
         "SELECT radacctid, username, nasipaddress, acctstarttime, acctstoptime, "
@@ -58,7 +59,7 @@ async def aaa_acct():
 
 
 @router.get("/aaa/groups")
-async def aaa_groups():
+async def aaa_groups(user=Depends(require_auth)):
     env = get_env()
     result = env.db_query(
         "SELECT id, username, groupname, priority FROM radusergroup ORDER BY priority, username LIMIT 100"
@@ -73,7 +74,7 @@ async def aaa_groups():
 
 
 @router.get("/aaa/nas")
-async def aaa_nas():
+async def aaa_nas(user=Depends(require_auth)):
     env = get_env()
     result = env.db_query(
         "SELECT id, nasname, shortname, type, ports, secret, server FROM nas ORDER BY id"
@@ -89,7 +90,7 @@ async def aaa_nas():
 
 
 @router.get("/airos/status")
-async def airos_status():
+async def airos_status(user=Depends(require_auth)):
     import urllib.request
     env = get_env()
     try:

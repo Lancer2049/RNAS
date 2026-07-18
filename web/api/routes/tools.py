@@ -1,6 +1,7 @@
 """RNAS Tools API — ping, traceroute, RADIUS test/CoA, packet sniffer."""
 import json, os, signal, subprocess, time
-from fastapi import APIRouter, HTTPException, Body, Query
+from fastapi import APIRouter, Depends, HTTPException, Body, Query
+from api.auth import require_auth
 from typing import Optional
 
 router = APIRouter(tags=["Diagnostics"])
@@ -38,7 +39,7 @@ def _parse_dict_lines(fh, default_vendor, attrs, vendors):
             attrs[m2.group(1)]["values"][m2.group(2)] = m2.group(3)
 
 @router.get("/dictionary")
-async def get_dictionary():
+async def get_dictionary(user=Depends(require_auth)):
     """List all RADIUS dictionary attributes"""
     import os, re
     dict_dir = "/etc/rnas/dictionary"
@@ -88,14 +89,14 @@ async def get_dictionary():
     return {"success": True, "attributes": attrs, "vendors": sorted(vendors), "count": len(attrs)}
 
 @router.get("/tools/ping")
-async def ping(host: str = Query("8.8.8.8")):
+async def ping(host: str = Query("8.8.8.8"), user=Depends(require_auth)):
     out = subprocess.run(["ping", "-c", "3", "-W", "2", host],
                          capture_output=True, text=True, timeout=10).stdout
     return {"output": out}
 
 
 @router.get("/tools/trace")
-async def traceroute(host: str = Query("8.8.8.8")):
+async def traceroute(host: str = Query("8.8.8.8"), user=Depends(require_auth)):
     out = subprocess.run(["traceroute", "-m", "10", host],
                          capture_output=True, text=True, timeout=15).stdout
     return {"output": out}
@@ -105,7 +106,7 @@ async def traceroute(host: str = Query("8.8.8.8")):
 async def radius_test(
     user: str = Query("testuser"), passwd: str = Query("testpass"),
     attrs: str = Query(""), server: str = Query("192.168.0.202:1812"),
-    secret: str = Query("testing123"),
+    secret: str = Query("testing123"), _auth=Depends(require_auth),
 ):
     pairs = [f"User-Name={user},User-Password={passwd}"]
     if attrs:
@@ -118,7 +119,7 @@ async def radius_test(
 
 
 @router.post("/tools/radius-send")
-async def radius_send(data: dict = Body(...)):
+async def radius_send(data: dict = Body(...), user=Depends(require_auth)):
     server = data.get("server", "192.168.0.202:1812")
     secret = data.get("secret", "testing123")
     port_type = data.get("type", "auth")
@@ -134,7 +135,7 @@ async def radius_send(data: dict = Body(...)):
 
 
 @router.get("/tools/coa-pyrad")
-async def coa_pyrad(user: str = Query(""), server: str = Query("127.0.0.1:3799"), secret: str = Query("testing123")):
+async def coa_pyrad(user: str = Query(""), server: str = Query("127.0.0.1:3799"), secret: str = Query("testing123"), _auth=Depends(require_auth)):
     """Send CoA Disconnect-Request using pyrad library"""
     result = _pyrad_send(server, secret, DisconnectRequest, {"User-Name": user})
     return {"output": "Disconnect-ACK" if result.get("ok") and result.get("code") == DisconnectACK else "Failed", "detail": result}
@@ -142,7 +143,7 @@ async def coa_pyrad(user: str = Query(""), server: str = Query("127.0.0.1:3799")
 async def coa_disconnect(
     user: str = Query(""),
     server: str = Query("127.0.0.1"), port: int = Query(3799),
-    secret: str = Query("testing123"),
+    secret: str = Query("testing123"), _auth=Depends(require_auth),
 ):
     payload = f"User-Name={user}"
     out = subprocess.run(
@@ -154,7 +155,7 @@ async def coa_disconnect(
 # ── Packet Sniffer ──
 
 @router.get("/sniffer/status")
-async def sniffer_status():
+async def sniffer_status(user=Depends(require_auth)):
     running = subprocess.run(
         ["pgrep", "-f", "tcpdump.*rnas-sniffer"],
         capture_output=True).returncode == 0
@@ -167,7 +168,7 @@ async def sniffer_status():
 
 
 @router.post("/sniffer/start")
-async def sniffer_start():
+async def sniffer_start(user=Depends(require_auth)):
     subprocess.run(["pkill", "tcpdump"], capture_output=True)
     subprocess.Popen(
         ["tcpdump", "-i", "any", "-w", "/tmp/rnas-sniffer.pcap",
@@ -177,7 +178,7 @@ async def sniffer_start():
 
 
 @router.post("/sniffer/stop")
-async def sniffer_stop():
+async def sniffer_stop(user=Depends(require_auth)):
     subprocess.run(["pkill", "tcpdump"], capture_output=True, timeout=5)
     return {"success": True, "message": "Sniffer stopped"}
 
@@ -187,7 +188,7 @@ async def sniffer_stop():
 
 
 @router.get("/tools/dns")
-async def dns_lookup(host: str, type: str = "a"):
+async def dns_lookup(host: str, type: str = "a", user=Depends(require_auth)):
     """DNS lookup tool"""
     import subprocess
     try:
@@ -199,7 +200,7 @@ async def dns_lookup(host: str, type: str = "a"):
         return {"output": f"Error: {e}"}
 
 @router.post("/tools/capture")
-async def capture_packets(data: dict = Body(...)):
+async def capture_packets(data: dict = Body(...), user=Depends(require_auth)):
     """Start/stop packet capture"""
     action = data.get("action", "start")
     interface = data.get("interface", "ens33")

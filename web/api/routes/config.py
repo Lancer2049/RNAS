@@ -5,7 +5,8 @@ import shutil
 import subprocess
 from pathlib import Path
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body
+from api.auth import require_auth
 from typing import Dict
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "cmd" / "rnas-config"))
@@ -17,7 +18,7 @@ _SCRIPT_TIMEOUT = 30
 
 
 @router.get("/config")
-async def get_all_config():
+async def get_all_config(user=Depends(require_auth)):
     config = walk_config_tree(Path(DEFAULT_ROOT))
     return {"config": {k: v for k, v in sorted(config.items())}}
 
@@ -25,7 +26,7 @@ async def get_all_config():
 SNAPSHOT_DIR = Path("/etc/rnas/snapshots")
 
 @router.get("/config/snapshots")
-async def list_snapshots():
+async def list_snapshots(user=Depends(require_auth)):
     if not SNAPSHOT_DIR.exists():
         return {"snapshots": [], "total": 0}
     snapshots = []
@@ -36,7 +37,7 @@ async def list_snapshots():
     return {"snapshots": snapshots, "total": len(snapshots)}
 
 @router.post("/config/snapshot")
-async def create_snapshot(data: dict = Body({})):
+async def create_snapshot(data: dict = Body({}), user=Depends(require_auth)):
     name = data.get("name", f"snap-{datetime.now():%Y%m%d-%H%M%S}")
     target = SNAPSHOT_DIR / name
     target.mkdir(parents=True, exist_ok=True)
@@ -50,7 +51,7 @@ async def create_snapshot(data: dict = Body({})):
     return {"status": "created", "name": name, "files": count}
 
 @router.post("/config/snapshot/{name}/restore")
-async def restore_snapshot(name: str):
+async def restore_snapshot(name: str, user=Depends(require_auth)):
     source = SNAPSHOT_DIR / name
     if not source.exists():
         raise HTTPException(404, "Snapshot not found")
@@ -80,7 +81,7 @@ async def restore_snapshot(name: str):
     return {"status": "restored", "name": name, "backup": backup_name}
 
 @router.get("/config/snapshot/{name}/diff")
-async def diff_snapshot(name: str):
+async def diff_snapshot(name: str, user=Depends(require_auth)):
     source = SNAPSHOT_DIR / name
     if not source.exists():
         raise HTTPException(404, "Snapshot not found")
@@ -94,7 +95,7 @@ async def diff_snapshot(name: str):
     return {"diff": result.stdout or "(identical)", "has_diff": bool(result.stdout)}
 
 @router.get("/config/{module:path}")
-async def get_config_section(module: str):
+async def get_config_section(module: str, user=Depends(require_auth)):
     config = walk_config_tree(Path(DEFAULT_ROOT))
     matches = {k: v for k, v in config.items() if k.startswith(module.replace("/", "."))}
     if not matches:
@@ -103,7 +104,7 @@ async def get_config_section(module: str):
 
 
 @router.put("/config/{module:path}")
-async def update_config_section(module: str, values: Dict[str, str] = Body(...)):
+async def update_config_section(module: str, values: Dict[str, str] = Body(...), user=Depends(require_auth)):
     root = Path(DEFAULT_ROOT)
     if not root.exists():
         raise HTTPException(status_code=503, detail="Config root /etc/rnas not found")
@@ -115,7 +116,7 @@ async def update_config_section(module: str, values: Dict[str, str] = Body(...))
 
 
 @router.post("/config/apply")
-async def apply_config():
+async def apply_config(user=Depends(require_auth)):
     try:
         result = subprocess.run(
             ["rnas-config", "validate", "--root", DEFAULT_ROOT],
@@ -138,7 +139,7 @@ async def apply_config():
 SNAPSHOT_DIR = Path("/etc/rnas/snapshots")
 
 @router.get("/config/snapshots")
-async def list_snapshots():
+async def list_snapshots(user=Depends(require_auth)):
     if not SNAPSHOT_DIR.exists():
         return {"snapshots": [], "total": 0}
     snapshots = []
@@ -149,7 +150,7 @@ async def list_snapshots():
     return {"snapshots": snapshots, "total": len(snapshots)}
 
 @router.post("/config/snapshot")
-async def create_snapshot(data: dict = Body({})):
+async def create_snapshot(data: dict = Body({}), user=Depends(require_auth)):
     from datetime import datetime
     name = data.get("name", f"snap-{datetime.now():%Y%m%d-%H%M%S}")
     target = SNAPSHOT_DIR / name
@@ -160,7 +161,7 @@ async def create_snapshot(data: dict = Body({})):
     return {"status": "created", "name": name, "files": len(list(target.rglob("*.conf")))}
 
 @router.post("/config/snapshot/{name}/restore")
-async def restore_snapshot(name: str):
+async def restore_snapshot(name: str, user=Depends(require_auth)):
     import shutil, subprocess
     from datetime import datetime
     source = SNAPSHOT_DIR / name
@@ -178,7 +179,7 @@ async def restore_snapshot(name: str):
     return {"status": "restored", "name": name, "backup": backup_name}
 
 @router.get("/config/snapshot/{name}/diff")
-async def diff_snapshot(name: str):
+async def diff_snapshot(name: str, user=Depends(require_auth)):
     import subprocess
     source = SNAPSHOT_DIR / name
     result = subprocess.run(["diff", "-ru", str(source), "/etc/rnas"], capture_output=True, text=True)

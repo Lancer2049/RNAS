@@ -4,14 +4,15 @@ import re
 import json
 import subprocess
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body
+from api.auth import require_auth
 
 router = APIRouter(tags=["System"])
 _SCRIPT_TIMEOUT = 10
 
 
 @router.get("/system/status")
-async def system_status():
+async def system_status(user=Depends(require_auth)):
     svcs = []
     for name, desc in [
         ("rnas-accel-ppp", "PPPoE/PPTP/L2TP/SSTP/IPoE Access Server"),
@@ -92,7 +93,7 @@ async def system_status():
 
 
 @router.get("/system/logs")
-async def system_logs():
+async def system_logs(user=Depends(require_auth)):
     try:
         out = subprocess.run(["journalctl", "-u", "rnas-accel-ppp", "--no-pager", "-n", "30"],
                              capture_output=True, text=True, timeout=5).stdout
@@ -102,7 +103,7 @@ async def system_logs():
 
 
 @router.post("/system/service/{svc}/{action}")
-async def service_action(svc: str, action: str):
+async def service_action(svc: str, action: str, user=Depends(require_auth)):
     if action not in ("start", "stop", "restart"):
         raise HTTPException(status_code=400, detail=f"Invalid action: {action}")
     out = subprocess.run(["systemctl", action, svc], capture_output=True, text=True, timeout=10)
@@ -120,7 +121,7 @@ def _read_stat(path: str, default: str = "0") -> int:
 
 
 @router.get("/network/status")
-async def network_status():
+async def network_status(user=Depends(require_auth)):
     interfaces = []
     out = subprocess.run(["ip", "-br", "addr"], capture_output=True, text=True, timeout=3).stdout
     for line in out.splitlines():
@@ -145,7 +146,7 @@ async def network_status():
 
 
 @router.get("/radius/stats")
-async def radius_stats():
+async def radius_stats(user=Depends(require_auth)):
     from services.accel_cmd import run_accel_cmd, parse_stat
     stat = parse_stat(run_accel_cmd("show", "stat"))
     try:
@@ -159,11 +160,11 @@ async def radius_stats():
 
 
 @router.get("/queues")
-async def queues():
+async def queues(user=Depends(require_auth)):
     return {"queues": []}
 
 @router.get("/system/health/alerts")
-async def system_health_alerts():
+async def system_health_alerts(user=Depends(require_auth)):
     services = [
         ("rnas-accel-ppp", "Access Server (PPPoE/L2TP/PPTP/SSTP)"),
         ("rnas-web", "Web Dashboard API"),
@@ -190,19 +191,19 @@ async def system_health_alerts():
 _NOTIF_PATH = Path("/etc/rnas/notifications.json")
 
 @router.get("/system/notifications")
-async def get_notification_config():
+async def get_notification_config(user=Depends(require_auth)):
     if _NOTIF_PATH.exists():
         return json.loads(_NOTIF_PATH.read_text())
     return {"telegram_bot_token": "", "telegram_chat_id": "", "webhook_url": "", "enabled": False}
 
 @router.post("/system/notifications")
-async def set_notification_config(data: dict = Body(...)):
+async def set_notification_config(data: dict = Body(...), user=Depends(require_auth)):
     _NOTIF_PATH.parent.mkdir(parents=True, exist_ok=True)
     _NOTIF_PATH.write_text(json.dumps(data, indent=2))
     return {"status": "saved"}
 
 @router.post("/system/notifications/test")
-async def test_notification(data: dict = Body(...)):
+async def test_notification(data: dict = Body(...), user=Depends(require_auth)):
     results = []
     if data.get("telegram_bot_token") and data.get("telegram_chat_id"):
         try:

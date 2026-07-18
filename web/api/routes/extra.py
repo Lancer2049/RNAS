@@ -7,7 +7,8 @@ import time
 import subprocess
 from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Body, Query
+from fastapi import APIRouter, Depends, HTTPException, Body, Query
+from api.auth import require_auth
 from fastapi.responses import PlainTextResponse
 from services.traffic import get_history
 from services.oui import lookup
@@ -36,7 +37,7 @@ def _vendor(mac: str) -> str:
 # ── Interfaces ─────────────────────────────────────────────────────────────
 
 @router.get("/interfaces")
-async def interfaces():
+async def interfaces(user=Depends(require_auth)):
     out = subprocess.run(
         ["ip", "-d", "-s", "link", "show", "up"],
         capture_output=True, text=True, timeout=_SCRIPT_TIMEOUT
@@ -75,13 +76,13 @@ async def interfaces():
 
 
 @router.get("/interfaces/history")
-async def interface_history(name: str, range_sec: int = 3600):
+async def interface_history(name: str, range_sec: int = 3600, user=Depends(require_auth)):
     data = get_history(name, range_sec)
     return {"iface": name, "data": data, "points": len(data)}
 
 
 @router.get("/interfaces/{name}")
-async def interface_detail(name: str):
+async def interface_detail(name: str, user=Depends(require_auth)):
     link = subprocess.run(["ip", "link", "show", name], capture_output=True, text=True, timeout=5).stdout
     addr = subprocess.run(["ip", "-4", "addr", "show", name], capture_output=True, text=True, timeout=5).stdout
     m = re.search(r"<([^>]+)>", link)
@@ -126,7 +127,7 @@ async def interface_detail(name: str):
 # ── Routing ────────────────────────────────────────────────────────────────
 
 @router.get("/routing/status")
-async def routing_status():
+async def routing_status(user=Depends(require_auth)):
     ospf, bgp = {"neighbors": []}, {"peers": [], "routes": []}
     try:
         out = subprocess.run(
@@ -163,7 +164,7 @@ async def routing_status():
 # ── Tunnels ────────────────────────────────────────────────────────────────
 
 @router.get("/tunnels")
-async def tunnels():
+async def tunnels(user=Depends(require_auth)):
     try:
         out = subprocess.run(
             ["ip", "-br", "-d", "link"], capture_output=True, text=True, timeout=5,
@@ -185,7 +186,7 @@ async def tunnels():
 # ── VLANs ───────────────────────────────────────────────────────────────────
 
 @router.get("/vlans")
-async def vlans():
+async def vlans(user=Depends(require_auth)):
     mod_loaded = False
     try:
         proc_modules = Path("/proc/modules").read_text()
@@ -218,7 +219,7 @@ async def vlans():
 # ── NetFlow / DHCP Relay ───────────────────────────────────────────────────
 
 @router.get("/netflow")
-async def netflow():
+async def netflow(user=Depends(require_auth)):
     try:
         running = subprocess.run(
             ["systemctl", "is-active", "softflowd"],
@@ -235,7 +236,7 @@ async def netflow():
 
 
 @router.get("/dhcp-relay")
-async def dhcp_relay():
+async def dhcp_relay(user=Depends(require_auth)):
     try:
         running = subprocess.run(
             ["systemctl", "is-active", "rnas-dhcp-relay"],
@@ -249,7 +250,7 @@ async def dhcp_relay():
 # ── Hotspot ─────────────────────────────────────────────────────────────────
 
 @router.get("/hotspot/status")
-async def hotspot_status():
+async def hotspot_status(user=Depends(require_auth)):
     portal_active = Path("/opt/rnas-web/static/hotspot/login.html").exists()
     try:
         ipt = subprocess.run(
@@ -265,7 +266,7 @@ async def hotspot_status():
 # ── Config Export ───────────────────────────────────────────────────────────
 
 @router.get("/config-export")
-async def config_export():
+async def config_export(user=Depends(require_auth)):
     from rnas_config import walk_config_tree
     config = walk_config_tree(Path("/etc/rnas"))
     return {
@@ -278,7 +279,7 @@ async def config_export():
 # ── IP: ARP, Firewall, DHCP ────────────────────────────────────────────────
 
 @router.get("/ip/arp")
-async def arp_table():
+async def arp_table(user=Depends(require_auth)):
     out = subprocess.run(
         ["ip", "neigh", "show"], capture_output=True, text=True, timeout=5,
     ).stdout
@@ -295,7 +296,7 @@ async def arp_table():
 
 
 @router.get("/ip/firewall")
-async def firewall_rules():
+async def firewall_rules(user=Depends(require_auth)):
     out = subprocess.run(
         ["nft", "list", "ruleset"], capture_output=True, text=True, timeout=5,
     ).stdout
@@ -313,7 +314,7 @@ async def firewall_rules():
 
 
 @router.post("/ip/firewall")
-async def add_firewall_rule(data: dict = Body(...)):
+async def add_firewall_rule(data: dict = Body(...), user=Depends(require_auth)):
     chain = data.get("chain", "rnas-hotspot")
     table = data.get("table", "nat")
     rule = data.get("rule", "")
@@ -335,7 +336,7 @@ async def add_firewall_rule(data: dict = Body(...)):
 
 
 @router.delete("/ip/firewall")
-async def delete_firewall_rule(data: dict = Body(...)):
+async def delete_firewall_rule(data: dict = Body(...), user=Depends(require_auth)):
     family = data.get("family", "ip")
     table = data.get("table", "nat")
     chain = data.get("chain", "rnas-hotspot")
@@ -357,7 +358,7 @@ async def delete_firewall_rule(data: dict = Body(...)):
 
 
 @router.get("/ip/firewall-full")
-async def firewall_full():
+async def firewall_full(user=Depends(require_auth)):
     chains = []
     out = subprocess.run(
         ["nft", "-a", "list", "ruleset"], capture_output=True, text=True, timeout=5,
@@ -403,7 +404,7 @@ async def firewall_full():
 
 
 @router.put("/ip/firewall/reorder")
-async def reorder_firewall_rule(data: dict = Body(...)):
+async def reorder_firewall_rule(data: dict = Body(...), user=Depends(require_auth)):
     chain = data.get("chain", "")
     table = data.get("table", "filter")
     family = data.get("family", "ip")
@@ -422,7 +423,7 @@ async def reorder_firewall_rule(data: dict = Body(...)):
 
 
 @router.put("/ip/firewall/{handle}/toggle")
-async def toggle_firewall_rule(handle: int, data: dict = Body(...)):
+async def toggle_firewall_rule(handle: int, data: dict = Body(...), user=Depends(require_auth)):
     enabled = data.get("enabled", True)
     chain = data.get("chain", "")
     table = data.get("table", "filter")
@@ -450,7 +451,7 @@ async def toggle_firewall_rule(handle: int, data: dict = Body(...)):
 
 
 @router.get("/ip/dhcp")
-async def dhcp_leases():
+async def dhcp_leases(user=Depends(require_auth)):
     lease_path = Path("/var/lib/misc/dnsmasq.leases")
     try:
         text = lease_path.read_text()
@@ -470,7 +471,7 @@ async def dhcp_leases():
 
 
 @router.get("/ip/dhcp-static")
-async def dhcp_static():
+async def dhcp_static(user=Depends(require_auth)):
     static_file = Path("/etc/dnsmasq.d/static.conf")
     try:
         lines = static_file.read_text().splitlines()
@@ -493,7 +494,7 @@ async def dhcp_static():
 
 
 @router.post("/ip/dhcp-static")
-async def add_dhcp_static(data: dict = Body(...)):
+async def add_dhcp_static(data: dict = Body(...), user=Depends(require_auth)):
     mac = data.get("mac", "")
     ip = data.get("ip", "")
     hostname = data.get("hostname", "")
@@ -509,7 +510,7 @@ async def add_dhcp_static(data: dict = Body(...)):
 
 
 @router.delete("/ip/dhcp-static")
-async def del_dhcp_static(data: dict = Body(...)):
+async def del_dhcp_static(data: dict = Body(...), user=Depends(require_auth)):
     mac = data.get("mac", "")
     if not mac:
         raise HTTPException(400, "mac is required")
@@ -527,7 +528,7 @@ async def del_dhcp_static(data: dict = Body(...)):
 
 
 @router.get("/ip/addresses")
-async def ip_addresses():
+async def ip_addresses(user=Depends(require_auth)):
     out = subprocess.run(
         ["ip", "-4", "-br", "addr", "show"],
         capture_output=True, text=True, timeout=3,
@@ -542,7 +543,7 @@ async def ip_addresses():
 
 
 @router.post("/ip/addresses")
-async def add_ip_address(data: dict = Body(...)):
+async def add_ip_address(data: dict = Body(...), user=Depends(require_auth)):
     iface = data.get("iface", "")
     ip = data.get("ip", "")
     if not iface or not ip:
@@ -554,7 +555,7 @@ async def add_ip_address(data: dict = Body(...)):
 
 
 @router.delete("/ip/addresses")
-async def del_ip_address(data: dict = Body(...)):
+async def del_ip_address(data: dict = Body(...), user=Depends(require_auth)):
     iface = data.get("iface", "")
     ip = data.get("ip", "")
     if not iface or not ip:
@@ -568,7 +569,7 @@ async def del_ip_address(data: dict = Body(...)):
 # ── System Log ──────────────────────────────────────────────────────────────
 
 @router.get("/system/log")
-async def system_log(lines: int = 50, unit: str = "", level: str = ""):
+async def system_log(lines: int = 50, unit: str = "", level: str = "", user=Depends(require_auth)):
     cmd = ["journalctl", "--no-pager", "-n", str(lines)]
     if unit:
         cmd += ["-u", unit]
@@ -584,7 +585,7 @@ async def system_log(lines: int = 50, unit: str = "", level: str = ""):
 # ── Protocol Events ─────────────────────────────────────────────────────────
 
 @router.get("/protocol/events")
-async def protocol_events(lines: int = 50):
+async def protocol_events(lines: int = 50, user=Depends(require_auth)):
     log_file = Path("/var/log/accel-ppp/accel-ppp.log")
     try:
         all_lines = log_file.read_text().splitlines()
@@ -659,7 +660,7 @@ async def protocol_events(lines: int = 50):
 # ── Scheduler ───────────────────────────────────────────────────────────────
 
 @router.get("/scheduler")
-async def get_scheduler():
+async def get_scheduler(user=Depends(require_auth)):
     sched_path = Path("/etc/rnas/scheduler.json")
     try:
         tasks = json.loads(sched_path.read_text())
@@ -673,13 +674,13 @@ async def get_scheduler():
 # ── Setup ───────────────────────────────────────────────────────────────────
 
 @router.get("/setup/status")
-async def setup_status():
+async def setup_status(user=Depends(require_auth)):
     configured = Path("/etc/rnas/rnas.conf").exists()
     return {"configured": configured, "first_run": not configured}
 
 
 @router.post("/setup/apply")
-async def setup_apply(data: dict = Body(...)):
+async def setup_apply(data: dict = Body(...), user=Depends(require_auth)):
     lan_ip = data.get("lan_ip", "192.168.100.1/24")
     radius_server = data.get("radius_server", "192.168.0.202")
     radius_secret = data.get("radius_secret", "testing123")
@@ -725,7 +726,7 @@ async def setup_apply(data: dict = Body(...)):
 # ── Certificates ────────────────────────────────────────────────────────────
 
 @router.get("/system/certificates")
-async def list_certificates():
+async def list_certificates(user=Depends(require_auth)):
     certs = []
     for pattern in ["/etc/rnas/ssl/*.pem", "/etc/rnas/ssl/*.crt", "/etc/rnas/ssl/*.key"]:
         for fp in glob.glob(pattern):
@@ -740,7 +741,7 @@ async def list_certificates():
 
 
 @router.post("/system/certificates/generate")
-async def generate_certificate(data: dict = Body(...)):
+async def generate_certificate(data: dict = Body(...), user=Depends(require_auth)):
     name = data.get("name", "server")
     days = data.get("days", 3650)
     cn = data.get("cn", "RNAS Server")
