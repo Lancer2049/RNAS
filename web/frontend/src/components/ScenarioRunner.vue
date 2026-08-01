@@ -19,7 +19,12 @@ const scenarios = ref([])
 async function load() { try{const r=await fetch('/api/scenarios');scenarios.value=((await r.json()).scenarios||[]).map(s=>({...s,running:false,result:null}))}catch{} }
 async function runScenario(s) {
   s.running=true; s.result=null
-  try{const r=await fetch(`/api/scenarios/${s.id}/load`,{method:'POST'});const d=await r.json();s.result={ok:d.success,text:d.success?`${d.applied}/${d.total} applied`:'Failed'}}catch{}
+  try{
+    const r=await fetch(`/api/scenarios/${encodeURIComponent(s.id)}/load`,{method:'POST'})
+    const d=await r.json()
+    s.result={ok:d.success,text:d.success?`${d.applied}/${d.total} applied`:'Failed'}
+    if(!d.success) console.error(`[Scenario ${s.id}] ${d.detail||'unknown error'}`)
+  }catch(e){ s.result={ok:false,text:'Error'}; console.error(`[Scenario ${s.id}] ${e.message}`) }
   s.running=false
 }
 onMounted(load)

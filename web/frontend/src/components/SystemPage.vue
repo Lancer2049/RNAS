@@ -74,7 +74,7 @@ async function loadLogs() {
 async function svcAction(name, action) {
   acting.value = name
   try {
-    const res = await fetch(`/api/system/service/${name}/${action}`)
+    const res = await fetch(`/api/system/service/${encodeURIComponent(name)}/${encodeURIComponent(action)}`)
     await res.json()
     await new Promise(r => setTimeout(r, 2000))
     await loadAll()

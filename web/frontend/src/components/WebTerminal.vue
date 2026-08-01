@@ -26,7 +26,8 @@ const WS_URL = `ws://${location.host}/api/terminal`
 function connect() {
   if (ws) return
   try {
-    ws = new WebSocket(WS_URL)
+    const token = localStorage.getItem('rnas_token') || sessionStorage.getItem('rnas_token') || ''
+    ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`)
     ws.onopen = () => { term.focus() }
     ws.onmessage = e => { term.write(e.data) }
     ws.onclose = () => { ws = null; term.writeln('\\r\\n[Disconnected]') }

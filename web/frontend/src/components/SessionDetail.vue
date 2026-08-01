@@ -66,7 +66,7 @@ async function sendCoA() {
   if (coaRate.value) attrs += `,Mikrotik-Rate-Limit=${coaRate.value}`
   if (coaTimeout.value) attrs += `,Session-Timeout=${coaTimeout.value}`
   try {
-    const r = await fetch(`/api/tools/coa?user=${session.value.username}&attrs=${encodeURIComponent(attrs.replace(`User-Name=${session.value.username},`,''))}`)
+    const r = await fetch(`/api/tools/coa?user=${encodeURIComponent(session.value.username)}&attrs=${encodeURIComponent(attrs.replace(`User-Name=${session.value.username},`,''))}`)
     const d = await r.json()
     coaOk.value = d.output?.includes('ACK')
     coaResult.value = coaOk.value ? 'CoA ACK — attributes changed' : 'CoA NAK — check logs'

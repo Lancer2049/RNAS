@@ -31,7 +31,12 @@ const genName = ref('server'), genCN = ref('RNAS Server'), genDays = ref(3650)
 
 async function load() { try { const r=await fetch('/api/system/certificates'); certs.value=(await r.json()).certificates||[] } catch {} }
 async function generate() {
-  try { await fetch('/api/system/certificates/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:genName.value,cn:genCN.value,days:genDays.value})}); showGen.value=false; load() } catch {}
+  if (!genName.value.trim() || !genDays.value || genDays.value < 1) { alert('Name and days (>=1) are required'); return }
+  try {
+    const r = await fetch('/api/system/certificates/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:genName.value.trim(),cn:genCN.value,days:genDays.value})})
+    if (!r.ok) { const d = await r.json().catch(()=>({})); alert('Generate failed: ' + (d.detail || r.status)); return }
+    showGen.value=false; load()
+  } catch(e) { alert('Generate error: ' + e.message) }
 }
 onMounted(load)
 </script>

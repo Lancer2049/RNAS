@@ -45,11 +45,12 @@ const proto = ref('pppoe'), count = ref(5), user = ref('testuser'), pass = ref('
 const running = ref(false), results = ref([]), done = ref(0), passed = ref(0), failed = ref(0)
 
 async function startSim() {
+  if (!count.value || count.value < 1) count.value = 1
   running.value = true; results.value = []; done.value = 0; passed.value = 0; failed.value = 0
   for (let i = 1; i <= count.value; i++) {
     const start = Date.now()
     try {
-      const res = await fetch(`/api/sim/connect?proto=${proto.value}&user=${user.value}&pass=${pass.value}`)
+      const res = await fetch(`/api/sim/connect?proto=${encodeURIComponent(proto.value)}&user=${encodeURIComponent(user.value)}&pass=${encodeURIComponent(pass.value)}`)
       const d = await res.json()
       const ok = d.success
       results.value.push({id:i, proto:proto.value, ok, ip:d.ip, latency: Date.now()-start})

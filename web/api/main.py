@@ -137,8 +137,25 @@ async def startup_collector():
 # ── WebSocket (event-driven) ───────────────────────────────────────────────
 
 @app.websocket("/api/ws")
-async def ws_dashboard(ws: WebSocket):
+async def ws_dashboard(ws: WebSocket, token: str = Query("")):
+    from api.auth import get_current_user, require_auth
     from event_bus import register_subscriber, unregister_subscriber, get_full_state
+
+    # WebSocket can't carry Authorization header — validate via query token
+    if not token:
+        await ws.accept()
+        await ws.send_text(json.dumps({"type": "error", "detail": "Missing token"}))
+        await ws.close(code=4401)
+        return
+    try:
+        user = await get_current_user(token)
+    except Exception:
+        user = None
+    if user is None:
+        await ws.accept()
+        await ws.send_text(json.dumps({"type": "error", "detail": "Invalid token"}))
+        await ws.close(code=4401)
+        return
 
     await ws.accept()
     queue = register_subscriber()
@@ -164,12 +181,27 @@ async def ws_dashboard(ws: WebSocket):
             pass
 
 @app.websocket("/api/terminal")
-async def terminal_shell(ws: WebSocket):
-    """WebSocket shell — gated by RNAS_FEATURE_TERMINAL env flag."""
+async def terminal_shell(ws: WebSocket, token: str = Query("")):
+    """WebSocket shell — gated by RNAS_FEATURE_TERMINAL env flag, requires JWT."""
     if not FEATURE_FLAGS.get("web_terminal", False):
         await ws.accept()
         await ws.send_text("Terminal is disabled. Set RNAS_FEATURE_TERMINAL=true to enable.")
         await ws.close()
+        return
+    from api.auth import get_current_user
+    if not token:
+        await ws.accept()
+        await ws.send_text("Authentication required.")
+        await ws.close(code=4401)
+        return
+    try:
+        user = await get_current_user(token)
+    except Exception:
+        user = None
+    if user is None:
+        await ws.accept()
+        await ws.send_text("Invalid token.")
+        await ws.close(code=4401)
         return
     await ws.accept()
     process = await asyncio.create_subprocess_exec(
