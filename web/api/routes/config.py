@@ -9,7 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from api.auth import require_auth
 from typing import Dict
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "cmd" / "rnas-config"))
+# Config engine modules live in ../cmd/rnas-config on dev or /opt/rnas-config
+# on the deployed VM. Prefer the env-provided path, fall back to repo-relative.
+_config_engine = os.environ.get("RNAS_CONFIG_ENGINE_DIR", "")
+if not _config_engine:
+    _repo_rel = Path(__file__).parent.parent.parent.parent / "cmd" / "rnas-config"
+    _config_engine = str(_repo_rel) if _repo_rel.exists() else "/opt/rnas-config"
+sys.path.insert(0, _config_engine)
 from rnas_config import walk_config_tree, write_config_section
 
 router = APIRouter(tags=["Configuration"])
@@ -159,7 +165,7 @@ async def apply_config(user=Depends(require_auth)):
 
         # Step 2: Dry-run validation
         from rnas_config import walk_config_tree, GEN_MAP
-        from validators import validate_config
+        from config_validators import validate_config
 
         tree = walk_config_tree(Path(DEFAULT_ROOT))
         errors = []
@@ -183,13 +189,13 @@ async def apply_config(user=Depends(require_auth)):
         import shutil
         rnas_config_cli = shutil.which("rnas-config")
         gen_cmd = (
-            [rnas_config_cli, "generate"]
+            [rnas_config_cli, "--root", DEFAULT_ROOT, "generate"]
             if rnas_config_cli
-            else ["python3", "-m", "rnas_config", "generate"]
+            else ["python3", "-m", "rnas_config", "--root", DEFAULT_ROOT, "generate"]
         )
         for svc in ["accel-ppp", "dnsmasq", "firewall", "snmp"]:
             res = subprocess.run(
-                gen_cmd + [svc, "--root", DEFAULT_ROOT, "-o", f"/var/run/rnas/{svc}.conf"],
+                gen_cmd + [svc, "-o", f"/var/run/rnas/{svc}.conf"],
                 capture_output=True, text=True, timeout=10,
             )
             if res.returncode != 0:

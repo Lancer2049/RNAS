@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 def parse_config(text: str) -> Dict[str, Dict[str, str]]:
-    """Parse INI-style config text. Supports [section "name"] and ${VAR} interpolation."""
+    """Parse INI-style config text. Supports [section] and [section/name] headers."""
     sections: Dict[str, Dict[str, str]] = {}
     current: Optional[str] = None
 
@@ -15,9 +15,9 @@ def parse_config(text: str) -> Dict[str, Dict[str, str]]:
         if not stripped or stripped.startswith("#"):
             continue
 
-        m = re.match(r'^\[(\w+)(?:\s+"([^"]*)")?\]', stripped)
+        m = re.match(r'^\[([\w/]+)(?:\s+"([^"]*)")?\]\s*$', stripped)
         if m:
-            section = m.group(1)
+            section = m.group(1).replace("/", "/")
             name = m.group(2)
             current = f"{section}/{name}" if name else section
             if current not in sections:
