@@ -103,6 +103,7 @@ test.describe('端到端 PPPoE 场景测试 — 前端全链路', () => {
   });
 
   test('步骤3: 通过 Subscriber Sim 页面发起实际 PPPoE 拨号', async ({ page }) => {
+    test.skip(!process.env.RNAS_CPE_HOST, 'Requires real CPE (set RNAS_CPE_HOST)');
     await page.goto(BASE);
     // Given: 左侧菜单栏 → Subscriber Sim
     await page.locator('.rnas-sidebar').getByText('Subscriber Sim').click();

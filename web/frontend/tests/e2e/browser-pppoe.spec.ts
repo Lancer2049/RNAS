@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.beforeAll(async ({ request }) => { await captureBaseline(request, 'browserpppoe'); });
-test.afterAll(async ({ request }) => { await restoreBaseline(request, 'browserpppoe'); });
+test.afterEach(async ({ request }) => { await restoreBaseline(request, 'browserpppoe'); });
 
 
 test.describe('PPPoE Config — Browser UI End-to-End', () => {
@@ -61,13 +61,12 @@ test.describe('PPPoE Config — Browser UI End-to-End', () => {
     }
 
     await page.locator('.btn-primary').filter({ hasText: 'Save' }).click();
-    const applyBtn = page.locator('.btn-primary').filter({ hasText: 'Apply & Restart' });
-    if (await applyBtn.isVisible().catch(() => false)) {
-      await applyBtn.click();
-      // replaced waitForTimeout(1000) → expect() auto-wait
-    }
+    // save() synchronously updates p.enabled → status-dot flips to off immediately,
+    // so we verify the UI state after Save without triggering a slow apply/restart.
 
     const statusDot = page.locator('.proto-tabs button.active .status-dot');
+    await expect(statusDot).toBeVisible({ timeout: 10000 });
+    await expect(statusDot).toHaveClass(/off/, { timeout: 10000 });
     const dotClass = await statusDot.getAttribute('class').catch(() => '');
     expect(dotClass.includes('off')).toBeTruthy();
   });
