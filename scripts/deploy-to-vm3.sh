@@ -19,28 +19,23 @@ SCP="sshpass -p ${VM3_PASS} scp -o StrictHostKeyChecking=no"
 echo "=== RNAS Deploy to VM3 (${VM3_HOST}) ==="
 
 # 1. Build a clean package tree (avoids the flat-copy mistakes of scp glob)
-mkdir -p "${STAGE}/api" "${STAGE}/api/routes" "${STAGE}/api/services" "${STAGE}/config"
-cp "${REPO_DIR}"/web/api/main.py "${REPO_DIR}"/web/api/auth.py \
-   "${REPO_DIR}"/web/api/validators.py "${REPO_DIR}"/web/api/http_client.py \
-   "${REPO_DIR}"/web/api/event_bus.py "${REPO_DIR}"/web/api/state_collector.py \
-   "${REPO_DIR}"/web/api/models.py "${REPO_DIR}"/web/api/__init__.py \
-   "${REPO_DIR}"/web/rnas_env.py "${STAGE}/api/"
-cp "${REPO_DIR}"/web/api/routes/*.py "${STAGE}/api/routes/"
-cp "${REPO_DIR}"/web/api/services/*.py "${STAGE}/api/services/"
-cp "${REPO_DIR}"/cmd/rnas-config/core.py "${REPO_DIR}"/cmd/rnas-config/generators.py \
-   "${REPO_DIR}"/cmd/rnas-config/config_ops.py "${REPO_DIR}"/cmd/rnas-config/rnas_config.py \
-   "${REPO_DIR}"/cmd/rnas-config/config_validators.py "${REPO_DIR}"/cmd/rnas-config/health_check.py \
-   "${STAGE}/config/"
-# API auth module: keep a copy at api/auth.py AND top-level (import 'api.auth')
-mkdir -p "${STAGE}/api/api"
+# NOTE: the systemd unit's WorkingDirectory is /opt/rnas-fastapi — the tar
+# must extract to that exact name, not a generic 'api' dir, or the deployed
+# files land somewhere the service never reads.
+mkdir -p "${STAGE}/rnas-fastapi/routes" "${STAGE}/rnas-fastapi/services" "${STAGE}/rnas-fastapi/api" "${STAGE}/rnas-config"
+cp "${REPO_DIR}"/web/api/*.py "${REPO_DIR}"/web/rnas_env.py "${STAGE}/rnas-fastapi/"
+cp "${REPO_DIR}"/web/api/routes/*.py "${STAGE}/rnas-fastapi/routes/"
+cp "${REPO_DIR}"/web/api/services/*.py "${STAGE}/rnas-fastapi/services/"
+cp "${REPO_DIR}"/cmd/rnas-config/*.py "${STAGE}/rnas-config/"
+# api.* import chain: keep a copy at <root>/api/
 cp "${REPO_DIR}"/web/api/auth.py "${REPO_DIR}"/web/api/validators.py \
    "${REPO_DIR}"/web/api/http_client.py "${REPO_DIR}"/web/api/event_bus.py \
    "${REPO_DIR}"/web/api/state_collector.py "${REPO_DIR}"/web/api/models.py \
-   "${STAGE}/api/api/"
-touch "${STAGE}/api/api/__init__.py"
+   "${STAGE}/rnas-fastapi/api/"
+touch "${STAGE}/rnas-fastapi/api/__init__.py"
 
 # 2. Package
-tar czf "${STAGE}/rnas.tar.gz" -C "${STAGE}" api config
+tar czf "${STAGE}/rnas.tar.gz" -C "${STAGE}" rnas-fastapi rnas-config
 
 # 3. Deploy to VM3: correct dirs, then restart fastapi
 $SSH "mkdir -p /opt/rnas-fastapi /opt/rnas-config"
