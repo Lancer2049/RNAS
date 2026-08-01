@@ -55,16 +55,40 @@ v1.include_router(network_services.router)   # /api/v1/netflow, /api/v1/dhcp-rel
 v1.include_router(system_extra.router)       # /api/v1/system/log, /api/v1/protocol/events, /api/v1/setup, /api/v1/certs
 app.include_router(v1)
 
-# Backward compat: /api/* → /api/v1/*
-@app.get("/api/{path:path}", tags=["Status"])
-async def compat_redirect(path: str, request: Request):
+# Backward compat: /api/* → /api/v1/* via server-side proxy (preserves method/headers/body)
+@app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], tags=["Status"])
+async def compat_proxy(path: str, request: Request):
     if path.startswith("v1/"):
         return JSONResponse({"detail": "Not Found"}, status_code=404)
     if path == "health":
         return {"status": "ok", "version": "3.0.0"}
     if path == "ws" or path == "terminal":
         raise HTTPException(status_code=410, detail="Use /api/v1/ws or /api/v1/terminal")
-    return RedirectResponse(url=f"/api/v1/{path}?{request.query_params}", status_code=307)
+
+    from http_client import get_client
+    from urllib.parse import urlsplit
+    loopback_port = os.environ.get("RNAS_API_PORT", "9099")
+    parts = urlsplit(str(request.url).replace("/api/", "/api/v1/", 1))
+    target_url = f"http://127.0.0.1:{loopback_port}{parts.path}?{parts.query}"
+    body = await request.body()
+    headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")}
+    try:
+        proxy = get_client()
+        resp = await proxy.request(
+            request.method,
+            target_url,
+            headers=headers,
+            content=body if body else None,
+            params=request.query_params,
+        )
+        return JSONResponse(
+            status_code=resp.status_code,
+            content=resp.json() if resp.headers.get("content-type", "").startswith("application/json")
+            else {"detail": resp.text},
+            headers={"X-Compat-Proxy": "true"},
+        )
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"detail": f"Compat proxy failed: {e}"})
 
 # Hotspot login POST
 _RADIUS_SECRET = os.environ.get("RNAS_RADIUS_SECRET", "testing123")
