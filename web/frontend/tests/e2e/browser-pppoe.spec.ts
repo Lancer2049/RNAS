@@ -1,5 +1,6 @@
 import { setupAuth } from './auth-helper';
 import { test, expect } from '@playwright/test';
+import { captureBaseline, restoreBaseline } from './config-restore';
 
 const BASE = 'http://127.0.0.1:8098';
 const SIDEBAR = 'nav.rnas-sidebar';
@@ -7,6 +8,9 @@ const SIDEBAR = 'nav.rnas-sidebar';
 test.beforeEach(async ({ page }) => {
   await setupAuth(page);
 });
+
+test.beforeAll(async ({ request }) => { await captureBaseline(request, 'browserpppoe'); });
+test.afterAll(async ({ request }) => { await restoreBaseline(request, 'browserpppoe'); });
 
 
 test.describe('PPPoE Config — Browser UI End-to-End', () => {

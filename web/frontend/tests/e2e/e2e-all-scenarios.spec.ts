@@ -1,11 +1,15 @@
 import { setupAuth } from './auth-helper';
 import { test, expect } from '@playwright/test';
+import { captureBaseline, restoreBaseline } from './config-restore';
 
 const BASE = 'http://127.0.0.1:8098';
 
 test.beforeEach(async ({ page }) => {
   await setupAuth(page);
 });
+
+test.beforeAll(async ({ request }) => { await captureBaseline(request, 'e2eall'); });
+test.afterEach(async ({ request }) => { await restoreBaseline(request, 'e2eall'); });
 
 
 /**
@@ -296,7 +300,7 @@ test.describe('Services Config 页面 — 6 个服务标签', () => {
     captureErrors(page);
     await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('VPN Services').click();
-    // replaced waitForTimeout(1500) → expect() auto-wait
+    await expect(page.locator('.svc-nav')).toBeVisible({ timeout: 10000 });
     const statusItems = page.locator('.status-bar .status-item');
     const statusCount = await statusItems.count();
     console.log(`[Services] Status items: ${statusCount}`);
@@ -499,7 +503,7 @@ test.describe('E2E — Full Load Test 场景（全协议 + 全服务）', () => 
     captureErrors(page);
     await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('VPN Services').click();
-    // replaced waitForTimeout(1500) → expect() auto-wait
+    await expect(page.locator('.svc-nav')).toBeVisible({ timeout: 10000 });
     const tabs = await page.locator('.svc-nav button').allTextContents();
     console.log(`[Full Load] Service tabs: ${tabs.join(', ')}`);
     expect(tabs).toContain('VPN - IPsec');
@@ -553,7 +557,7 @@ test.describe('E2E — All VPNs 场景（WireGuard + IPsec + OpenVPN）', () => 
     captureErrors(page);
     await page.goto(BASE);
     await page.locator('.rnas-sidebar').getByText('VPN Services').click();
-    // replaced waitForTimeout(1500) → expect() auto-wait
+    await expect(page.locator('.svc-nav')).toBeVisible({ timeout: 10000 });
     const tabs = await page.locator('.svc-nav button').allTextContents();
     console.log(`[All VPNs] Service tabs: ${tabs.join(', ')}`);
     for (const svc of ['WireGuard', 'IPsec', 'OpenVPN']) {

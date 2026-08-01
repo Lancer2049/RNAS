@@ -1,11 +1,15 @@
 import { setupAuth } from './auth-helper';
 import { test, expect } from '@playwright/test';
+import { captureBaseline, restoreBaseline } from './config-restore';
 
 const BASE = 'http://127.0.0.1:8098';
 
 test.beforeEach(async ({ page }) => {
   await setupAuth(page);
 });
+
+test.beforeAll(async ({ request }) => { await captureBaseline(request, 'e2epppoe'); });
+test.afterAll(async ({ request }) => { await restoreBaseline(request, 'e2epppoe'); });
 
 
 test.describe('端到端 PPPoE 场景测试 — 前端全链路', () => {

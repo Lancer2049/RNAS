@@ -1,11 +1,15 @@
 import { setupAuth } from './auth-helper';
 import { test, expect } from '@playwright/test';
+import { captureBaseline, restoreBaseline } from './config-restore';
 
 const BASE = 'http://127.0.0.1:8098';
 
 test.beforeEach(async ({ page }) => {
   await setupAuth(page);
 });
+
+test.beforeAll(async ({ request }) => { await captureBaseline(request, 'scen'); });
+test.afterEach(async ({ request }) => { await restoreBaseline(request, 'scen'); });
 
 
 test.describe('Scenario Runner — 预定义测试场景', () => {

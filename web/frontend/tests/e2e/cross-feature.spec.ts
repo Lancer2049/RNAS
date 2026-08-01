@@ -15,8 +15,7 @@ test.describe('F — Cross-Feature Workflows (Browser UI)', () => {
     await page.goto(BASE);
     // Navigate to Config Editor
     await page.locator(SIDEBAR).getByText('Config Editor').click();
-    // replaced waitForTimeout(1500) → expect() auto-wait
-    await expect(page.locator('.config-section, .cfg-sidebar')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('.cfg-sidebar')).toBeVisible({ timeout: 8000 });
 
     // Click first config category
     const firstItem = page.locator('.cfg-item').first();
