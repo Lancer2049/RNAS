@@ -1,5 +1,5 @@
 #!/bin/bash
-# RNAS Deploy Script — copies updated files from repo to VM3 and restarts services.
+# RNAS Deploy Script — packages the API + config engine and deploys to VM3.
 # Run: bash scripts/deploy-to-vm3.sh
 set -e
 
@@ -11,50 +11,53 @@ else
     VM3_PASS="${RNAS_VM3_PASS:-123456}"
 fi
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+STAGE="/tmp/rnas-deploy-$$"
 
 SSH="sshpass -p ${VM3_PASS} ssh -o StrictHostKeyChecking=no root@${VM3_HOST}"
 SCP="sshpass -p ${VM3_PASS} scp -o StrictHostKeyChecking=no"
 
 echo "=== RNAS Deploy to VM3 (${VM3_HOST}) ==="
-echo ""
 
-# 1. Copy updated config engine
-echo "[1/5] Deploying rnas-config..."
-$SCP "${REPO_DIR}/cmd/rnas-config/rnas_config.py" root@${VM3_HOST}:/usr/bin/rnas-config
-$SSH "chmod +x /usr/bin/rnas-config"
+# 1. Build a clean package tree (avoids the flat-copy mistakes of scp glob)
+mkdir -p "${STAGE}/api" "${STAGE}/api/routes" "${STAGE}/api/services" "${STAGE}/config"
+cp "${REPO_DIR}"/web/api/main.py "${REPO_DIR}"/web/api/auth.py \
+   "${REPO_DIR}"/web/api/validators.py "${REPO_DIR}"/web/api/http_client.py \
+   "${REPO_DIR}"/web/api/event_bus.py "${REPO_DIR}"/web/api/state_collector.py \
+   "${REPO_DIR}"/web/api/models.py "${REPO_DIR}"/web/api/__init__.py \
+   "${REPO_DIR}"/web/rnas_env.py "${STAGE}/api/"
+cp "${REPO_DIR}"/web/api/routes/*.py "${STAGE}/api/routes/"
+cp "${REPO_DIR}"/web/api/services/*.py "${STAGE}/api/services/"
+cp "${REPO_DIR}"/cmd/rnas-config/core.py "${REPO_DIR}"/cmd/rnas-config/generators.py \
+   "${REPO_DIR}"/cmd/rnas-config/config_ops.py "${REPO_DIR}"/cmd/rnas-config/rnas_config.py \
+   "${REPO_DIR}"/cmd/rnas-config/config_validators.py "${REPO_DIR}"/cmd/rnas-config/health_check.py \
+   "${STAGE}/config/"
+# API auth module: keep a copy at api/auth.py AND top-level (import 'api.auth')
+mkdir -p "${STAGE}/api/api"
+cp "${REPO_DIR}"/web/api/auth.py "${REPO_DIR}"/web/api/validators.py \
+   "${REPO_DIR}"/web/api/http_client.py "${REPO_DIR}"/web/api/event_bus.py \
+   "${REPO_DIR}"/web/api/state_collector.py "${REPO_DIR}"/web/api/models.py \
+   "${STAGE}/api/api/"
+touch "${STAGE}/api/api/__init__.py"
 
-# 2. Copy updated config templates and new ones
-echo "[2/5] Deploying config templates..."
-$SCP "${REPO_DIR}/configs/access.d/core.conf" root@${VM3_HOST}:/etc/rnas/access.d/core.conf
-$SCP "${REPO_DIR}/configs/access.d/mac-auth.conf" root@${VM3_HOST}:/etc/rnas/access.d/mac-auth.conf 2>/dev/null || echo "(mac-auth.conf new)"
-$SCP "${REPO_DIR}/configs/network.d/ipv6.conf" root@${VM3_HOST}:/etc/rnas/network.d/ipv6.conf 2>/dev/null || echo "(ipv6.conf new)"
+# 2. Package
+tar czf "${STAGE}/rnas.tar.gz" -C "${STAGE}" api config
 
-# 3. Copy updated API server
-echo "[3/5] Deploying API server..."
-$SSH "mkdir -p /opt/rnas-api"
-$SCP -r "${REPO_DIR}/web/api/"* root@${VM3_HOST}:/opt/rnas-api/
-$SCP -r "${REPO_DIR}/cmd/rnas-config/"* root@${VM3_HOST}:/opt/rnas-config/ 2>/dev/null || echo "(config engine partial)"
-$SSH "mkdir -p /opt/static"
-$SCP -r "${REPO_DIR}/web/frontend/dist/"* root@${VM3_HOST}:/opt/static/ 2>/dev/null || echo "(no static build, skipping)"
-
-# 4. Regenerate configs and restart services
-echo "[4/5] Regenerating accel-ppp config..."
-$SSH "mkdir -p /var/run/rnas && /usr/bin/rnas-config --root /etc/rnas generate accel-ppp -o /var/run/rnas/accel-ppp.conf"
-
-echo "[5/5] Restarting RNAS services..."
-# Fix service unit if not already fixed
+# 3. Deploy to VM3: correct dirs, then restart fastapi
+$SSH "mkdir -p /opt/rnas-fastapi /opt/rnas-config"
+$SCP "${STAGE}/rnas.tar.gz" root@${VM3_HOST}:/tmp/rnas.tar.gz
 $SSH "
-sed -i '/^ExecStartPre=\/usr\/bin\/rnas-config/i ExecStartPre=mkdir -p /var/run/rnas' /etc/systemd/system/rnas-accel-ppp.service 2>/dev/null
+tar xzf /tmp/rnas.tar.gz -C /opt
+# fresh api/ package dir — the import chain resolves api.* from here
+rm -rf /opt/rnas-fastapi/__pycache__ /opt/rnas-fastapi/*/__pycache__ 2>/dev/null || true
+chmod +x /opt/rnas-config/rnas_config.py
+ln -sf /opt/rnas-config/rnas_config.py /usr/bin/rnas-config 2>/dev/null || true
 systemctl daemon-reload
-systemctl restart rnas-accel-ppp
-sleep 2
-systemctl status rnas-accel-ppp --no-pager | head -5
+systemctl restart rnas-fastapi
+sleep 3
+systemctl is-active rnas-fastapi
+curl -s http://127.0.0.1:9099/api/health
 "
 
 echo ""
 echo "=== Deploy complete! ==="
-echo "accel-ppp status: $($SSH 'systemctl is-active rnas-accel-ppp')"
-echo "Dashboard:      http://${VM3_HOST}:8099/api/health"
-echo "accel-cmd:      $SSH 'accel-cmd show stat 2>&1 | head -3'"
-echo ""
-echo "Next: run L2TP/SSTP/IPoE protocol tests"
+rm -rf "${STAGE}"

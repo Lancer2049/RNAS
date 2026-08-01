@@ -125,12 +125,13 @@ class StressEngine:
         """Execute the full stress test and return results."""
         self.setup_network()
         interval = 1.0 / self.config.rate if self.config.rate > 0 else 0.1
+        start_time = time.time()
 
         for i, ns in enumerate(self.namespaces):
             username = f"{self.config.username_prefix}{i+1}"
             self.start_session(ns, username)
             time.sleep(interval)
-            if self.config.duration and time.time() - self._start_time > self.config.duration:
+            if self.config.duration and time.time() - start_time > self.config.duration:
                 break
 
         return {

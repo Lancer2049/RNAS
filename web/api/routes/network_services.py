@@ -14,7 +14,7 @@ async def netflow(user=Depends(require_auth)):
     try:
         running = subprocess.run(
             ["systemctl", "is-active", "softflowd"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, timeout=5,
         ).stdout.strip() == "active"
     except Exception:
         running = False
@@ -31,7 +31,7 @@ async def dhcp_relay(user=Depends(require_auth)):
     try:
         running = subprocess.run(
             ["systemctl", "is-active", "rnas-dhcp-relay"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, timeout=5,
         ).stdout.strip() == "active"
     except Exception:
         running = False
@@ -42,7 +42,12 @@ async def dhcp_relay(user=Depends(require_auth)):
 
 @router.get("/hotspot/status")
 async def hotspot_status(user=Depends(require_auth)):
-    portal_active = Path("/opt/rnas-web/static/hotspot/login.html").exists()
+    import os as _os
+    candidate = _os.environ.get("RNAS_HOTSPOT_HTML", "")
+    portal_path = Path(candidate) if candidate else Path("/opt/rnas-fastapi/static/hotspot/login.html")
+    if not portal_path.exists():
+        portal_path = Path("/opt/rnas-web/static/hotspot/login.html")
+    portal_active = portal_path.exists()
     try:
         ipt = subprocess.run(
             ["iptables", "-t", "nat", "-L", "rnas-hotspot", "-n"],

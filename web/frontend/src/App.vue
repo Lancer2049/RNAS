@@ -214,17 +214,18 @@ async function fetchAlerts() {
 }
 async function handleDisconnect(sid) { await fetch(`/api/sessions/${sid}/disconnect`,{method:'POST'}); fetchData() }
 
-let refreshTimer = null, ws = null
+let refreshTimer = null, alertTimer = null, ws = null
 function connectWS() {
   try {
-    ws = new WebSocket(`ws://${location.host}/api/ws`)
-    ws.onmessage = e => { try { const d=JSON.parse(e.data); service.value=d.service||{}; sessions.value=d.sessions||[]; radiusOk.value=d.service?.radius_state==='active' } catch {} }
+    const token = localStorage.getItem('rnas_token') || sessionStorage.getItem('rnas_token') || ''
+    ws = new WebSocket(`ws://${location.host}/api/ws?token=${encodeURIComponent(token)}`)
+    ws.onmessage = e => { try { const d=JSON.parse(e.data); if(d.service) service.value=d.service; if(d.sessions) sessions.value=d.sessions; radiusOk.value=d.service?.radius_state==='active' } catch {} }
     ws.onclose = () => { ws=null; setTimeout(connectWS,3000) }
     ws.onerror = () => { ws?.close(); ws=null }
   } catch { ws=null }
 }
 onMounted(()=>{ 
-  fetchData(); fetchAlerts(); refreshTimer=setInterval(fetchData,15000); setInterval(fetchAlerts,30000); connectWS()
+  fetchData(); fetchAlerts(); refreshTimer=setInterval(fetchData,15000); alertTimer=setInterval(fetchAlerts,30000); connectWS()
   window.addEventListener('hashchange', () => {
     const h = location.hash.replace('#/','') || 'overview'
     if (h !== page.value) page.value = h
@@ -236,7 +237,7 @@ onMounted(()=>{
     import('./components/SystemLog.vue')
   }, 2000)
 })
-onUnmounted(()=>{ clearInterval(refreshTimer); ws?.close() })
+onUnmounted(()=>{ clearInterval(refreshTimer); clearInterval(alertTimer); ws?.close() })
 </script>
 
 <style>

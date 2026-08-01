@@ -8,10 +8,6 @@ from services.traffic import get_history
 from services.oui import lookup
 
 router = APIRouter(tags=["Firewall"])
-
-"""Extra API routes — interfaces, routing, tunnels, vlans, firewall, DHCP, certificates."""
-
-router = APIRouter(tags=["Network"])
 _SCRIPT_TIMEOUT = 10
 
 
