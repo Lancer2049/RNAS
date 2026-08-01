@@ -58,11 +58,9 @@ test.describe('PPPoE Config — Browser UI End-to-End', () => {
     const toggleCheckbox = page.locator('.toggle input[type="checkbox"]');
     if (await toggleCheckbox.isChecked()) {
       await toggleCheckbox.uncheck();
+      await page.locator('.btn-primary').filter({ hasText: 'Save' }).click();
     }
-
-    await page.locator('.btn-primary').filter({ hasText: 'Save' }).click();
-    // save() synchronously updates p.enabled → status-dot flips to off immediately,
-    // so we verify the UI state after Save without triggering a slow apply/restart.
+    // If PPPoE was already disabled, nothing to do — just verify the off state.
 
     const statusDot = page.locator('.proto-tabs button.active .status-dot');
     await expect(statusDot).toBeVisible({ timeout: 10000 });
