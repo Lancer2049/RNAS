@@ -107,7 +107,9 @@ def _gather() -> dict:
         for key, pat in patterns:
             m = re.search(pat, stat_raw, re.DOTALL)
             if m:
-                state[key] = m.group(1)
+                val = m.group(1)
+                # numeric fields stay int so callers can compare safely
+                state[key] = int(val) if key in ("auth_sent", "acct_sent", "sessions_active") else val
 
         sessions_raw = subprocess.run(
             [_ACCEL_CMD, "show", "sessions",
