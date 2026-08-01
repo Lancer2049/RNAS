@@ -62,31 +62,19 @@ test.describe('D — Monitoring & System Status (Browser UI)', () => {
 
   test('D4: Interface Detail page loads when clicking interface name', async ({ page }) => {
     await page.goto(BASE);
-    // From dashboard, click an interface name/link if present
-    const ifaceLink = page.locator('a, .iface-name, [class*="interface"]').filter({ hasText: /ens\d+|eth\d+|br\d+|lo/ }).first();
-    const ifaceVisible = await ifaceLink.isVisible().catch(() => false);
-    if (ifaceVisible) {
-      await ifaceLink.click();
-      // replaced waitForTimeout(1000) → expect() auto-wait
-      // Verify some interface detail loaded
-      const content = page.locator('.rnas-content');
-      await expect(content).toBeVisible({ timeout: 5000 });
-      const text = await content.textContent();
-      const hasDetail = /MAC|IP|RX|TX|bytes|packets|speed|duplex/i.test(text ?? '');
-      expect(hasDetail).toBeTruthy();
-    } else {
-      // Navigate to network page and click first interface
-      await page.locator(SIDEBAR).getByText('Interfaces').click();
-      // replaced waitForTimeout(1500) → expect() auto-wait
-      const firstRow = page.locator('table tbody tr, .iface-row').first();
-      const rowVisible = await firstRow.isVisible().catch(() => false);
-      if (rowVisible) {
-        await firstRow.click();
-        // replaced waitForTimeout(1000) → expect() auto-wait
-        const content = page.locator('.rnas-content');
-        await expect(content).toBeVisible({ timeout: 5000 });
-      }
-    }
+    // Navigate to Interfaces page and click the first interface row
+    await page.locator(SIDEBAR).getByText('Interfaces').click();
+    await expect(page.locator('.rnas-content')).toBeVisible({ timeout: 8000 });
+    const firstRow = page.locator('table tbody tr, .iface-row, .interface-row').first();
+    await expect(firstRow).toBeVisible({ timeout: 8000 });
+    await firstRow.click();
+    await page.waitForTimeout(1500);
+    const content = page.locator('.rnas-content');
+    await expect(content).toBeVisible({ timeout: 5000 });
+    const text = await content.textContent();
+    const hasDetail = /MAC|IP|RX|TX|bytes|packets|speed|duplex/i.test(text ?? '');
+    console.log(`[D4] Detail page contains interface stats: ${hasDetail}`);
+    expect(hasDetail).toBeTruthy();
   });
 
   test('D5: Traffic history chart has time range tabs (5m/1h/1d)', async ({ page }) => {

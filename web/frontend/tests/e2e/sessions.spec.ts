@@ -19,9 +19,13 @@ test.describe('Session Management — Browser UI Integration', () => {
     await expect(page.locator('.sessions-section')).toBeVisible({ timeout: 8000 });
 
     // Should show either session table or empty state
-    // (wait for loading to finish — both are v-if/v-else-if on loading)
+    // (expect().toBeVisible() auto-waits for the v-if/v-else-if to render;
+    //  isVisible() does NOT wait for elements to appear in DOM)
+    const tableOrEmpty = page.locator('.sessions-section table, .empty-state').first();
+    await expect(tableOrEmpty).toBeVisible({ timeout: 8000 });
+
     const hasTable = await page.locator('.sessions-section table').isVisible().catch(() => false);
-    const hasEmpty = await page.locator('.empty-state').isVisible({ timeout: 5000 }).catch(() => false);
+    const hasEmpty = await page.locator('.empty-state').isVisible().catch(() => false);
     expect(hasTable || hasEmpty).toBeTruthy();
 
     if (hasTable) {
