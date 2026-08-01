@@ -5,7 +5,10 @@ from typing import Dict, Optional, List
 
 def find_config_file(root: Path, section_name: str) -> Optional[Path]:
     """Find which .conf file contains a given config section."""
+    ignored_dirs = {"snapshots", "backup", "archive", "bak"}
     for conf_file in sorted(root.rglob("*.conf")):
+        if any(part in ignored_dirs for part in conf_file.parts):
+            continue
         text = conf_file.read_text()
         base = section_name
         name_part = ""

@@ -43,7 +43,11 @@ def interpolate_env(val: str) -> str:
 
 def walk_config_tree(root: Path) -> Dict[str, Dict[str, str]]:
     merged: Dict[str, Dict[str, str]] = {}
+    # Skip snapshot/backup dirs so historical configs are not treated as active
+    ignored_dirs = {"snapshots", "backup", "archive", "bak"}
     for conf_file in sorted(root.rglob("*.conf")):
+        if any(part in ignored_dirs for part in conf_file.parts):
+            continue
         rel = conf_file.relative_to(root)
         prefix = str(rel.parent).replace("/", ".").strip(".")
         if not prefix:
