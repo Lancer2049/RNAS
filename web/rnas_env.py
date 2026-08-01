@@ -46,12 +46,15 @@ class RNASEnv:
     accel_cmd_bin: str = "/usr/bin/accel-cmd"
 
     # Port-forwarded host map: original IP → (reachable_address, port)
-    # VMware NAT on the Windows host forwards 2201→.201:22, 2202→.202:22, 2203→.203:22
-    # From WSL (mirrored networking), connect to 127.0.0.1 on the forwarded port.
+    # Only used when RNAS_USE_NAT=1 (WSL dev host where VMware NAT forwards
+    # 2201→.201:22, 2202→.202:22, 2203→.203:22 to 127.0.0.1). On the VM
+    # itself (default), hosts are reachable directly on port 22.
     _NAT_MAP: ClassVar[Dict[str, tuple[str, int]]] = {}
 
     @property
     def _nat_map(self) -> Dict[str, tuple[str, int]]:
+        if os.environ.get("RNAS_USE_NAT", "0") != "1":
+            return {}
         if not self._NAT_MAP:
             self.__class__._NAT_MAP = {
                 self.cpe_host: ("127.0.0.1", self.cpe_ssh_port),
@@ -61,7 +64,11 @@ class RNASEnv:
         return self._NAT_MAP
 
     def ssh_connect_params(self, host: str) -> tuple[str, int]:
-        """Map a configured host IP through VMware NAT to reachable address + port."""
+        """Return (address, port) for SSH to a host.
+
+        With RNAS_USE_NAT=1 (WSL dev), map through VMware NAT to 127.0.0.1
+        on the forwarded port. Otherwise connect directly on port 22.
+        """
         if host in self._nat_map:
             return self._nat_map[host]
         return (host, 22)
