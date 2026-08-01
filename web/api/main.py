@@ -5,6 +5,7 @@ import asyncio
 import logging
 import subprocess
 import queue
+import uuid
 from urllib.parse import parse_qs
 from fastapi import FastAPI, Request, WebSocket, APIRouter, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,9 +17,23 @@ from api.auth import FEATURE_FLAGS, require_auth
 
 logger = logging.getLogger("rnas-api")
 
+from logging_config import setup_logging
+setup_logging()
+
 _ENV = os.environ.get("RNAS_ENV", "production")
 
 app = FastAPI(title="RNAS API", version="3.0.0")
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    from logging_config import request_id_ctx
+    rid = request.headers.get("X-Request-ID", str(uuid.uuid4())[:8])
+    request_id_ctx.set(rid)
+    try:
+        response = await call_next(request)
+    finally:
+        request_id_ctx.set("")
+    return response
 
 # CORS: closed in production (frontend served from same origin by FastAPI).
 # In development, frontend runs on Vite dev server (localhost:5173) and needs CORS.
@@ -38,6 +53,13 @@ async def health():
 async def features():
     """Return enabled feature flags for the frontend."""
     return FEATURE_FLAGS
+
+# ── Prometheus metrics (zero-dependency) ──────────────────────────────────
+
+@app.get("/metrics", tags=["Metrics"])
+async def metrics():
+    from metrics import render_metrics
+    return PlainTextResponse(render_metrics(), media_type="text/plain; version=0.0.4")
 
 app.include_router(auth_routes.router)
 

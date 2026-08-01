@@ -35,6 +35,18 @@ def _collect_loop():
             state = _gather_state()
             publish_state(state)
 
+            # Update Prometheus gauges
+            try:
+                from metrics import set_gauge
+                set_gauge("rnas_sessions_active", state.get("sessions_active", 0),
+                          "Active PPP sessions")
+                set_gauge("rnas_radius_up", 1 if state.get("radius_state") == "active" else 0,
+                          "RADIUS server reachable")
+                set_gauge("rnas_core_alive", 1 if _check_core_services() else 0,
+                          "Core services (accel-ppp) alive")
+            except Exception:
+                pass
+
             now = time.time()
             if not _check_core_services() and now - last_alert_time > 300:
                 send_alert("RNAS Core Down", "accel-ppp or dnsmasq not running", "critical")
