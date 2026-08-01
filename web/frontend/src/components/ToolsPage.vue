@@ -107,7 +107,7 @@ async function runDns() {
 }
 async function runRadiusTest() {
   radRunning.value = true; radOutput.value = ''
-  try { const r = await fetch(`/api/tools/radius-test?user=${encodeURIComponent(radUser.value)}&pass=${encodeURIComponent(radPass.value)}`); radOutput.value = (await r.json()).output || '' } catch(e) { radOutput.value = 'Error: ' + e.message }
+  try { const r = await fetch(`/api/tools/radius-test?user=${encodeURIComponent(radUser.value)}&passwd=${encodeURIComponent(radPass.value)}`); radOutput.value = (await r.json()).output || '' } catch(e) { radOutput.value = 'Error: ' + e.message }
   radRunning.value = false
 }
 async function runCoa() {
@@ -118,7 +118,7 @@ async function runCoa() {
 async function runBw() {
   bwRunning.value = true; bwOutput.value = ''
   try {
-    const r = await fetch('/api/bandwidth-test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: bwTarget.value, port: bwPort.value, duration: bwDuration.value, proto: bwProto.value }) })
+    const r = await fetch('/api/tools/bandwidth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: bwTarget.value, port: bwPort.value, duration: bwDuration.value, proto: bwProto.value }) })
     const d = await r.json()
     bwOutput.value = d.ok ? `TX: ${d.sent_mbps} Mbps\nRX: ${d.recv_mbps} Mbps\nRetrans: ${d.retransmits}` : `Error: ${d.error || 'unknown'}`
   } catch(e) { bwOutput.value = 'Error: ' + e.message }

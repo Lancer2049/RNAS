@@ -202,14 +202,14 @@ async function addStatic() {
   try {
     await fetch('/api/ip/dhcp-static', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac: newStaticMac.value.trim(), ip: newStaticIp.value.trim(), hostname: newStaticHost.value.trim() }) })
     showStaticAdd.value = false; newStaticMac.value = ''; newStaticIp.value = ''; newStaticHost.value = ''; fetchStatic(); addToast('Static lease added', 'ok')
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 async function delStatic(mac) {
   if (!confirm(`Delete static lease for ${mac}?`)) return
   try {
     await fetch('/api/ip/dhcp-static', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac }) })
     fetchStatic(); addToast('Static lease deleted', 'ok')
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 async function addAddr() {
   const iface = newAddrIface.value.trim(), ip = newAddrIp.value.trim()
@@ -217,14 +217,14 @@ async function addAddr() {
   try {
     await fetch('/api/ip/addresses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ iface, ip }) })
     showAddrAdd.value = false; newAddrIface.value = ''; newAddrIp.value = ''; fetchAddr()
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 async function delAddr(iface, ip) {
   if (!confirm(`Remove ${ip} from ${iface}?`)) return
   try {
     await fetch('/api/ip/addresses', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ iface, ip }) })
     fetchAddr()
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 
 function showAdd(chain) { addTarget.value = chain.name; newRule.value = '' }
@@ -232,7 +232,7 @@ async function quickAdd(chain, rule) {
   try {
     await fetch('/api/ip/firewall', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, rule }) })
     fetchFW()
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 function barWidth(pkts, chain) {
   const max = Math.max(...chain.rules.map(r => r.packets || 0), 1)
@@ -250,14 +250,14 @@ async function moveRule(chain, idx, dir) {
   try {
     await fetch('/api/ip/firewall/reorder', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, handle: r.handle, position: swap.handle }) })
     fetchFW()
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 async function toggleRule(chain, rule) {
   if (!rule.handle) return
   try {
     await fetch(`/api/ip/firewall/${rule.handle}/toggle`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, enabled: !!rule.disabled }) })
     fetchFW()
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 function parsePfRules() {
   pfRules.value = []
@@ -277,14 +277,14 @@ async function addPortForward() {
     await fetch('/api/ip/firewall', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: c.name, table: c.table, family: c.family, rule }) })
     fetchFW(); setTimeout(parsePfRules, 500)
     pfPort.value++; pfProto.value = 'tcp'; pfTarget.value = ''; pfTargetPort.value = 80; pfDesc.value = ''
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 async function delPfRule(r) {
   if (!r.handle) return
   try {
     await fetch('/api/ip/firewall', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: 'rnas-hotspot', table: 'nat', family: 'ip', handle: r.handle }) })
     fetchFW(); setTimeout(parsePfRules, 500)
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 function makeStatic(lease) {
   newStaticMac.value = lease.mac
@@ -298,14 +298,14 @@ async function addRule(chain) {
   try {
     await fetch('/api/ip/firewall', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, rule: newRule.value.trim() }) })
     addTarget.value = ''; newRule.value = ''; fetchFW(); addToast('Rule added', 'ok')
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 async function delRule(chain, handle) {
   if (!confirm(`Delete rule handle ${handle} from ${chain.name}?`)) return
   try {
     await fetch('/api/ip/firewall', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain.name, table: chain.table, family: chain.family, handle }) })
     fetchFW(); addToast('Rule deleted', 'ok')
-  } catch {}
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 onMounted(fetchArp)
 </script>
@@ -336,11 +336,6 @@ onMounted(fetchArp)
 .btn-toggle { padding:0 4px; background:none; color:var(--fg3); border:none; cursor:pointer; font-size:11px; line-height:1; }
 .btn-toggle.on { color:var(--green); }
 .btn-toggle:hover { color:var(--accent); }
-.fw-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
-.fw-head h3 { font-size:12px; color:var(--accent); font-family:var(--mono); }
-.fw-rule { display:flex; align-items:center; justify-content:space-between; font-family:var(--mono); font-size:11px; color:var(--fg2); padding:2px 8px; border-left:2px solid var(--border); margin:2px 0; }
-.fw-rule:hover { background:rgba(10,189,227,0.04); }
-.fw-text { flex:1; }
 .btn-mini { padding:2px 10px; background:var(--bg3); color:var(--accent); border:1px solid var(--accent); border-radius:3px; cursor:pointer; font-size:10px; font-family:var(--font); }
 .btn-mini:hover { background:var(--accent); color:#000; }
 .btn-del { padding:1px 6px; background:none; color:var(--fg3); border:none; cursor:pointer; font-size:11px; opacity:0; transition:opacity .15s; }

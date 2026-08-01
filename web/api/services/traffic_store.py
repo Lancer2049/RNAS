@@ -86,19 +86,22 @@ def get_history(interface: str, period: str = "5m") -> list[dict]:
         db = _get_db()
         if period == "1h":
             rows = db.execute(
-                "SELECT rx_avg as rx, tx_avg as tx, hour as time FROM traffic_hourly "
+                "SELECT rx_avg as rx, tx_avg as tx, "
+                "CAST(strftime('%s', hour) AS INTEGER) as ts FROM traffic_hourly "
                 "WHERE interface = ? AND hour > datetime('now', '-7 days') ORDER BY hour",
                 [interface],
             ).fetchall()
         elif period == "1d":
             rows = db.execute(
-                "SELECT rx_avg as rx, tx_avg as tx, date as time FROM traffic_daily "
+                "SELECT rx_avg as rx, tx_avg as tx, "
+                "CAST(strftime('%s', date || 'T00:00:00') AS INTEGER) as ts FROM traffic_daily "
                 "WHERE interface = ? AND date > datetime('now', '-30 days') ORDER BY date",
                 [interface],
             ).fetchall()
         else:
             rows = db.execute(
-                "SELECT rx_bytes as rx, tx_bytes as tx, timestamp as time FROM traffic_history "
+                "SELECT rx_bytes as rx, tx_bytes as tx, "
+                "CAST(strftime('%s', timestamp) AS INTEGER) as ts FROM traffic_history "
                 "WHERE interface = ? AND timestamp > datetime('now', '-1 day') ORDER BY timestamp",
                 [interface],
             ).fetchall()

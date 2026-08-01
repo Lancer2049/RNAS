@@ -1,5 +1,5 @@
 """RNAS Tools API — ping, traceroute, RADIUS test/CoA, packet sniffer."""
-import json, os, signal, subprocess, time
+import json, os, re, signal, subprocess, time
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from api.auth import require_auth
 from api.validators import validate_ip_or_hostname
@@ -214,6 +214,8 @@ async def capture_packets(data: dict = Body(...), user=Depends(require_auth)):
     """Start/stop packet capture"""
     action = data.get("action", "start")
     interface = data.get("interface", "ens33")
+    if "/" in interface or ".." in interface or not re.match(r"^[\w.-]+$", interface):
+        raise HTTPException(400, f"Invalid interface name: {interface}")
     port = data.get("port", 0)
     count = data.get("count", 100)
     pid_file = f"/var/run/rnas/tcpdump-{interface}.pid"
@@ -257,3 +259,48 @@ async def capture_packets(data: dict = Body(...), user=Depends(require_auth)):
         return {"running": running, "interface": interface}
     
     return {"status": "error", "error": "invalid action"}
+
+
+@router.post("/tools/bandwidth")
+async def bandwidth_test(data: dict = Body(...), user=Depends(require_auth)):
+    """Run an iperf3 bandwidth test against a target host."""
+    import ipaddress as _ip
+    target = data.get("target", "127.0.0.1")
+    try:
+        _ip.ip_address(target)  # must be an IP literal (iperf3 server)
+    except ValueError:
+        raise HTTPException(400, f"Invalid target IP: {target}")
+    port = int(data.get("port", 5201))
+    duration = int(data.get("duration", 5))
+    proto = data.get("proto", "tcp")
+    if not (1 <= port <= 65535):
+        raise HTTPException(400, "port out of range")
+    if not (1 <= duration <= 60):
+        raise HTTPException(400, "duration out of range")
+    if proto not in ("tcp", "udp"):
+        raise HTTPException(400, "proto must be tcp or udp")
+
+    cmd = ["iperf3", "-c", target, "-p", str(port), "-t", str(duration),
+           "-J", "--forceflush"]
+    if proto == "udp":
+        cmd += ["-u"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=duration + 10)
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        raise HTTPException(500, f"iperf3 failed: {e}")
+
+    try:
+        import json as _json
+        d = _json.loads(result.stdout)
+        end = d.get("end", {})
+        sent = end.get("sum_sent", {})
+        recv = end.get("sum_received", {})
+        return {
+            "ok": result.returncode == 0,
+            "target": target, "proto": proto, "duration": duration,
+            "sent_mbps": round(sent.get("bits_per_second", 0) / 1e6, 2),
+            "recv_mbps": round(recv.get("bits_per_second", 0) / 1e6, 2),
+            "retransmits": sent.get("retransmits", 0),
+        }
+    except Exception:
+        return {"ok": False, "error": result.stderr.strip() or "invalid iperf3 output"}
