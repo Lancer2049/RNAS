@@ -1,5 +1,5 @@
 """RNAS Simulation API — subscriber dial, fault injection, scenario runner."""
-import asyncio, json, subprocess
+import asyncio, json, re, shlex, subprocess
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query
 from api.auth import require_auth
@@ -9,7 +9,6 @@ router = APIRouter(tags=["Simulation"])
 
 async def _run(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:
     """Run a shell command in a thread pool so the event loop is not blocked."""
-    import subprocess
     kwargs.setdefault("shell", True)
     kwargs.setdefault("timeout", 15)
     try:
@@ -20,7 +19,6 @@ async def _run(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:
 
 async def _ssh(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:
     """SSH to a remote host. Returns None if the host is unreachable."""
-    import subprocess
     kwargs.setdefault("shell", True)
     kwargs.setdefault("timeout", 10)
     try:
@@ -49,9 +47,13 @@ async def sim_connect(
     else:
         peer_map = {"pppoe": "rnas-pppoe", "pptp": "rnas-pptp", "sstp": "rnas-sstp"}
         peer = peer_map.get(proto, "rnas-pppoe")
+        # shlex.quote: user/passwd are URL params — prevent shell injection
+        # into the remote pppd command.
+        safe_user = shlex.quote(user)
+        safe_pass = shlex.quote(passwd)
         cmd = env.ssh_cmd_str(
             env.cpe_host,
-            f"timeout 12 pppd call {peer} user {user} password {passwd} nodetach 2>&1")
+            f"timeout 12 pppd call {peer} user {safe_user} password {safe_pass} nodetach 2>&1")
         out = await _ssh(cmd)
         ip = None
         if out:
@@ -121,6 +123,9 @@ async def list_scenarios(user=Depends(require_auth)):
 @router.post("/scenarios/{scenario_id}/load")
 async def load_scenario(scenario_id: str, user=Depends(require_auth)):
     from rnas_config import write_config_section
+    # Prevent path traversal: only allow [a-z0-9-] in scenario id
+    if not re.match(r"^[a-z0-9-]+$", scenario_id):
+        raise HTTPException(status_code=400, detail="Invalid scenario id")
     scenario_file = Path(f"/etc/rnas/scenarios/{scenario_id}.json")
     if not scenario_file.exists():
         raise HTTPException(status_code=404, detail=f"Scenario {scenario_id} not found")

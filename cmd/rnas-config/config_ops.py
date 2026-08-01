@@ -43,30 +43,26 @@ def write_config_section(root: Path, section_name: str, values: Dict[str, str]) 
     if header_idx < 0:
         return False
 
-    existing_keys = set()
-    insert_idx = header_idx + 1
-    while insert_idx < len(lines):
-        stripped = lines[insert_idx].strip()
+    # Remove ALL existing occurrences of the target keys within the section
+    # (a key may appear more than once from prior partial writes).
+    key_lines_to_remove = set()
+    j = header_idx + 1
+    while j < len(lines):
+        stripped = lines[j].strip()
         if stripped.startswith("[") and not stripped.startswith("#"):
             break
         m = re.match(r'^(\w[\w_]*)\s*=\s*', stripped)
-        if m:
-            key = m.group(1)
-            if key in values:
-                lines[insert_idx] = f"{key} = {values[key]}\n"
-                existing_keys.add(key)
-        insert_idx += 1
+        if m and m.group(1) in values:
+            key_lines_to_remove.add(j)
+        j += 1
+    if key_lines_to_remove:
+        lines = [l for idx, l in enumerate(lines) if idx not in key_lines_to_remove]
 
+    # Insert the new key=value pairs right after the section header
+    insert_at = header_idx + 1
     for key, val in values.items():
-        if key not in existing_keys:
-            new_line = f"{key} = {val}\n"
-            insert_point = header_idx + 1
-            while insert_point < len(lines):
-                s = lines[insert_point].strip()
-                if s.startswith("[") and not s.startswith("#"):
-                    break
-                insert_point += 1
-            lines.insert(insert_point, new_line)
+        lines.insert(insert_at, f"{key} = {val}\n")
+        insert_at += 1
 
     conf_file.write_text("".join(lines))
     return True

@@ -180,12 +180,23 @@ async def apply_config(user=Depends(require_auth)):
             )
 
         # Step 3: Regenerate and reload services
+        import shutil
+        rnas_config_cli = shutil.which("rnas-config")
+        gen_cmd = (
+            [rnas_config_cli, "generate"]
+            if rnas_config_cli
+            else ["python3", "-m", "rnas_config", "generate"]
+        )
         for svc in ["accel-ppp", "dnsmasq", "firewall", "snmp"]:
-            subprocess.run(
-                ["python3", "-m", "rnas_config", "generate", svc, "--root", DEFAULT_ROOT,
-                 "-o", f"/var/run/rnas/{svc}.conf"],
-                capture_output=True, timeout=5, cwd="/root/RNAS/cmd/rnas-config"
+            res = subprocess.run(
+                gen_cmd + [svc, "--root", DEFAULT_ROOT, "-o", f"/var/run/rnas/{svc}.conf"],
+                capture_output=True, text=True, timeout=10,
             )
+            if res.returncode != 0:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Config generation failed for {svc}: {res.stderr[:300]}",
+                )
         subprocess.run(["systemctl", "reload-or-restart", "rnas.target"],
                       capture_output=True, timeout=10)
         import time; time.sleep(2)  # wait for services to stabilize
