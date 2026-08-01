@@ -27,6 +27,8 @@ def _collect_loop():
     idle_interval = 5.0
     active_interval = 1.0
     last_alert_time = 0.0
+    last_downsample_time = 0.0
+    downsample_interval = 600.0  # 10 min
 
     while True:
         try:
@@ -37,6 +39,14 @@ def _collect_loop():
             if not _check_core_services() and now - last_alert_time > 300:
                 asyncio.run(send_alert("RNAS Core Down", "accel-ppp or dnsmasq not running", "critical"))
                 last_alert_time = now
+
+            if now - last_downsample_time > downsample_interval:
+                try:
+                    from services.traffic_store import run_downsample
+                    run_downsample()
+                except Exception:
+                    pass
+                last_downsample_time = now
         except Exception:
             pass
 

@@ -12,6 +12,7 @@ Environment variables:
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional
 
 import jwt
@@ -34,17 +35,37 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=Fals
 # User store (in-memory — replace with SQLite/file for production)
 # ---------------------------------------------------------------------------
 
-def _generate_admin_password() -> str:
-    """Generate initial admin password if not set via env."""
+def _load_or_create_password() -> str:
+    """Return the persistent admin password.
+
+    Priority: RNAS_ADMIN_PASS env → persisted file → generate + persist.
+    Persisting avoids locking out the admin after a restart (a fresh
+    random password was previously generated on every process start).
+    """
     pw = os.environ.get("RNAS_ADMIN_PASS")
     if pw:
         return pw
+
+    pw_file = Path("/etc/rnas/.admin_password")
+    try:
+        if pw_file.exists():
+            stored = pw_file.read_text().strip()
+            if stored:
+                return stored
+    except OSError:
+        pass
+
     pw = secrets.token_urlsafe(12)
-    os.environ["RNAS_ADMIN_PASS"] = pw  # cache so install.sh can print it
+    try:
+        pw_file.parent.mkdir(parents=True, exist_ok=True)
+        pw_file.write_text(pw)
+        pw_file.chmod(0o600)
+    except OSError:
+        pass
     return pw
 
 
-ADMIN_PASSWORD = _generate_admin_password()
+ADMIN_PASSWORD = _load_or_create_password()
 
 USERS_DB: dict[str, dict] = {
     "admin": {

@@ -1,8 +1,8 @@
 """Health alert service — webhook/email notifications on service failures."""
 
 import os
+import json
 import subprocess
-import asyncio
 from typing import Optional
 
 WEBHOOK_URL = os.environ.get("RNAS_ALERT_WEBHOOK", "")
@@ -14,10 +14,11 @@ async def send_alert(title: str, message: str, severity: str = "warning") -> boo
     sent = False
     if WEBHOOK_URL:
         try:
+            payload = json.dumps({"title": title, "message": message, "severity": severity})
             result = subprocess.run(
                 ["curl", "-s", "-X", "POST", WEBHOOK_URL,
                  "-H", "Content-Type: application/json",
-                 "-d", '{"title":"' + title + '","message":"' + message + '","severity":"' + severity + '"}'],
+                 "-d", payload],
                 capture_output=True, text=True, timeout=10,
             )
             sent = result.returncode == 0

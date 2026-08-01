@@ -94,9 +94,14 @@ class RNASEnv:
     def db_query(self, sql: str, timeout: int = 15) -> str:
         """Run a remote PostgreSQL query via SSH and return stdout.
 
-        Uses argv list (no shell=True). PGPASSWORD is passed in the remote
-        command string for the remote psql process only.
+        SQL is embedded in the remote psql command — reject characters that
+        could break out of the shell/psql context (quotes, semicolons, shell
+        metacharacters) to prevent injection.
         """
+        if not isinstance(sql, str) or not sql.strip():
+            raise ValueError("SQL query must be a non-empty string")
+        if any(c in sql for c in "'\";|&$`\\"):
+            raise ValueError("SQL contains shell-injection characters")
         connect_host, port = self.ssh_connect_params(self.radius_host)
         remote_cmd = (
             f"PGPASSWORD={self.db_pass} psql -h {self.db_host} "
