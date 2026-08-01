@@ -18,18 +18,19 @@ test.describe('Certificate Manager — Generate & List', () => {
     await expect(page.getByRole('heading', { name: 'Certificate Manager' })).toBeVisible({ timeout: 8000 });
 
     // Generate button should be visible
-    const genBtn = page.locator('button').filter({ hasText: 'Generate' });
+    const genBtn = page.getByRole('button', { name: /Generate Self-Signed/i });
     await expect(genBtn).toBeVisible({ timeout: 5000 });
   });
 
   test('B9b: Open generate form and verify input fields', async ({ page }) => {
     await page.goto(BASE);
     await page.locator(SIDEBAR).getByText('Certificates').click();
-    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.getByRole('heading', { name: 'Certificate Manager' })).toBeVisible({ timeout: 8000 });
 
-    // Click generate button to reveal form
-    const genBtn = page.locator('button').filter({ hasText: 'Generate' });
+    // Click the '+ Generate Self-Signed' button (exact text to avoid matching
+    // the form's submit 'Generate' button too).
+    const genBtn = page.getByRole('button', { name: /Generate Self-Signed/i });
+    await expect(genBtn).toBeVisible({ timeout: 5000 });
     await genBtn.click();
     // Form should appear with Name, CN, Days inputs
     const nameInput = page.locator('.gen-form input').nth(0);

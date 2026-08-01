@@ -1,4 +1,4 @@
-import { setupAuth } from './auth-helper';
+import { setupAuth, getAuthToken } from './auth-helper';
 import { test, expect } from '@playwright/test';
 
 const BASE = 'http://127.0.0.1:8098';
@@ -15,15 +15,10 @@ test.describe('Empty States — UI Rendering', () => {
   // sessions from prior scenario tests).
   test.beforeAll(async ({ request }) => {
     try {
-      const login = await request.post(`${BASE}/api/auth/token`, {
-        data: { username: 'admin', password: 'rnas-admin-2026' },
+      const token = await getAuthToken();
+      await request.post(`${BASE}/api/sim/stop`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (login.ok()) {
-        const { access_token } = await login.json();
-        await request.post(`${BASE}/api/sim/stop`, {
-          headers: { Authorization: `Bearer ${access_token}` },
-        });
-      }
     } catch {}
   });
 
