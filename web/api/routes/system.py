@@ -5,7 +5,7 @@ import json
 import subprocess
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Body, Request
-from api.auth import require_auth
+from api.auth import require_auth, require_role
 
 router = APIRouter(tags=["System"])
 _SCRIPT_TIMEOUT = 10
@@ -103,7 +103,7 @@ async def system_logs(user=Depends(require_auth)):
 
 
 @router.post("/system/service/{svc}/{action}")
-async def service_action(svc: str, action: str, user=Depends(require_auth)):
+async def service_action(svc: str, action: str, user=Depends(require_role("admin"))):
     if action not in ("start", "stop", "restart"):
         raise HTTPException(status_code=400, detail=f"Invalid action: {action}")
     out = subprocess.run(["systemctl", action, svc], capture_output=True, text=True, timeout=10)

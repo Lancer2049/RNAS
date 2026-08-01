@@ -3,7 +3,7 @@
 import os, re, json, glob, time, subprocess
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
-from api.auth import require_auth
+from api.auth import require_auth, require_role
 
 router = APIRouter(tags=["System"])
 
@@ -182,7 +182,7 @@ async def list_certificates(user=Depends(require_auth)):
 
 
 @router.post("/system/certificates/generate")
-async def generate_certificate(data: dict = Body(...), user=Depends(require_auth)):
+async def generate_certificate(data: dict = Body(...), user=Depends(require_role("admin"))):
     name = data.get("name", "server")
     if not re.match(r"^[\w.-]+$", name):
         raise HTTPException(400, "Invalid certificate name")

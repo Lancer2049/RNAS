@@ -135,6 +135,27 @@ async def require_auth(user=Depends(get_current_user)) -> dict:
     return user
 
 
+# RBAC roles: viewer < operator < admin
+ROLE_RANK = {"viewer": 1, "operator": 2, "admin": 3}
+
+
+def require_role(min_role: str = "operator"):
+    """Factory for role-gated endpoints.
+
+    Usage: user=Depends(require_role("admin"))
+    viewer: read-only; operator: + diagnostics/config; admin: everything.
+    """
+    def _dependency(user=Depends(require_auth)) -> dict:
+        role = user.get("role", "viewer")
+        if ROLE_RANK.get(role, 0) < ROLE_RANK.get(min_role, 2):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires {min_role} role (current: {role})",
+            )
+        return user
+    return _dependency
+
+
 # ---------------------------------------------------------------------------
 # Feature flags for high-risk endpoints
 # ---------------------------------------------------------------------------
