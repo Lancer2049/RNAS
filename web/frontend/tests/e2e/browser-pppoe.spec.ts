@@ -52,15 +52,20 @@ test.describe('PPPoE Config — Browser UI End-to-End', () => {
   test('Disable PPPoE via web form and verify', async ({ page }) => {
     await page.goto(BASE);
     await page.locator(SIDEBAR).getByText('Access Protocols').click();
-    // replaced waitForTimeout(1500) → expect() auto-wait
     await expect(page.getByRole('heading', { name: 'Protocol Configuration' })).toBeVisible({ timeout: 10000 });
 
+    // Start from a deterministic state: ensure PPPoE is enabled first.
     const toggleCheckbox = page.locator('.toggle input[type="checkbox"]');
-    if (await toggleCheckbox.isChecked()) {
-      await toggleCheckbox.uncheck();
+    if (!(await toggleCheckbox.isChecked())) {
+      await toggleCheckbox.check();
       await page.locator('.btn-primary').filter({ hasText: 'Save' }).click();
+      await expect(page.locator('.msg.ok')).toHaveText('Saved', { timeout: 5000 });
     }
-    // If PPPoE was already disabled, nothing to do — just verify the off state.
+
+    // Now disable it and verify the status-dot flips to off.
+    await toggleCheckbox.uncheck();
+    await page.locator('.btn-primary').filter({ hasText: 'Save' }).click();
+    await expect(page.locator('.msg.ok')).toHaveText('Saved', { timeout: 5000 });
 
     const statusDot = page.locator('.proto-tabs button.active .status-dot');
     await expect(statusDot).toBeVisible({ timeout: 10000 });

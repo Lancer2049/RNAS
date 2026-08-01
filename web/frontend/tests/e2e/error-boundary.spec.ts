@@ -10,6 +10,22 @@ test.beforeEach(async ({ page }) => {
 
 
 test.describe('Empty States — UI Rendering', () => {
+  // These tests verify empty-state rendering, so they must run on a clean
+  // system. Terminate any leftover sessions first (shared VM3 may have
+  // sessions from prior scenario tests).
+  test.beforeAll(async ({ request }) => {
+    try {
+      const login = await request.post(`${BASE}/api/auth/token`, {
+        data: { username: 'admin', password: 'rnas-admin-2026' },
+      });
+      if (login.ok()) {
+        const { access_token } = await login.json();
+        await request.post(`${BASE}/api/sim/stop`, {
+          headers: { Authorization: `Bearer ${access_token}` },
+        });
+      }
+    } catch {}
+  });
 
   test('E1: Sessions page shows empty state when no active sessions', async ({ page }) => {
     await page.goto(BASE);

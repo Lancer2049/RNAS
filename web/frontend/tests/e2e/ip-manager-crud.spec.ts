@@ -54,7 +54,8 @@ test.describe('IP Manager — DHCP Static CRUD', () => {
     // replaced waitForTimeout(1500) → expect() auto-wait
     // Switch to Static tab
     await page.locator('.ros-tabs').getByText('Static').click();
-    // replaced waitForTimeout(600) → expect() auto-wait
+    // Wait for the static table OR empty state to render (async fetch)
+    await expect(page.locator('.tab-body .empty, .tab-body table').first()).toBeVisible({ timeout: 8000 });
     // Check if there's a lease to delete
     const delBtn = page.locator('.tab-body .btn-del.always').first();
     if (!(await delBtn.isVisible().catch(() => false))) {
