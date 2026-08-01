@@ -7,6 +7,7 @@ Schema:
 """
 
 import sqlite3
+import threading
 import time
 from pathlib import Path
 from typing import Optional
@@ -47,11 +48,20 @@ END;
 """
 
 
+_schema_ready = False
+_schema_lock = threading.Lock()
+
+
 def _get_db() -> sqlite3.Connection:
+    global _schema_ready
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(str(DB_PATH))
     db.row_factory = sqlite3.Row
-    db.executescript(SQL_SCHEMA)
+    if not _schema_ready:
+        with _schema_lock:
+            if not _schema_ready:
+                db.executescript(SQL_SCHEMA)
+                _schema_ready = True
     return db
 
 

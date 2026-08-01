@@ -9,7 +9,7 @@ WEBHOOK_URL = os.environ.get("RNAS_ALERT_WEBHOOK", "")
 EMAIL_SMTP = os.environ.get("RNAS_ALERT_EMAIL", "")
 
 
-async def send_alert(title: str, message: str, severity: str = "warning") -> bool:
+def send_alert(title: str, message: str, severity: str = "warning") -> bool:
     """Send alert via configured channels. Returns True if at least one channel succeeded."""
     sent = False
     if WEBHOOK_URL:

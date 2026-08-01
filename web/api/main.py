@@ -4,6 +4,7 @@ import json
 import asyncio
 import logging
 import subprocess
+import queue
 from urllib.parse import parse_qs
 from fastapi import FastAPI, Request, WebSocket, APIRouter, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -146,10 +147,13 @@ async def ws_dashboard(ws: WebSocket):
         await ws.send_text(json.dumps(get_full_state()))
         while True:
             try:
-                msg = await asyncio.wait_for(queue.get(), timeout=30)
+                # queue is thread-safe (queue.Queue); block via to_thread
+                msg = await asyncio.wait_for(asyncio.to_thread(queue.get), timeout=30)
                 await ws.send_text(msg)
             except asyncio.TimeoutError:
                 await ws.send_text(json.dumps({"type": "ping"}))
+            except queue.Empty:
+                pass
     except Exception as e:
         logger.debug("ws_dashboard disconnected: %s", e)
     finally:

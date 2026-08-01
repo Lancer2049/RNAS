@@ -22,13 +22,13 @@ def start_collector():
 def _collect_loop():
     from event_bus import publish_state
     from services.alerts import send_alert
-    import asyncio
 
     idle_interval = 5.0
     active_interval = 1.0
     last_alert_time = 0.0
     last_downsample_time = 0.0
     downsample_interval = 600.0  # 10 min
+    state = {}
 
     while True:
         try:
@@ -37,7 +37,7 @@ def _collect_loop():
 
             now = time.time()
             if not _check_core_services() and now - last_alert_time > 300:
-                asyncio.run(send_alert("RNAS Core Down", "accel-ppp or dnsmasq not running", "critical"))
+                send_alert("RNAS Core Down", "accel-ppp or dnsmasq not running", "critical")
                 last_alert_time = now
 
             if now - last_downsample_time > downsample_interval:

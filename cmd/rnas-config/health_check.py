@@ -45,8 +45,11 @@ def restore_snapshot(snapshot_name: str) -> bool:
     if not source.exists():
         return False
 
+    ignored_dirs = {"snapshots", "backup", "archive", "bak"}
     try:
         for f in source.rglob("*.conf"):
+            if any(part in ignored_dirs for part in f.relative_to(source).parts):
+                continue
             rel = f.relative_to(source)
             target = Path(DEFAULT_ROOT) / rel
             target.parent.mkdir(parents=True, exist_ok=True)

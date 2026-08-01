@@ -1,31 +1,37 @@
 """In-process event bus for WebSocket push — event-driven, delta-only.
 
-Replaces the fixed 3s polling with a publish/subscribe model where
-clients receive only changed state fields, reducing idle network traffic.
+publish_state() is called from the background state-collector thread,
+while WebSocket consumers live in the event loop. The subscriber list is
+guarded by a lock, and each subscriber uses a thread-safe queue.Queue so
+cross-thread publishes never race with connect/disconnect.
 """
 
-import asyncio
 import json
+import queue
+import threading
 import time
-from typing import Any
+from typing import Optional
 
 # Current state snapshot
 _state_snapshot: dict = {}
-_subscribers: list[asyncio.Queue] = []
+_subscribers: list = []
+_lock = threading.Lock()
 _last_push_time: float = 0
 
 
-def register_subscriber() -> asyncio.Queue:
-    """Register a new WebSocket client. Returns a queue to read from."""
-    q = asyncio.Queue(maxsize=64)
-    _subscribers.append(q)
+def register_subscriber():
+    """Register a new WebSocket client. Returns a thread-safe queue."""
+    q = queue.Queue(maxsize=64)
+    with _lock:
+        _subscribers.append(q)
     return q
 
 
-def unregister_subscriber(q: asyncio.Queue):
+def unregister_subscriber(q):
     """Remove a disconnected WebSocket client."""
-    if q in _subscribers:
-        _subscribers.remove(q)
+    with _lock:
+        if q in _subscribers:
+            _subscribers.remove(q)
 
 
 def publish_state(new_state: dict, force: bool = False):
@@ -41,19 +47,26 @@ def publish_state(new_state: dict, force: bool = False):
 
     if delta or force or now - _last_push_time > 10:
         msg = json.dumps(delta or new_state)
-        # Push to all subscribers; drop if full
-        for q in _subscribers[:]:  # copy to avoid mutation during iteration
+        with _lock:
+            subs = list(_subscribers)
+        for q in subs:
             try:
                 q.put_nowait(msg)
-            except asyncio.QueueFull:
-                pass
+            except queue.Full:
+                # Drop oldest so slow clients don't stall the bus
+                try:
+                    q.get_nowait()
+                    q.put_nowait(msg)
+                except queue.Empty:
+                    pass
         _state_snapshot.update(new_state)
         _last_push_time = now
 
 
 def get_full_state() -> dict:
     """Return the current full state snapshot (for new connections)."""
-    return dict(_state_snapshot)
+    with _lock:
+        return dict(_state_snapshot)
 
 
 def _diff(old: dict, new: dict) -> dict:

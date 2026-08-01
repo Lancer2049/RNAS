@@ -111,6 +111,8 @@ async def radius_test(
     attrs: str = Query(""), server: str = Query("192.168.0.202:1812"),
     secret: str = Query("testing123"), _auth=Depends(require_auth),
 ):
+    if server.startswith("-") or secret.startswith("-") or user.startswith("-"):
+        raise HTTPException(400, "Parameters must not start with '-'")
     pairs = [f"User-Name={user},User-Password={passwd}"]
     if attrs:
         pairs.append(attrs)
@@ -126,6 +128,8 @@ async def radius_send(data: dict = Body(...), user=Depends(require_auth)):
     server = data.get("server", "192.168.0.202:1812")
     secret = data.get("secret", "testing123")
     port_type = data.get("type", "auth")
+    if server.startswith("-") or secret.startswith("-"):
+        raise HTTPException(400, "server/secret must not start with '-'")
     attributes = data.get("attributes", [])
     pairs = [f"{a['name']}={a['value']}" for a in attributes if a.get('name') and a.get('value')]
     payload = ",".join(pairs)
@@ -193,7 +197,10 @@ async def sniffer_stop(user=Depends(require_auth)):
 @router.get("/tools/dns")
 async def dns_lookup(host: str, type: str = "a", user=Depends(require_auth)):
     """DNS lookup tool"""
-    import subprocess
+    host = validate_ip_or_hostname(host)
+    valid_types = {"a", "aaaa", "cname", "mx", "ns", "ptr", "soa", "txt"}
+    if type.lower() not in valid_types:
+        raise HTTPException(400, f"Invalid record type: {type}")
     try:
         out = subprocess.run(["dig", "+short", "-t", type, host], capture_output=True, text=True, timeout=10).stdout
         if not out.strip():

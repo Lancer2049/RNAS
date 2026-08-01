@@ -6,6 +6,7 @@ Schema stored in SQLite at /var/lib/rnas/audit.db.
 import json
 import sqlite3
 import os
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -29,11 +30,20 @@ CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
 """
 
 
+_schema_ready = False
+_schema_lock = threading.Lock()
+
+
 def _get_db() -> sqlite3.Connection:
+    global _schema_ready
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(str(DB_PATH))
     db.row_factory = sqlite3.Row
-    db.executescript(SQL_SCHEMA)
+    if not _schema_ready:
+        with _schema_lock:
+            if not _schema_ready:
+                db.executescript(SQL_SCHEMA)
+                _schema_ready = True
     return db
 
 
