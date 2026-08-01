@@ -15,13 +15,16 @@ def parse_sessions(raw: str) -> list:
     rows = []
     header_skipped = False
     for line in raw.splitlines():
-        if not header_skipped:
-            if line.strip().startswith("ifname") or line.strip().startswith("---"):
-                header_skipped = True
+        stripped = line.strip()
+        if not stripped:
             continue
-        # accel-cmd outputs pipe-delimited columns
+        # accel-cmd header line looks like: sid | ifname | username | ...
+        if not header_skipped and ("ifname" in stripped or stripped.startswith("---")):
+            header_skipped = True
+            continue
+        # pipe-delimited columns
         parts = [p.strip() for p in line.split("|")]
-        if len(parts) >= 9:
+        if len(parts) >= 9 and parts[0] and not parts[0].startswith("sid"):
             rows.append({
                 "sid": parts[0],
                 "ifname": parts[1],

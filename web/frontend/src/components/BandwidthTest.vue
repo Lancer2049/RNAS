@@ -54,7 +54,7 @@ async function runTest() {
   if (!target.value.trim()) return
   running.value = true; result.value = null
   try {
-    const r = await fetch('/api/bandwidth-test', {
+    const r = await fetch('/api/tools/bandwidth', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ target: target.value.trim(), port: port.value, duration: duration.value, proto: proto.value })
     })

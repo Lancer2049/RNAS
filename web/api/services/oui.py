@@ -13,7 +13,5 @@ OUI = {
     "000af3":"Belkin","00173e":"ASUS","0022b0":"ASUS","001f1f":"Edimax",
 }
 def lookup(mac: str) -> str:
-    prefix = mac.replace(":","").replace("-","").lower()[:6]
+    prefix = mac.replace(":", "").replace("-", "").lower()[:6]
     return OUI.get(prefix, "")
-
-print("oui.py OK,", len(OUI), "vendors")

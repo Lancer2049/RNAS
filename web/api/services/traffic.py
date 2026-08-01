@@ -88,7 +88,12 @@ def _collect():
             except Exception:
                 pass
 
-threading.Thread(target=_collect, daemon=True).start()
+# Start collector once per process — module import can happen multiple times
+# (e.g. uvicorn --reload, multiple routes importing this module).
+_collector_started = False
+if not _collector_started:
+    threading.Thread(target=_collect, daemon=True).start()
+    _collector_started = True
 
 def get_history(iface: str, seconds: int = 3600) -> list:
     """Get traffic history for interface within time window"""

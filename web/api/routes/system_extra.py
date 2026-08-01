@@ -184,6 +184,8 @@ async def list_certificates(user=Depends(require_auth)):
 @router.post("/system/certificates/generate")
 async def generate_certificate(data: dict = Body(...), user=Depends(require_auth)):
     name = data.get("name", "server")
+    if not re.match(r"^[\w.-]+$", name):
+        raise HTTPException(400, "Invalid certificate name")
     days = data.get("days", 3650)
     cn = data.get("cn", "RNAS Server")
     key_path = f"/etc/rnas/ssl/{name}.key"
@@ -196,3 +198,19 @@ async def generate_certificate(data: dict = Body(...), user=Depends(require_auth
         "-subj", f"/CN={cn}/O=RNAS",
     ], capture_output=True)
     return {"status": "created", "key": key_path, "cert": cert_path}
+
+
+# ── Test Results ─────────────────────────────────────────────────────────────
+
+@router.get("/test/results")
+async def test_results(user=Depends(require_auth)):
+    """Return the most recent regression test output, if present."""
+    candidates = [
+        Path("/var/log/rnas/tests/last-regression.txt"),
+        Path("/tmp/rnas-tests/last-regression.txt"),
+        Path("/etc/rnas/test-results.txt"),
+    ]
+    for p in candidates:
+        if p.exists():
+            return {"regression": p.read_text(errors="replace")}
+    return {"regression": ""}
