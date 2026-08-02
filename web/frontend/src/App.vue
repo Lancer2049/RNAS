@@ -203,7 +203,9 @@ const AcctRecords = lazy('AcctRecords', () => import('./components/AcctRecords.v
 const UserGroups = lazy('UserGroups', () => import('./components/UserGroups.vue'))
 const NASClients = lazy('NASClients', () => import('./components/NASClients.vue'))
 
-const page = ref(location.hash ? location.hash.replace('#/','') || 'overview' : 'overview')
+const KNOWN_PAGES = new Set(['overview','sessions','session-detail','iface-detail','network','config','services','proto-config','tools','bw-test','setup','terminal','certs','radius-editor','dictionary','subscriber-sim','proto-monitor','torch','queues','sniffer','scheduler','scenario-runner','fault-inject','system','test-results','routing','tunnels','vlans','hotspot','netflow','ip','log','aaa-users','acct-records','user-groups','nas-clients'])
+function resolvePage(h) { return KNOWN_PAGES.has(h) ? h : 'overview' }
+const page = ref(resolvePage(location.hash ? location.hash.replace('#/','').split('?')[0] : ''))
 const pageLoading = ref(false)
 watch(page, n => { window.location.hash = '#/' + n; pageLoading.value = true; setTimeout(() => pageLoading.value = false, 300) })
 const alertCount = ref(0)
@@ -334,8 +336,8 @@ onMounted(()=>{
   refreshTimer=setInterval(() => { if (isAuth.value) fetchData() },15000)
   alertTimer=setInterval(() => { if (isAuth.value) fetchAlerts() },30000)
   window.addEventListener('hashchange', () => {
-    const h = location.hash.replace('#/','') || 'overview'
-    if (h !== page.value) page.value = h
+    const h = location.hash.replace('#/','').split('?')[0] || 'overview'
+    if (h !== page.value) page.value = resolvePage(h)
   })
   // Preload common pages after initial load
   setTimeout(() => {
