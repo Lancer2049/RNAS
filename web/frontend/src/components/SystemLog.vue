@@ -23,20 +23,34 @@
       <select v-model="lines" @change="fetchLog">
         <option :value="30">30</option><option :value="50">50</option><option :value="100">100</option><option :value="200">200</option>
       </select>
+      <input v-model="keyword" class="kw" placeholder="Search in log…" />
       <button class="btn" @click="fetchLog">Refresh</button>
       <button class="btn" @click="exportLog">Export</button>
       <label class="auto"><input type="checkbox" v-model="auto" /> Auto 5s</label>
     </div>
-    <pre class="log-content"><span v-for="l in formattedLog" :class="logLevel(l)" v-text="l+'\n'"></span></pre>
+    <div class="log-meta" v-if="matchingCount !== null">showing {{ matchingCount }} / {{ formattedLog.length }} lines</div>
+    <pre class="log-content"><span v-for="l in filteredLog" :class="logLevel(l)" v-text="l+'\n'"></span></pre>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-const log = ref(''), lines = ref(50), auto = ref(false), unit = ref(''), level = ref('')
+const log = ref(''), lines = ref(50), auto = ref(false), unit = ref(''), level = ref(''), keyword = ref('')
 let timer = null
 
 const formattedLog = computed(() => log.value.split('\n'))
+
+const filteredLog = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  if (!kw) return formattedLog.value
+  return formattedLog.value.filter(l => l.toLowerCase().includes(kw))
+})
+
+const matchingCount = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  if (!kw) return formattedLog.value.length
+  return formattedLog.value.filter(l => l.toLowerCase().includes(kw)).length
+})
 
 function logLevel(line) {
   const l = line.toLowerCase()
@@ -72,6 +86,12 @@ onUnmounted(() => clearInterval(timer))
 .log-toolbar .btn { cursor: pointer; min-width: 60px; }
 .log-toolbar .btn:hover { border-color: var(--accent); color: var(--accent); }
 .log-toolbar select:focus { outline: none; border-color: var(--accent); }
+.log-toolbar .kw {
+  padding: 4px 8px; background: var(--bg2); color: var(--fg);
+  border: 1px solid var(--border); border-radius: 3px; font-size: 11px; font-family: var(--font); width: 180px;
+}
+.log-toolbar .kw:focus { outline: none; border-color: var(--accent); }
+.log-meta { font-size: 10px; color: var(--fg3); font-family: var(--mono); }
 .log-toolbar .auto { font-size: 11px; color: var(--fg2); display: flex; align-items: center; gap: 4px; cursor: pointer; }
 .log-content {
   background: #0a0f14; color: #10ac84; font-family: var(--mono); font-size: 11px;
