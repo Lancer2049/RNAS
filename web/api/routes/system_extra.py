@@ -174,21 +174,15 @@ def _cert_meta(fp: str) -> dict:
     meta = {"subject": None, "expires": None, "days_left": None}
     if fp.endswith((".crt", ".pem")):
         try:
-            out = subprocess.run(
-                ["openssl", "x509", "-in", fp, "-noout", "-subject", "-enddate"],
-                capture_output=True, text=True, timeout=5,
-            ).stdout
-            for line in out.splitlines():
-                if line.startswith("subject="):
-                    meta["subject"] = line[8:]
-                elif line.startswith("notAfter="):
-                    raw = line[9:].strip()
-                    try:
-                        exp = datetime.strptime(raw, "%b %d %H:%M:%S %Y %Z").replace(tzinfo=timezone.utc)
-                        meta["expires"] = int(exp.timestamp())
-                        meta["days_left"] = int((exp - datetime.now(timezone.utc)).total_seconds() // 86400)
-                    except ValueError:
-                        pass
+            from cryptography import x509
+            with open(fp, "rb") as fh:
+                cert = x509.load_pem_x509_certificate(fh.read())
+            meta["subject"] = cert.subject.rfc4514_string()
+            exp = getattr(cert, "not_valid_after_utc", None) or cert.not_valid_after
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            meta["expires"] = int(exp.timestamp())
+            meta["days_left"] = int((exp - datetime.now(timezone.utc)).total_seconds() // 86400)
         except Exception:
             pass
     return meta
