@@ -24,7 +24,7 @@ def parse_config(text: str) -> Dict[str, Dict[str, str]]:
                 sections[current] = {}
             continue
 
-        m = re.match(r'^(\w[\w_]*)\s*=\s*(.*)', stripped)
+        m = re.match(r'^([\w-]+)\s*=\s*(.*)', stripped)
         if m and current:
             key = m.group(1)
             val = interpolate_env(m.group(2).strip())

@@ -51,7 +51,7 @@ def write_config_section(root: Path, section_name: str, values: Dict[str, str]) 
         stripped = lines[j].strip()
         if stripped.startswith("[") and not stripped.startswith("#"):
             break
-        m = re.match(r'^(\w[\w_]*)\s*=\s*', stripped)
+        m = re.match(r'^([\w-]+)\s*=\s*', stripped)
         if m and m.group(1) in values:
             key_lines_to_remove.add(j)
         j += 1

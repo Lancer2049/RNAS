@@ -18,7 +18,8 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
     # Modules
     w("[modules]")
     mod_list = ["pppoe", "ipoe", "l2tp", "pptp", "sstp", "auth_pap", "auth_chap_md5",
-                "auth_mschap_v1", "auth_mschap_v2", "radius", "ippool", "connlimit", "pppd_compat", "log_file", "vlan-mon"]
+                "auth_mschap_v1", "auth_mschap_v2", "radius", "ippool", "connlimit", "pppd_compat", "log_file", "vlan-mon",
+                "ipv6_dhcp", "ipv6_nd", "ipv6pool"]
     for m in mod_list:
         if modules.get(m, "no") == "yes" or core.get(m, "no") == "yes":
             w(m)
@@ -45,8 +46,26 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
         if k in ppp: w(f"{k.replace('_', '-')}={ppp[k]}")
     if ppp.get("ipv4") == "require": w("ipv4=require")
     if ppp.get("ipv6") == "deny": w("ipv6=deny")
+    elif ppp.get("ipv6") == "allow": w("ipv6=allow")
     if ppp.get("unit_cache") == "yes": w("unit-cache=1")
     w()
+
+    # IPv6 dual-stack (delegated prefix pool + DHCPv6 + SLAAC)
+    ipv6 = get_section("network.d.ipv6")
+    if ipv6.get("enabled") == "yes":
+        w("[ipv6-pool]")
+        if ipv6.get("delegate"): w(f"delegate={ipv6['delegate']}")
+        if ipv6.get("prefix"): w(ipv6["prefix"])
+        w()
+        w("[ipv6-dhcp]")
+        w("verbose=1")
+        if ipv6.get("dns"): w(f"dns={ipv6['dns']}")
+        if ipv6.get("domain"): w(f"domain={ipv6['domain']}")
+        w()
+        w("[ipv6-nd]")
+        w("verbose=1")
+        if ipv6.get("ra_interval"): w(f"ra-interval={ipv6['ra_interval']}")
+        w()
 
     # RADIUS
     radius = get_section("access.d.server/primary")
@@ -160,6 +179,10 @@ def generate_dnsmasq(config: Dict[str, Dict[str, str]]) -> str:
 
     iface_name = iface.get("device", "br-lan")
     out.append(f"interface={iface_name}")
+    # Bind only to the listed interface — otherwise dnsmasq takes the wildcard
+    # 0.0.0.0:67/53 socket and collides with other DHCP/DNS listeners
+    # (e.g. hostapd wired 802.1X on a dedicated veth pair).
+    out.append("bind-interfaces")
 
     start = dhcp.get("start", "100")
     limit = dhcp.get("limit", "100")

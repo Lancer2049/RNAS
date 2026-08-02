@@ -51,6 +51,7 @@ test.describe('G — Performance & Stability (Browser UI)', () => {
   });
 
   test('G3: 30-second open stability — no console error accumulation', async ({ page }) => {
+    test.setTimeout(60000); // soak test: 6×5s wait + auth setup exceeds default 30s
     await page.goto(BASE);
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));

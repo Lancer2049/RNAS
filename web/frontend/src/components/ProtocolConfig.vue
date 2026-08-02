@@ -147,6 +147,15 @@ const protocols = reactive([
       {key:'nas_identifier',label:'NAS Identifier',default:'rnas-dot1x',hint:'NAS-Identifier attr'},
       {key:'eap_methods',label:'EAP Methods',default:'md5,peap,tls',hint:'Accepted EAP methods'},
     ]},
+  {id:'ipv6',name:'IPv6',icon:'🌍',enabled:false,section:'network.d.ipv6', module:'ipv6',
+    fields:[
+      {key:'enabled',label:'Enabled',type:'yesno',hint:''},
+      {key:'prefix',label:'Prefix Pool',default:'fc00::/64',hint:'Assignable IPv6 prefix'},
+      {key:'delegate',label:'Delegate',default:'fc00::/56',hint:'Delegated prefix from upstream'},
+      {key:'dns',label:'DNS',default:'2001:4860:4860::8888',hint:'DHCPv6 DNS servers (comma sep)'},
+      {key:'domain',label:'Domain',default:'rnas.local',hint:'DHCPv6 search domain'},
+      {key:'ra_interval',label:'RA Interval',type:'number',default:'30',hint:'SLAAC RA interval seconds'},
+    ]},
 ])
 
 let configCache = null
@@ -161,7 +170,7 @@ async function loadProto(id) {
     }
     const data = configCache[p.section] || {}
     const core = configCache['access.d.core'] || {}
-    p.enabled = p.module === 'dot1x'
+    p.enabled = (p.module === 'dot1x' || p.module === 'ipv6')
       ? data.enabled === 'yes'
       : core[p.module] === 'yes'
     current.value = { ...p, values: {...data} }
@@ -175,10 +184,21 @@ async function save() {
   const p = protocols.find(p=>p.id===active.value); if (!p) return
   try {
     const values = {...current.value.values}
-    if (p.module === 'dot1x') values.enabled = current.value.enabled ? 'yes' : 'no'
+    if (p.module === 'dot1x' || p.module === 'ipv6') values.enabled = current.value.enabled ? 'yes' : 'no'
     await fetch(`/api/config/${p.module}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(values)})
-    // Also update core enabled (dot1x keeps its own enabled flag)
-    if (p.module !== 'dot1x') {
+    // dot1x/ipv6 keep their own enabled flag; others flip access.d.core module
+    if (p.module === 'dot1x' || p.module === 'ipv6') {
+      if (p.module === 'ipv6') {
+        // Dual-stack needs ipv6=allow in the PPP section (ppp.conf) + modules in core.conf
+        const ppp = await (await fetch('/api/config/ppp')).json()
+        const pppValues = {...(ppp.config?.['access.d.ppp'] || {})}
+        pppValues.ipv6 = current.value.enabled ? 'allow' : 'deny'
+        await fetch('/api/config/ppp', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(pppValues)})
+        const mods = {}
+        for (const m of ['ipv6_dhcp','ipv6_nd','ipv6pool']) mods[m] = current.value.enabled ? 'yes' : 'no'
+        await fetch('/api/config/modules', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(mods)})
+      }
+    } else {
       await fetch('/api/config/core', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({[p.module]:current.value.enabled?'yes':'no'})})
     }
     p.enabled = current.value.enabled
