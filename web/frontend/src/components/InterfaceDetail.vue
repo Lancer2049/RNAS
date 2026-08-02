@@ -15,6 +15,19 @@
       <div class="d-item"><span class="dl">Errors</span><span class="dv mono" :style="{color: data.rx_errors + data.tx_errors > 0 ? 'var(--red)' : 'inherit'}">{{ data.rx_errors+data.tx_errors }}</span></div>
     </div>
 
+    <div class="hist-block">
+      <h3 class="hist-title">
+        Traffic History
+        <span class="range-btns">
+          <button :class="{sel: period==='5m'}" @click="setPeriod('5m')">5m</button>
+          <button :class="{sel: period==='1h'}" @click="setPeriod('1h')">1h</button>
+          <button :class="{sel: period==='1d'}" @click="setPeriod('1d')">1d</button>
+          <button :class="{sel: period==='1w'}" @click="setPeriod('1w')">1w</button>
+        </span>
+      </h3>
+      <canvas ref="histChart" class="hist-canvas"></canvas>
+    </div>
+
     <h3>Associated Sessions ({{ data.sessions_count }})</h3>
     <table v-if="data.sessions.length">
       <thead><tr><th>User</th><th>IP</th><th>Type</th><th>State</th><th>RX</th><th>TX</th></tr></thead>
@@ -29,16 +42,61 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { Chart } from 'chart.js/auto'
 const props = defineProps({ iface: String })
 defineEmits(['back'])
 const data = ref(null)
+const histChart = ref(null)
+const period = ref('1h')
+let histChartInst = null, timer = null
 
 function fmtBytes(b) { if (b<1024) return b+'B'; if (b<1048576) return (b/1024).toFixed(1)+'K'; return (b/1048576).toFixed(1)+'M' }
 
+async function fetchHistory() {
+  try {
+    const r = await fetch(`/api/traffic/history?interface=${props.iface}&period=${period.value}`)
+    if (!r.ok) return
+    const d = await r.json()
+    const pts = d.data || []
+    if (histChartInst) {
+      const showDate = period.value === '1d' || period.value === '1w'
+      histChartInst.data.labels = pts.map(p => {
+        const dt = new Date(p.ts * 1000)
+        return showDate ? `${dt.getMonth() + 1}/${dt.getDate()} ${dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : dt.toLocaleTimeString()
+      })
+      histChartInst.data.datasets = [
+        { label: 'RX', data: pts.map(p => p.rx), borderColor: '#0abde3', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5 },
+        { label: 'TX', data: pts.map(p => p.tx), borderColor: '#10ac84', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5 },
+      ]
+      histChartInst.update('none')
+    }
+  } catch {}
+}
+
+function setPeriod(p) { period.value = p; fetchHistory() }
+
 onMounted(async () => {
   try { const r = await fetch(`/api/interfaces/${props.iface}`); data.value = await r.json() } catch {}
+  await nextTick()
+  if (histChart.value) {
+    histChartInst = new Chart(histChart.value, {
+      type: 'line',
+      data: { labels: [], datasets: [] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, grid: { color: 'rgba(46,64,82,0.3)' }, ticks: { color: '#8395a7', callback: v => v < 1e6 ? (v/1e3).toFixed(0)+'K' : (v/1e6).toFixed(1)+'M' } },
+          x: { ticks: { color: '#576574', maxTicksLimit: 8, font: { size: 9 } }, grid: { display: false } }
+        },
+        plugins: { legend: { position: 'bottom', labels: { color: '#8395a7', font: { size: 10 }, usePointStyle: true, padding: 12 } } }
+      }
+    })
+    fetchHistory()
+  }
+  timer = setInterval(fetchHistory, 15000)
 })
+onUnmounted(() => { clearInterval(timer); histChartInst?.destroy() })
 </script>
 
 <style scoped>
@@ -57,4 +115,11 @@ table{width:100%;border-collapse:collapse;background:var(--bg2);border:1px solid
 th,td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)}
 th{color:var(--fg3);font-size:9px;text-transform:uppercase;letter-spacing:1px;background:var(--bg3)}
 .empty{text-align:center;color:var(--fg3);padding:24px;font-size:12px}
+.hist-block{background:var(--bg2);border:1px solid var(--border);padding:12px 14px;border-radius:3px}
+.hist-title{display:flex;align-items:center;font-size:12px;color:var(--fg2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.hist-canvas{max-height:200px}
+.range-btns{margin-left:auto;display:inline-flex;gap:2px}
+.range-btns button{padding:2px 8px;background:var(--bg3);color:var(--fg2);border:1px solid var(--border);border-radius:2px;cursor:pointer;font-size:9px;font-family:var(--font)}
+.range-btns button.sel{background:var(--accent);color:#000;border-color:var(--accent)}
+.range-btns button:hover:not(.sel){border-color:var(--accent);color:var(--fg)}
 </style>
