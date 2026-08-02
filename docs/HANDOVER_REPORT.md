@@ -700,6 +700,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-07-13  E2E 测试 125 用例全部通过
 2026-07-18  代码质量加固收尾 (22 文件, 1331 行变更)
 2026-08-02  P2-03 MAC 认证 / S5 证书管理 / S4 审计日志 / S3 流量历史 / A5 DHCP Relay Option 82 / A2 端口转发向导 / B1 系统日志搜索 / B2 接口详情页图表 / B4 配置快照管理 / B3 Subscriber Sim 多用户批量拨号 / A4 一键 DHCP Make Static / A1 Quick Setup API 对接 / A3 诊断工具箱集成 完成
+2026-08-02  证书列表性能修复: system_extra 逐文件 openssl 子进程改为 cryptography 纯 Python 解析 (37.9s→1.6s), 消除 certs 残留导致的 B12 E2E 超时抖动
 ```
 
 ### 10.2 未完成的高优先级工作
