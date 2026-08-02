@@ -16,6 +16,7 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
     common = get_section("access.d.common")
 
     # Modules
+    mac_auth = get_section("access.d.mac_auth")
     w("[modules]")
     mod_list = ["pppoe", "ipoe", "l2tp", "pptp", "sstp", "auth_pap", "auth_chap_md5",
                 "auth_mschap_v1", "auth_mschap_v2", "radius", "ippool", "connlimit", "pppd_compat", "log_file", "vlan-mon",
@@ -23,6 +24,8 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
     for m in mod_list:
         if modules.get(m, "no") == "yes" or core.get(m, "no") == "yes":
             w(m)
+    if mac_auth.get("enabled") == "yes" and modules.get("ipoe", "no") != "yes":
+        w("ipoe")
     w()
 
     # Core
@@ -122,8 +125,27 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
         w(f"{pool['range']},name=default")
 
     # Protocols
+    mac_auth = get_section("access.d.mac_auth")
     for proto in [("pppoe", "pppoe"), ("pptp", "pptp"), ("l2tp", "l2tp"), ("sstp", "sstp"), ("ipoe", "ipoe")]:
         pconf = get_section(f"access.d.{proto[1]}")
+        # MAC-Auth bypass (IPTV/IoT): IPoE in L2 mode with client MAC as username
+        if proto[0] == "ipoe" and mac_auth.get("enabled") == "yes":
+            w("[ipoe]")
+            w("verbose=1")
+            iface = mac_auth.get("interface") or pconf.get("interface") or "ens33"
+            w(f"interface={iface}")
+            w("mode=L2")
+            w("start=dhcpv4")
+            if mac_auth.get("username_format"):
+                w(f"username={mac_auth['username_format']}")
+            if mac_auth.get("nas_identifier"):
+                w(f"nas-identifier={mac_auth['nas_identifier']}")
+            if mac_auth.get("ip_pool"):
+                w(f"ip-pool={mac_auth['ip_pool']}")
+            if mac_auth.get("vlan"):
+                w(f"vlan={mac_auth['vlan']}")
+            w()
+            continue
         if proto[0] == "ipoe" and pconf.get("enabled") != "yes":
             continue
         w(f"[{proto[1]}]")

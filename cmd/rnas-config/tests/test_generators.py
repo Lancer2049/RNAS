@@ -122,6 +122,52 @@ class TestAccelPppGenerator:
         out = generate_accel_ppp(cfg)
         assert "mtu=1400" in out
 
+    def test_mac_auth_merged_into_ipoe(self):
+        cfg = _cfg(**{
+            "access.d.mac_auth": {
+                "enabled": "yes", "interface": "ens44",
+                "username_format": "mac", "nas_identifier": "rnas-mac-auth",
+                "ip_pool": "default", "vlan": "100",
+            },
+        })
+        out = generate_accel_ppp(cfg)
+        assert "[ipoe]" in out
+        assert "interface=ens44" in out
+        assert "mode=L2" in out
+        assert "start=dhcpv4" in out
+        assert "username=mac" in out
+        assert "nas-identifier=rnas-mac-auth" in out
+        assert "ip-pool=default" in out
+        assert "vlan=100" in out
+
+    def test_mac_auth_disabled_keeps_regular_ipoe(self):
+        cfg = _cfg(**{
+            "access.d.ipoe": {"enabled": "yes", "interface": "ens33"},
+            "access.d.mac_auth": {"enabled": "no", "interface": "ens44"},
+        })
+        out = generate_accel_ppp(cfg)
+        assert "[ipoe]" in out
+        assert "interface=ens33" in out
+        assert "username=mac" not in out
+
+    def test_mac_auth_enabled_without_ipoe_module(self):
+        cfg = _cfg(**{
+            "access.d.modules": {"pppoe": "yes", "radius": "yes"},
+            "access.d.mac_auth": {"enabled": "yes", "interface": "ens44", "username_format": "mac"},
+        })
+        out = generate_accel_ppp(cfg)
+        assert "[ipoe]" in out
+        assert "username=mac" in out
+        mods = out.split("[modules]")[1].split("[core]")[0]
+        assert "ipoe" in mods  # forced module load for mac-auth mode
+
+    def test_mac_auth_defaults(self):
+        cfg = _cfg(**{"access.d.mac_auth": {"enabled": "yes"}})
+        out = generate_accel_ppp(cfg)
+        assert "[ipoe]" in out
+        assert "interface=ens33" in out  # falls back to ipoe/ens33 default
+        assert "mode=L2" in out
+
 
 # ── dnsmasq generator tests ────────────────────────────────────────────────
 

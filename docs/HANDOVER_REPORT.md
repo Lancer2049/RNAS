@@ -714,7 +714,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 | S3 | ❌ 流量历史持久化图表 | 2d | 当前仅实时速率，需 RRD 风格趋势（5m/1h/1d/1w） |
 | S4 | ❌ 配置变更审计日志 | 1d | who/when/what changed |
 | S5 | ❌ VPN 证书管理 | 1.5d | 当前 API 就绪，前端需要完善 |
-| S6 | ❌ 健康报警系统 | 2d | 当前 API 就绪，前端 + 通知通道待完善 |
+| S6 | ✅ 健康报警系统 | **已完成** | P3-04：磁盘/会话/服务告警 + 横幅 + 前端 + E2E |
 
 **A 级**
 
@@ -725,7 +725,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 | A3 | 诊断工具箱集成 | 所有工具在单一页面，标签切换 |
 | A4 | 一键 DHCP Make Static | 当前需手动填写，可一键转换 |
 | A5 | DHCP Relay Option 82 | 配置生成就绪，前端还未创建 |
-| A6 | 802.1X / MAC Auth 配置 | 配置生成就绪，前端还未创建 |
+| A6 | ✅ 802.1X / MAC Auth 配置 | P2-01 完成 802.1X，P2-03 完成 MAC Auth 前端 + 生成器接入 |
 
 **B 级**
 

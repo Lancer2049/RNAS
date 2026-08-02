@@ -137,6 +137,15 @@ const protocols = reactive([
       {key:'session_timeout',label:'Session Timeout',type:'number',default:'0',hint:'Seconds'},
       {key:'idle_timeout',label:'Idle Timeout',type:'number',default:'0',hint:'Seconds'},
     ]},
+  {id:'mac_auth',name:'MAC Auth',icon:'🖧',enabled:false,section:'access.d.mac_auth', module:'mac_auth',
+    fields:[
+      {key:'enabled',label:'Enabled',type:'yesno',hint:''},
+      {key:'interface',label:'Interface',hint:'DHCP snooping interface (IPoE L2)'},
+      {key:'username_format',label:'Username Format',default:'mac',hint:'mac / ifname'},
+      {key:'nas_identifier',label:'NAS Identifier',default:'rnas-mac-auth',hint:'NAS-Identifier attr'},
+      {key:'ip_pool',label:'IP Pool',default:'default',hint:'Pool name from ip-pool.conf'},
+      {key:'vlan',label:'VLAN',type:'number',hint:'Optional 802.1Q tag'},
+    ]},
   {id:'dot1x',name:'802.1X',icon:'🔑',enabled:false,section:'wireless.d.dot1x', module:'dot1x',
     fields:[
       {key:'enabled',label:'Enabled',type:'yesno',hint:''},
@@ -170,7 +179,7 @@ async function loadProto(id) {
     }
     const data = configCache[p.section] || {}
     const core = configCache['access.d.core'] || {}
-    p.enabled = (p.module === 'dot1x' || p.module === 'ipv6')
+    p.enabled = (p.module === 'dot1x' || p.module === 'ipv6' || p.module === 'mac_auth')
       ? data.enabled === 'yes'
       : core[p.module] === 'yes'
     current.value = { ...p, values: {...data} }
@@ -184,10 +193,10 @@ async function save() {
   const p = protocols.find(p=>p.id===active.value); if (!p) return
   try {
     const values = {...current.value.values}
-    if (p.module === 'dot1x' || p.module === 'ipv6') values.enabled = current.value.enabled ? 'yes' : 'no'
+    if (p.module === 'dot1x' || p.module === 'ipv6' || p.module === 'mac_auth') values.enabled = current.value.enabled ? 'yes' : 'no'
     await fetch(`/api/config/${p.module}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(values)})
-    // dot1x/ipv6 keep their own enabled flag; others flip access.d.core module
-    if (p.module === 'dot1x' || p.module === 'ipv6') {
+    // dot1x/ipv6/mac_auth keep their own enabled flag; others flip access.d.core module
+    if (p.module === 'dot1x' || p.module === 'ipv6' || p.module === 'mac_auth') {
       if (p.module === 'ipv6') {
         // Dual-stack needs ipv6=allow in the PPP section (ppp.conf) + modules in core.conf
         const ppp = await (await fetch('/api/config/ppp')).json()
