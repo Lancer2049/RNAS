@@ -137,6 +137,16 @@ const protocols = reactive([
       {key:'session_timeout',label:'Session Timeout',type:'number',default:'0',hint:'Seconds'},
       {key:'idle_timeout',label:'Idle Timeout',type:'number',default:'0',hint:'Seconds'},
     ]},
+  {id:'dot1x',name:'802.1X',icon:'🔑',enabled:false,section:'wireless.d.dot1x', module:'dot1x',
+    fields:[
+      {key:'enabled',label:'Enabled',type:'yesno',hint:''},
+      {key:'interface',label:'Interface',hint:'Dedicated veth/bridge (never mgmt iface)'},
+      {key:'auth_server',label:'Auth Server',default:'192.168.0.202',hint:'FreeRADIUS EAP server'},
+      {key:'auth_port',label:'Auth Port',type:'number',default:'1812',hint:'RADIUS auth port'},
+      {key:'auth_secret',label:'Secret',default:'testing123',hint:'RADIUS shared secret'},
+      {key:'nas_identifier',label:'NAS Identifier',default:'rnas-dot1x',hint:'NAS-Identifier attr'},
+      {key:'eap_methods',label:'EAP Methods',default:'md5,peap,tls',hint:'Accepted EAP methods'},
+    ]},
 ])
 
 let configCache = null
@@ -151,7 +161,9 @@ async function loadProto(id) {
     }
     const data = configCache[p.section] || {}
     const core = configCache['access.d.core'] || {}
-    p.enabled = core[p.module] === 'yes'
+    p.enabled = p.module === 'dot1x'
+      ? data.enabled === 'yes'
+      : core[p.module] === 'yes'
     current.value = { ...p, values: {...data} }
     current.value.enabled = p.enabled
     loaded.value = true
@@ -162,9 +174,13 @@ async function save() {
   if (!current.value) return; saving.value = true
   const p = protocols.find(p=>p.id===active.value); if (!p) return
   try {
-    await fetch(`/api/config/${p.module}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(current.value.values)})
-    // Also update core enabled
-    await fetch('/api/config/core', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({[p.module]:current.value.enabled?'yes':'no'})})
+    const values = {...current.value.values}
+    if (p.module === 'dot1x') values.enabled = current.value.enabled ? 'yes' : 'no'
+    await fetch(`/api/config/${p.module}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(values)})
+    // Also update core enabled (dot1x keeps its own enabled flag)
+    if (p.module !== 'dot1x') {
+      await fetch('/api/config/core', {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({[p.module]:current.value.enabled?'yes':'no'})})
+    }
     p.enabled = current.value.enabled
     msg.value='Saved'; msgType.value='ok'
   } catch { msg.value='Save failed'; msgType.value='err' }

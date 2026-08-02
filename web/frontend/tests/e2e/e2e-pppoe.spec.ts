@@ -171,7 +171,11 @@ test.describe('端到端 PPPoE 场景测试 — 前端全链路', () => {
     await page.locator('.rnas-sidebar').getByText('Sessions').click();
     // replaced waitForTimeout(1500) → expect() auto-wait
     // Then: 验证有活动会话
-    // 检查会话表格是否存在
+    // 等待表格或空状态任一渲染完成（避免竞态：表格在检查窗口后才出现）
+    await expect(
+      page.locator('table, .empty-state, .empty').first()
+    ).toBeVisible({ timeout: 15000 }).catch(() => {});
+
     const sessionTable = page.locator('table');
     const emptyState = page.locator('.empty-state, .empty');
 

@@ -336,7 +336,8 @@ def generate_dot1x(config: Dict[str, Dict[str, str]]) -> str:
     if g.get("enabled") != "yes":
         out.append("# 802.1X disabled")
         return "\n".join(out)
-    out.append(f"interface={g.get('interface', 'ens33')}")
+    iface = g.get("interface", "veth-dot1x")
+    out.append("interface=" + iface)
     out.append("driver=wired")
     out.append("ieee8021x=1")
     out.append("eapol_version=2")
@@ -345,9 +346,19 @@ def generate_dot1x(config: Dict[str, Dict[str, str]]) -> str:
     out.append(f"auth_server_shared_secret={g.get('auth_secret', 'testing123')}")
     out.append("eap_server=0")
     out.append(f"nas_identifier={g.get('nas_identifier', 'rnas-dot1x')}")
+    eap = g.get("eap_methods", "")
+    if eap:
+        # hostapd does not restrict EAP methods when relaying to an external
+        # RADIUS server; the list is preserved as a comment for documentation
+        # and for a future built-in EAP server (eap_server=1) mode.
+        out.append(f"# eap_methods={eap}")
     if g.get("ca_cert"): out.append(f"ca_cert={g['ca_cert']}")
     if g.get("server_cert"): out.append(f"server_cert={g['server_cert']}")
     if g.get("private_key"): out.append(f"private_key={g['private_key']}")
+    out.append("logger_syslog=-1")
+    out.append("logger_stdout=-1")
+    out.append("ctrl_interface=/var/run/hostapd")
+    out.append("ssid=rnas-dot1x")
     out.append("")
     return "\n".join(out)
 

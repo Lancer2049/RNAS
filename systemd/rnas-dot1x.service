@@ -1,0 +1,17 @@
+[Unit]
+Description=RNAS 802.1X Authenticator (hostapd wired)
+Documentation=https://github.com/Lancer2049/RNAS
+After=network-online.target
+Wants=network-online.target
+PartOf=rnas.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/rnas-config generate dot1x -o /var/run/rnas/dot1x.conf
+ExecStart=/usr/sbin/hostapd /var/run/rnas/dot1x.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=rnas.target

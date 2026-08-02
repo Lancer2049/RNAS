@@ -112,7 +112,14 @@ async def diff_snapshot(name: str, user=Depends(require_auth)):
 @router.get("/config/{module:path}")
 async def get_config_section(module: str, user=Depends(require_auth)):
     config = walk_config_tree(Path(DEFAULT_ROOT))
-    matches = {k: v for k, v in config.items() if k.startswith(module.replace("/", "."))}
+    needle = module.replace("/", ".")
+    # Match full section names: exact key, key startswith needle
+    # (e.g. "access.d.pppoe" for "pppoe"), or needle is a sub-section of key
+    # (e.g. "dot1x" inside "wireless.d.dot1x").
+    matches = {
+        k: v for k, v in config.items()
+        if k == needle or k.startswith(needle) or k.endswith("." + needle)
+    }
     if not matches:
         raise HTTPException(status_code=404, detail=f"Config section '{module}' not found")
     return {"module": module, "config": matches}
@@ -193,7 +200,7 @@ async def apply_config(user=Depends(require_auth)):
             if rnas_config_cli
             else ["python3", "-m", "rnas_config", "--root", DEFAULT_ROOT, "generate"]
         )
-        for svc in ["accel-ppp", "dnsmasq", "firewall", "snmp"]:
+        for svc in ["accel-ppp", "dnsmasq", "firewall", "snmp", "dot1x"]:
             res = subprocess.run(
                 gen_cmd + [svc, "-o", f"/var/run/rnas/{svc}.conf"],
                 capture_output=True, text=True, timeout=10,

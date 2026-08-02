@@ -66,7 +66,7 @@ def main():
     sc.add_argument("name", nargs="?", help="Scenario name (for apply)")
 
     app = sub.add_parser("apply", help="Generate config and restart service")
-    app.add_argument("service", choices=sorted([k for k in GEN_MAP if k not in ("gre", "ipip", "eoip", "vxlan", "ipv6", "vlan", "dot1x", "mac-auth")]), help="Service to apply")
+    app.add_argument("service", choices=sorted([k for k in GEN_MAP if k not in ("gre", "ipip", "eoip", "vxlan", "ipv6", "vlan", "mac-auth")]), help="Service to apply")
 
     args = parser.parse_args()
 

@@ -18,6 +18,7 @@ async def system_status(user=Depends(require_auth)):
         ("rnas-accel-ppp", "PPPoE/PPTP/L2TP/SSTP/IPoE Access Server"),
         ("dnsmasq", "DHCP/DNS Server"),
         ("rnas-web", "Web Dashboard"),
+        ("rnas-dot1x", "802.1X Authenticator (hostapd)"),
         ("strongswan-starter", "IPsec VPN"),
         ("wg-quick@wg0", "WireGuard VPN"),
         ("openvpn-server@server", "OpenVPN Server"),
