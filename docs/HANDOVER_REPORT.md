@@ -699,6 +699,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-06-23  竞品分析 + 改进计划 (S/A/B/C 四级, 19 项)
 2026-07-13  E2E 测试 125 用例全部通过
 2026-07-18  代码质量加固收尾 (22 文件, 1331 行变更)
+2026-08-02  P2-03 MAC 认证 / S5 证书管理 / S4 审计日志 / S3 流量历史 / A5 DHCP Relay Option 82 完成
 ```
 
 ### 10.2 未完成的高优先级工作
@@ -724,7 +725,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 | A2 | 端口转发向导 | 当前可用，UI 可改进 |
 | A3 | 诊断工具箱集成 | 所有工具在单一页面，标签切换 |
 | A4 | 一键 DHCP Make Static | 当前需手动填写，可一键转换 |
-| A5 | DHCP Relay Option 82 | 配置生成就绪，前端还未创建 |
+| A5 | ✅ DHCP Relay Option 82 | **已完成** | 生成器 option82/circuit_id/remote_id + 后端 GET/POST 配置树读写 + 前端表单 + relay 脚本读配置 + E2E |
 | A6 | ✅ 802.1X / MAC Auth 配置 | P2-01 完成 802.1X，P2-03 完成 MAC Auth 前端 + 生成器接入 |
 
 **B 级**

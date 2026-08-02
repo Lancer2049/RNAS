@@ -244,6 +244,12 @@ def generate_dhcp_relay(config: Dict[str, Dict[str, str]]) -> str:
     out.append(f"upstream={upstream}:67")
     out.append(f"giaddr={giaddr}")
     out.append(f"interface={iface}")
+    if relay.get("option82") == "yes":
+        circuit = relay.get("circuit_id", "rnas-port1")
+        remote = relay.get("remote_id", "rnas")
+        out.append("option82=yes")
+        out.append(f"circuit_id={circuit}")
+        out.append(f"remote_id={remote}")
     out.append("")
     return "\n".join(out)
 
