@@ -1,7 +1,7 @@
 """RNAS Simulation API — subscriber dial, fault injection, scenario runner."""
 import asyncio, json, re, shlex, subprocess
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from api.auth import require_auth
 
 router = APIRouter(tags=["Simulation"])
@@ -29,11 +29,8 @@ async def _ssh(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:
         print(f"[sim] SSH error: {e}")
 
 
-@router.get("/sim/connect")
-async def sim_connect(
-    proto: str = Query("pppoe"), user: str = Query("testuser"),
-    passwd: str = Query("testpass"), _auth=Depends(require_auth),
-):
+async def _dial_one(proto: str, user: str, passwd: str) -> dict:
+    """Dial a single subscriber connection. Shared by single and multi-user paths."""
     from rnas_env import get_env
     env = get_env()
 
@@ -54,7 +51,9 @@ async def sim_connect(
         cmd = env.ssh_cmd_str(
             env.cpe_host,
             f"timeout 12 pppd call {peer} user {safe_user} password {safe_pass} nodetach 2>&1")
-        out = await _ssh(cmd)
+        # The remote pppd runs for up to 12s before `timeout` SIGTERMs it —
+        # the SSH call needs a larger timeout than _ssh's 10s default.
+        out = await _ssh(cmd, timeout=15)
         ip = None
         if out:
             for line in out.stdout.splitlines():
@@ -65,6 +64,63 @@ async def sim_connect(
         else:
             ok = False
         return {"success": ok, "ip": ip, "protocol": proto}
+
+
+@router.get("/sim/connect")
+async def sim_connect(
+    proto: str = Query("pppoe"), user: str = Query("testuser"),
+    passwd: str = Query("testpass"), _auth=Depends(require_auth),
+):
+    return await _dial_one(proto, user, passwd)
+
+
+@router.post("/sim/multi-connect")
+async def sim_multi_connect(data: dict = Body({}), _auth=Depends(require_auth)):
+    """Batch-dial N subscribers with auto-created RADIUS users.
+
+    Creates users <base>-1..<base>-N in radcheck (Cleartext-Password),
+    dials each serially, then removes them so the DB stays clean.
+    """
+    from rnas_env import get_env
+    env = get_env()
+
+    proto = str(data.get("proto", "pppoe"))
+    base_user = str(data.get("user", "testuser"))
+    passwd = str(data.get("pass", "testpass"))
+    try:
+        count = int(data.get("count", 5))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="count must be an integer")
+    if count < 1 or count > 50:
+        raise HTTPException(status_code=400, detail="count must be between 1 and 50")
+    if proto == "l2tp":
+        raise HTTPException(status_code=400, detail="l2tp is a single tunnel; use /sim/connect")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,32}", base_user):
+        raise HTTPException(status_code=400, detail="invalid base username")
+
+    users = [f"{base_user}-{i}" for i in range(1, count + 1)]
+    esc_p = passwd.replace("'", "''")
+
+    # 1. Create RADIUS users (idempotent: delete-then-insert)
+    for u in users:
+        esc_u = u.replace("'", "''")
+        env.db_exec(
+            f"DELETE FROM radcheck WHERE username='{esc_u}';"
+            f"INSERT INTO radcheck (username, attribute, op, value) "
+            f"VALUES ('{esc_u}', 'Cleartext-Password', ':=', '{esc_p}');"
+        )
+
+    # 2. Dial serially — CPE pppd is one tunnel per call
+    results = []
+    for u in users:
+        r = await _dial_one(proto, u, passwd)
+        results.append({"username": u, **r})
+
+    # 3. Cleanup created users
+    for u in users:
+        env.db_exec(f"DELETE FROM radcheck WHERE username='{u.replace(chr(39), chr(39)*2)}'")
+
+    return {"success": True, "count": count, "results": results}
 
 
 @router.post("/sim/stop")

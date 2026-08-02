@@ -124,6 +124,32 @@ class RNASEnv:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         return result.stdout
 
+    def db_exec(self, sql: str, timeout: int = 15) -> str:
+        """Run a remote PostgreSQL statement (INSERT/UPDATE/DELETE) via SSH.
+
+        The SQL is base64-encoded so it never touches the remote shell
+        directly — callers are responsible for quoting string literals
+        (single quotes are safe inside base64).
+        """
+        import base64
+        if not isinstance(sql, str) or not sql.strip():
+            raise ValueError("SQL statement must be a non-empty string")
+        b64 = base64.b64encode(sql.encode()).decode()
+        connect_host, port = self.ssh_connect_params(self.radius_host)
+        remote_cmd = (
+            f"echo {b64} | base64 -d | PGPASSWORD={self.db_pass} "
+            f"psql -h {self.db_host} -U {self.db_user} -d {self.db_name} -t"
+        )
+        cmd = [
+            "sshpass", "-p", self.ssh_pass,
+            "ssh", "-o", "StrictHostKeyChecking=no",
+        ]
+        if port != 22:
+            cmd += ["-p", str(port)]
+        cmd += [f"{self.ssh_user}@{connect_host}", remote_cmd]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return result.stdout
+
     def ssh_cmd_str(self, host: str, command: str) -> str:
         """Build an sshpass shell command string (for subprocess shell=True)."""
         connect_host, port = self.ssh_connect_params(host)

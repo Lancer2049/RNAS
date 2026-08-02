@@ -12,6 +12,7 @@
       <button class="btn-stop" @click="stopSim" :disabled="!running">⏹ Stop</button>
       <span class="status" :class="running?'active':'idle'">{{ running ? 'Simulation active' : 'Ready' }}</span>
     </div>
+    <p v-if="count > 1" class="multi-hint">Multi-user mode: dials as {{ user }}-1 … {{ user }}-{{ count }} (auto-created RADIUS users, cleaned up after)</p>
 
     <div class="progress" v-if="running">
       <div class="bar"><div class="fill" :style="{width: (done*100/count)+'%'}"></div></div>
@@ -20,10 +21,10 @@
 
     <div class="results" v-if="results.length">
       <table>
-        <thead><tr><th>#</th><th>Proto</th><th>Status</th><th>IP</th><th>Latency</th></tr></thead>
+        <thead><tr><th>#</th><th>Proto</th><th>User</th><th>Status</th><th>IP</th><th>Latency</th></tr></thead>
         <tbody>
           <tr v-for="r in results" :key="r.id" :class="r.ok?'row-ok':'row-fail'">
-            <td>{{ r.id }}</td><td>{{ r.proto }}</td>
+            <td>{{ r.id }}</td><td>{{ r.proto }}</td><td class="mono">{{ r.user || '-' }}</td>
             <td>{{ r.ok ? '✅' : '❌' }}</td>
             <td class="mono">{{ r.ip||'-' }}</td><td>{{ r.latency ? r.latency+'ms' : '-' }}</td>
           </tr>
@@ -47,17 +48,41 @@ const running = ref(false), results = ref([]), done = ref(0), passed = ref(0), f
 async function startSim() {
   if (!count.value || count.value < 1) count.value = 1
   running.value = true; results.value = []; done.value = 0; passed.value = 0; failed.value = 0
-  for (let i = 1; i <= count.value; i++) {
+  if (count.value > 1) {
+    // Multi-user batch: backend auto-creates RADIUS users <user>-1..N and dials each
     const start = Date.now()
     try {
-      const res = await fetch(`/api/sim/connect?proto=${encodeURIComponent(proto.value)}&user=${encodeURIComponent(user.value)}&pass=${encodeURIComponent(pass.value)}`)
+      const res = await fetch('/api/sim/multi-connect', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proto: proto.value, user: user.value, pass: pass.value, count: count.value })
+      })
       const d = await res.json()
-      const ok = d.success
-      results.value.push({id:i, proto:proto.value, ok, ip:d.ip, latency: Date.now()-start})
-      done.value++; if (ok) passed.value++; else failed.value++
+      if (Array.isArray(d.results)) {
+        d.results.forEach((r, i) => {
+          const ok = !!r.success
+          results.value.push({ id: i+1, proto: r.protocol || proto.value, user: r.username, ok, ip: r.ip, latency: Date.now()-start })
+          done.value++; if (ok) passed.value++; else failed.value++
+        })
+      } else {
+        throw new Error(d.detail || 'Invalid response')
+      }
     } catch(e) {
-      results.value.push({id:i, proto:proto.value, ok:false, latency: Date.now()-start})
+      results.value.push({ id: 1, proto: proto.value, user: user.value, ok: false, latency: Date.now()-start })
       done.value++; failed.value++
+    }
+  } else {
+    for (let i = 1; i <= count.value; i++) {
+      const start = Date.now()
+      try {
+        const res = await fetch(`/api/sim/connect?proto=${encodeURIComponent(proto.value)}&user=${encodeURIComponent(user.value)}&pass=${encodeURIComponent(pass.value)}`)
+        const d = await res.json()
+        const ok = d.success
+        results.value.push({id:i, proto:proto.value, user:user.value, ok, ip:d.ip, latency: Date.now()-start})
+        done.value++; if (ok) passed.value++; else failed.value++
+      } catch(e) {
+        results.value.push({id:i, proto:proto.value, user:user.value, ok:false, latency: Date.now()-start})
+        done.value++; failed.value++
+      }
     }
   }
   running.value = false
@@ -80,6 +105,7 @@ async function stopSim() {
 .btn-stop { padding:6px 16px; background:var(--red); color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:12px; font-weight:600; font-family:var(--font) }
 .btn-start:disabled,.btn-stop:disabled { opacity:0.4 }
 .status { font-weight:600; font-size:12px } .active { color:var(--green) } .idle { color:var(--fg3) }
+.multi-hint { font-size:11px; color:var(--accent); font-family:var(--mono) }
 .progress { display:flex; align-items:center; gap:12px }
 .bar { flex:1; height:6px; background:var(--bg3); border-radius:3px; overflow:hidden }
 .fill { height:100%; background:var(--accent); transition:width .3s }
