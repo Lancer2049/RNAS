@@ -80,51 +80,132 @@ def insert_sample(interface: str, rx_bytes: int, tx_bytes: int):
 def get_history(interface: str, period: str = "5m") -> list[dict]:
     """Return traffic history for an interface.
 
-    period: "5m" (raw, 1d), "1h" (hourly, 7d), "1d" (daily, 30d)
+    period is a TIME RANGE: "5m" / "1h" (raw diff rate), "1d" (hourly agg),
+    "1w" (hourly agg over 7 days). Returns [{ts, rx, tx}] in bps.
     """
     try:
         db = _get_db()
         if period == "1h":
             rows = db.execute(
-                "SELECT rx_avg as rx, tx_avg as tx, "
-                "CAST(strftime('%s', hour) AS INTEGER) as ts FROM traffic_hourly "
-                "WHERE interface = ? AND hour > datetime('now', '-7 days') ORDER BY hour",
+                "SELECT rx_bytes as rx, tx_bytes as tx, "
+                "CAST(strftime('%s', timestamp) AS INTEGER) as ts FROM traffic_history "
+                "WHERE interface = ? AND timestamp > datetime('now', '-1 hour') ORDER BY timestamp",
                 [interface],
             ).fetchall()
-        elif period == "1d":
+            db.close()
+            return _diff_rate([dict(r) for r in rows], 120)
+        if period == "5m":
+            rows = db.execute(
+                "SELECT rx_bytes as rx, tx_bytes as tx, "
+                "CAST(strftime('%s', timestamp) AS INTEGER) as ts FROM traffic_history "
+                "WHERE interface = ? AND timestamp > datetime('now', '-5 minutes') ORDER BY timestamp",
+                [interface],
+            ).fetchall()
+            db.close()
+            return _diff_rate([dict(r) for r in rows], 60)
+        if period == "1d":
             rows = db.execute(
                 "SELECT rx_avg as rx, tx_avg as tx, "
-                "CAST(strftime('%s', date || 'T00:00:00') AS INTEGER) as ts FROM traffic_daily "
-                "WHERE interface = ? AND date > datetime('now', '-30 days') ORDER BY date",
+                "CAST(strftime('%s', hour) AS INTEGER) as ts FROM traffic_hourly "
+                "WHERE interface = ? AND hour > datetime('now', '-24 hours') ORDER BY hour",
                 [interface],
             ).fetchall()
-        else:
+            db.close()
+            if rows:
+                return [dict(r) for r in rows]
+            # fallback: raw samples downsampled to ~144 points
             rows = db.execute(
                 "SELECT rx_bytes as rx, tx_bytes as tx, "
                 "CAST(strftime('%s', timestamp) AS INTEGER) as ts FROM traffic_history "
                 "WHERE interface = ? AND timestamp > datetime('now', '-1 day') ORDER BY timestamp",
                 [interface],
             ).fetchall()
+            db.close()
+            return _diff_rate([dict(r) for r in rows], 144)
+        if period == "1w":
+            rows = db.execute(
+                "SELECT rx_avg as rx, tx_avg as tx, "
+                "CAST(strftime('%s', hour) AS INTEGER) as ts FROM traffic_hourly "
+                "WHERE interface = ? AND hour > datetime('now', '-7 days') ORDER BY hour",
+                [interface],
+            ).fetchall()
+            db.close()
+            if rows:
+                return [dict(r) for r in rows]
+            # fallback: daily aggregates
+            rows = db.execute(
+                "SELECT rx_avg as rx, tx_avg as tx, "
+                "CAST(strftime('%s', date || 'T00:00:00') AS INTEGER) as ts FROM traffic_daily "
+                "WHERE interface = ? AND date > datetime('now', '-7 days') ORDER BY date",
+                [interface],
+            ).fetchall()
+            db.close()
+            if rows:
+                return [dict(r) for r in rows]
+            # fallback: raw samples downsampled to ~168 points
+            rows = db.execute(
+                "SELECT rx_bytes as rx, tx_bytes as tx, "
+                "CAST(strftime('%s', timestamp) AS INTEGER) as ts FROM traffic_history "
+                "WHERE interface = ? AND timestamp > datetime('now', '-7 days') ORDER BY timestamp",
+                [interface],
+            ).fetchall()
+            db.close()
+            return _diff_rate([dict(r) for r in rows], 168)
+        # default: raw 1h
+        rows = db.execute(
+            "SELECT rx_bytes as rx, tx_bytes as tx, "
+            "CAST(strftime('%s', timestamp) AS INTEGER) as ts FROM traffic_history "
+            "WHERE interface = ? AND timestamp > datetime('now', '-1 hour') ORDER BY timestamp",
+            [interface],
+        ).fetchall()
         db.close()
-        return [dict(r) for r in rows]
+        return _diff_rate([dict(r) for r in rows], 120)
     except Exception:
         return []
+
+
+def _diff_rate(points: list[dict], max_points: int = 120) -> list[dict]:
+    """Convert raw byte-counter samples into bps rates, then downsample.
+
+    Rates are computed from consecutive samples: (cur - prev) * 8 / dt.
+    If more than max_points remain, evenly subsample.
+    """
+    if not points:
+        return []
+    out = []
+    prev = None
+    for p in points:
+        if prev is not None:
+            dt = p["ts"] - prev["ts"]
+            if dt > 0:
+                rx = max(0.0, (p["rx"] - prev["rx"]) * 8.0 / dt)
+                tx = max(0.0, (p["tx"] - prev["tx"]) * 8.0 / dt)
+                out.append({"ts": p["ts"], "rx": round(rx, 1), "tx": round(tx, 1)})
+        prev = p
+    if len(out) <= max_points:
+        return out
+    step = len(out) / max_points
+    return [out[int(i * step)] for i in range(max_points)]
 
 
 def run_downsample():
     """Aggregate raw samples into hourly and daily tables. Call periodically."""
     try:
         db = _get_db()
-        # Hourly: average of samples in the past hour
+        # Hourly: average rate = total bytes in hour / elapsed seconds * 8
         db.execute("""
             INSERT OR REPLACE INTO traffic_hourly (interface, rx_avg, tx_avg, hour)
-            SELECT interface, AVG(rx_bytes), AVG(tx_bytes),
+            SELECT interface,
+                   (MAX(rx_bytes) - MIN(rx_bytes)) * 8.0 /
+                       MAX(1.0, MAX(strftime('%s', timestamp)) - MIN(strftime('%s', timestamp))),
+                   (MAX(tx_bytes) - MIN(tx_bytes)) * 8.0 /
+                       MAX(1.0, MAX(strftime('%s', timestamp)) - MIN(strftime('%s', timestamp))),
                    strftime('%Y-%m-%dT%H:00', timestamp)
             FROM traffic_history
             WHERE timestamp > datetime('now', '-2 hours')
             GROUP BY interface, strftime('%Y-%m-%dT%H', timestamp)
         """)
-        # Daily: average of hourly samples
+        # Daily: average of hourly rates
         db.execute("""
             INSERT OR REPLACE INTO traffic_daily (interface, rx_avg, tx_avg, date)
             SELECT interface, AVG(rx_avg), AVG(tx_avg),

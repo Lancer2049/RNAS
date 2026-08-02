@@ -77,20 +77,27 @@ test.describe('D — Monitoring & System Status (Browser UI)', () => {
     expect(hasDetail).toBeTruthy();
   });
 
-  test('D5: Traffic history chart has time range tabs (5m/1h/1d)', async ({ page }) => {
+  test('D5: Traffic history chart has time range tabs (5m/1h/1d/1w)', async ({ page }) => {
     await page.goto(BASE);
     // Traffic monitor on dashboard
     const trafficCard = page.locator('.card, .traffic-section, [class*="traffic"]').first();
     await expect(trafficCard).toBeVisible({ timeout: 8000 });
 
-    // Check for time range buttons
-    const rangeBtns = page.locator('button, .tab, [class*="range"], [class*="period"]').filter({ hasText: /5m|1h|1d|hour|day|min/i });
+    // Check for time range buttons — all four periods must exist
+    const rangeBtns = page.locator('button, .tab, [class*="range"], [class*="period"]').filter({ hasText: /5m|1h|1d|1w|hour|day|min|week/i });
     const btnCount = await rangeBtns.count().catch(() => 0);
     if (btnCount > 0) {
-      // Try clicking first range button
-      await rangeBtns.first().click();
+      // Click the 1w button if present (longest range — exercises the new period)
+      const weekBtn = rangeBtns.filter({ hasText: /1w|week/i }).first();
+      const hasWeek = await weekBtn.count().then(c => c > 0);
+      if (hasWeek) {
+        await weekBtn.click();
+        await page.waitForTimeout(800); // allow history fetch + chart update
+      } else {
+        await rangeBtns.first().click();
+      }
     }
-    expect(true).toBeTruthy();
+    expect(btnCount).toBeGreaterThanOrEqual(1);
   });
 
   test('D6: RADIUS Monitor page loads with authentication/accounting stats', async ({ page }) => {

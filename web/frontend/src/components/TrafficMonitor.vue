@@ -48,9 +48,10 @@
       <h3 class="sec-title">
         Traffic History
         <span class="range-btns">
-          <button :class="{sel: histRange===300}" @click="histRange=300;fetchHistory()">5m</button>
-          <button :class="{sel: histRange===3600}" @click="histRange=3600;fetchHistory()">1h</button>
-          <button :class="{sel: histRange===86400}" @click="histRange=86400;fetchHistory()">1d</button>
+          <button :class="{sel: histPeriod==='5m'}" @click="histPeriod='5m';fetchHistory()">5m</button>
+          <button :class="{sel: histPeriod==='1h'}" @click="histPeriod='1h';fetchHistory()">1h</button>
+          <button :class="{sel: histPeriod==='1d'}" @click="histPeriod='1d';fetchHistory()">1d</button>
+          <button :class="{sel: histPeriod==='1w'}" @click="histPeriod='1w';fetchHistory()">1w</button>
         </span>
       </h3>
       <canvas ref="histChart" style="max-height:200px"></canvas>
@@ -76,7 +77,7 @@ const prevIfaceRx = reactive({}), prevIfaceTs = reactive({})
 const prevRx = reactive({}), prevTx = reactive({})
 let chartInstance = null, ifaceChartInst = null, histChartInst = null, timer = null, history = []
 const ifaceHistory = reactive({})
-const histRange = ref(3600)
+const histPeriod = ref('1h')
 const COLORS = ['#0abde3','#10ac84','#ff9f43','#ee5253','#5f27cd','#f368e0','#01a3a4','#54a0ff']
 
 function fmtBytes(b) {
@@ -166,11 +167,15 @@ const COLORS2 = ['#0abde3','#10ac84','#ff9f43']
 async function fetchHistory() {
   try {
     const name = (ifaces.value.find(i => i.name !== 'lo') || {}).name || 'ens33'
-    const r = await fetch(`/api/interfaces/history?name=${name}&range_sec=${histRange.value}`)
+    const r = await fetch(`/api/traffic/history?interface=${name}&period=${histPeriod.value}`)
     const d = await r.json()
     const data = d.data || []
     if (histChartInst) {
-      histChartInst.data.labels = data.map(p => new Date(p.ts * 1000).toLocaleTimeString())
+      const showDate = histPeriod.value === '1d' || histPeriod.value === '1w'
+      histChartInst.data.labels = data.map(p => {
+        const dt = new Date(p.ts * 1000)
+        return showDate ? `${dt.getMonth() + 1}/${dt.getDate()} ${dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : dt.toLocaleTimeString()
+      })
       histChartInst.data.datasets = [
         { label: 'RX', data: data.map(p => p.rx), borderColor: '#0abde3', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5 },
         { label: 'TX', data: data.map(p => p.tx), borderColor: '#10ac84', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5 },
