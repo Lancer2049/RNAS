@@ -25,7 +25,11 @@ test.describe('Empty States — UI Rendering', () => {
   test('E1: Sessions page shows empty state when no active sessions', async ({ page }) => {
     await page.goto(BASE);
     await page.locator(SIDEBAR).getByText('Sessions').click();
-    // replaced waitForTimeout(1500) → expect() auto-wait
+    // Wait for the sessions section to finish rendering (either table or
+    // empty state) before deciding which assertion to make. Checking
+    // isVisible() immediately races with Vue async rendering.
+    await expect(page.locator('.sessions-section')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.sessions-section table, .sessions-section .empty, .sessions-section .empty-state').first()).toBeVisible({ timeout: 5000 }).catch(() => {});
     // Either table with rows OR empty state with "No Active Sessions"
     const hasTable = await page.locator('.sessions-section table').isVisible().catch(() => false);
     if (hasTable) {
@@ -37,7 +41,7 @@ test.describe('Empty States — UI Rendering', () => {
     }
 
     const emptyState = page.locator('.empty-state, .empty');
-    await expect(emptyState).toBeVisible({ timeout: 3000 });
+    await expect(emptyState).toBeVisible({ timeout: 5000 });
     const emptyText = await emptyState.textContent();
     expect(emptyText).toMatch(/No Active Sessions|No sessions/i);
   });
