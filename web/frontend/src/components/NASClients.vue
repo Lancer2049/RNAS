@@ -13,7 +13,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 const nas = ref([]); const loading = ref(false)
-async function load() { loading=true; try{const r=await fetch('/api/aaa/nas');nas.value=(await r.json()).nas||[]}catch{};loading=false }
+async function load() { loading.value=true; try{const r=await fetch('/api/aaa/nas');nas.value=(await r.json()).nas||[]}catch{};loading.value=false }
 onMounted(load)
 </script>
 <style scoped>

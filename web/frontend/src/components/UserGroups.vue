@@ -13,7 +13,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 const groups = ref([]); const loading = ref(false)
-async function load() { loading=true; try{const r=await fetch('/api/aaa/groups');groups.value=(await r.json()).groups||[]}catch{};loading=false }
+async function load() { loading.value=true; try{const r=await fetch('/api/aaa/groups');groups.value=(await r.json()).groups||[]}catch{};loading.value=false }
 onMounted(load)
 </script>
 <style scoped>

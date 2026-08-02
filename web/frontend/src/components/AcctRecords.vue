@@ -26,7 +26,7 @@
 import { ref, onMounted } from 'vue'
 const records = ref([])
 const loading = ref(false)
-async function load() { loading=true; try{const r=await fetch('/api/aaa/acct');records.value=(await r.json()).records||[]}catch{};loading=false }
+async function load() { loading.value=true; try{const r=await fetch('/api/aaa/acct');records.value=(await r.json()).records||[]}catch{};loading.value=false }
 function exportCSV() {
   const hdr = 'ID,User,NAS,Start,Stop,Duration,IP,RX,TX,Cause\n'
   const rows = records.value.map(r => [r.id,r.username,r.nas,r.start,r.stop,r.duration,r.ip,r.rx,r.tx,r.cause].join(',')).join('\n')
