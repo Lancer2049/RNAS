@@ -161,6 +161,8 @@ if os.path.isdir(sd):
 async def startup_collector():
     from state_collector import start_collector
     start_collector()
+    from services.alert_worker import start_alert_worker
+    start_alert_worker()
 
 # ── WebSocket (event-driven) ───────────────────────────────────────────────
 

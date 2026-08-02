@@ -164,9 +164,8 @@ async def radius_stats(user=Depends(require_auth)):
 async def queues(user=Depends(require_auth)):
     return {"queues": []}
 
-@router.get("/system/health/alerts")
-async def system_health_alerts(user=Depends(require_auth)):
-    """Aggregate health alerts: service outages, disk watermark, session anomalies."""
+def collect_alerts() -> list:
+    """Collect health alerts: service outages, disk watermark, session anomalies."""
     services = [
         ("rnas-accel-ppp", "Access Server (PPPoE/L2TP/PPTP/SSTP)"),
         ("rnas-web", "Web Dashboard API"),
@@ -245,6 +244,13 @@ async def system_health_alerts(user=Depends(require_auth)):
         pass
 
     alerts.sort(key=lambda a: 0 if a["severity"] == "critical" else 1)
+    return alerts
+
+
+@router.get("/system/health/alerts")
+async def system_health_alerts(user=Depends(require_auth)):
+    """Aggregate health alerts: service outages, disk watermark, session anomalies."""
+    alerts = collect_alerts()
     return {
         "total": len(alerts),
         "critical": sum(1 for a in alerts if a["severity"] == "critical"),
@@ -267,30 +273,8 @@ async def set_notification_config(data: dict = Body(...), user=Depends(require_a
 
 @router.post("/system/notifications/test")
 async def test_notification(data: dict = Body(...), user=Depends(require_auth)):
-    results = []
-    if data.get("telegram_bot_token") and data.get("telegram_chat_id"):
-        try:
-            r = subprocess.run(
-                ["curl", "-s", "-X", "POST",
-                 f"https://api.telegram.org/bot{data['telegram_bot_token']}/sendMessage",
-                 "-d", f"chat_id={data['telegram_chat_id']}&text=RNAS+Test:+System+is+healthy"],
-                capture_output=True, text=True, timeout=10,
-            )
-            results.append({"channel": "telegram", "ok": '"ok":true' in r.stdout})
-        except Exception:
-            results.append({"channel": "telegram", "ok": False})
-    if data.get("webhook_url"):
-        try:
-            r = subprocess.run(
-                ["curl", "-s", "-X", "POST", data["webhook_url"],
-                 "-H", "Content-Type: application/json",
-                 "-d", json.dumps({"text": "RNAS Test: System is healthy", "event": "test"})],
-                capture_output=True, text=True, timeout=10,
-            )
-            results.append({"channel": "webhook", "ok": r.returncode == 0})
-        except Exception:
-            results.append({"channel": "webhook", "ok": False})
-    return {"results": results}
+    from services.alerts import send_test
+    return {"results": send_test(data)}
 
 
 # ── Audit log ───────────────────────────────────────────────────

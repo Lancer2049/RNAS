@@ -701,6 +701,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-07-18  代码质量加固收尾 (22 文件, 1331 行变更)
 2026-08-02  P2-03 MAC 认证 / S5 证书管理 / S4 审计日志 / S3 流量历史 / A5 DHCP Relay Option 82 / A2 端口转发向导 / B1 系统日志搜索 / B2 接口详情页图表 / B4 配置快照管理 / B3 Subscriber Sim 多用户批量拨号 / A4 一键 DHCP Make Static / A1 Quick Setup API 对接 / A3 诊断工具箱集成 完成
 2026-08-02  证书列表性能修复: system_extra 逐文件 openssl 子进程改为 cryptography 纯 Python 解析 (37.9s→1.6s), 消除 certs 残留导致的 B12 E2E 超时抖动
+2026-08-03  C5 报警通知(Telegram/Webhook) 完成: services/alerts 统一通知渠道 + alert_worker 后台轮询(60s/状态变化去重) + collect_alerts 抽取 + Notification Settings 前端页 + E2E 4 用例; C1-C4 确认已由 A1/WebTerminal/S5/S3 覆盖, C 级路线图清零
 ```
 
 ### 10.2 未完成的高优先级工作
@@ -737,6 +738,16 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 | B2 | ✅ 接口详情页完善 | **已完成** | 流量历史图表（5m/1h/1d/1w）+ 会话表 + E2E |
 | B3 | ✅ Subscriber Sim 批量拨号 | **已完成** | 多用户批量拨号（count 1-50，radcheck 自动建用户+清理）+ 单用户路径保留 + E2E 4 用例 |
 | B4 | ✅ 配置模板管理 | **已完成** | 快照列表/创建/Diff/恢复/删除页面 + 后端 DELETE 端点 + E2E |
+
+**C 级**
+
+| # | 功能 | 说明 |
+|---|------|------|
+| C1 | ✅ 配置向导 QuickSet | 已由 A1 Quick Setup 覆盖（3 步向导 + API 对接 + E2E） |
+| C2 | ✅ Web 终端 | WebTerminal.vue（xterm.js + WebSocket）已存在 |
+| C3 | ✅ 证书管理 | 已由 S5 覆盖（生成/删除/到期徽章 + E2E） |
+| C4 | ✅ 流量历史 RRD 持久化 | 已由 S3 覆盖（traffic_store 聚合 + 5m/1h/1d/1w 图表） |
+| C5 | ✅ 报警通知（Telegram/Webhook） | 告警自动通知（后台轮询 + 状态变化去重）+ Notification Settings 页（Telegram/Webhook/enabled/Test）+ E2E 4 用例 |
 
 ### 10.3 长期方向
 

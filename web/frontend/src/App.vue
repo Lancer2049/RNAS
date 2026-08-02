@@ -57,6 +57,7 @@
           <a :class="{sel:page==='proto-monitor'}" @click="page='proto-monitor'"><span class="si">◉</span> RADIUS Monitor</a>
           <a :class="{sel:page==='torch'}" @click="page='torch'"><span class="si">◉</span> Traffic Torch</a>
           <a :class="{sel:page==='log'}" @click="page='log'"><span class="si">◉</span> System Log</a>
+          <a :class="{sel:page==='notifications'}" @click="page='notifications'"><span class="si">◉</span> Notifications</a>
           <a :class="{sel:page==='ip'}" @click="page='ip'"><span class="si">◉</span> IP Manager</a>
         </div>
         <div class="menu-group">
@@ -136,6 +137,7 @@
         <ScenarioRunner v-if="page==='scenario-runner'" />
         <FaultInject v-if="page==='fault-inject'" />
         <SystemPage v-if="page==='system'" />
+        <NotificationSettings v-if="page==='notifications'" />
         <TestResults v-if="page==='test-results'" />
         <RoutingPage v-if="page==='routing'" />
         <TunnelManager v-if="page==='tunnels'" />
@@ -198,6 +200,7 @@ const HotspotManager = lazy('HotspotManager', () => import('./components/Hotspot
 const NetflowDhcp = lazy('NetflowDhcp', () => import('./components/NetflowDhcp.vue'))
 const IPManager = lazy('IPManager', () => import('./components/IPManager.vue'))
 const SystemLog = lazy('SystemLog', () => import('./components/SystemLog.vue'))
+const NotificationSettings = lazy('NotificationSettings', () => import('./components/NotificationSettings.vue'))
 const SubscriberSim = lazy('SubscriberSim', () => import('./components/SubscriberSim.vue'))
 const ProtoMonitor = lazy('ProtoMonitor', () => import('./components/ProtoMonitor.vue'))
 const TrafficTorch = lazy('TrafficTorch', () => import('./components/TrafficTorch.vue'))
@@ -218,7 +221,7 @@ const UserGroups = lazy('UserGroups', () => import('./components/UserGroups.vue'
 const NASClients = lazy('NASClients', () => import('./components/NASClients.vue'))
 const AuditLog = lazy('AuditLog', () => import('./components/AuditLog.vue'))
 
-const KNOWN_PAGES = new Set(['overview','sessions','session-detail','iface-detail','network','config','snapshots','services','proto-config','tools','bw-test','setup','terminal','certs','radius-editor','dictionary','subscriber-sim','proto-monitor','torch','queues','sniffer','scheduler','scenario-runner','fault-inject','system','test-results','routing','tunnels','vlans','hotspot','netflow','ip','log','aaa-users','acct-records','user-groups','nas-clients'])
+const KNOWN_PAGES = new Set(['overview','sessions','session-detail','iface-detail','network','config','snapshots','services','proto-config','tools','bw-test','setup','terminal','certs','radius-editor','dictionary','subscriber-sim','proto-monitor','torch','queues','sniffer','scheduler','scenario-runner','fault-inject','system','notifications','test-results','routing','tunnels','vlans','hotspot','netflow','ip','log','aaa-users','acct-records','user-groups','nas-clients'])
 function resolvePage(h) { return KNOWN_PAGES.has(h) ? h : 'overview' }
 const page = ref(resolvePage(location.hash ? location.hash.replace('#/','').split('?')[0] : ''))
 const pageLoading = ref(false)
