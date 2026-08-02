@@ -119,3 +119,36 @@ test.describe('IP Manager — IP Address CRUD', () => {
   });
 
 });
+
+test.describe('IP Manager — One-Click Make Static (A4)', () => {
+
+  test('A4: One-click converts a DHCP lease into a static binding', async ({ page }) => {
+    const testMac = 'aa:bb:cc:dd:ee:a4';
+    const testIp = '192.168.100.150';
+    let staticList: Array<{mac: string; ip: string; hostname: string}> = [];
+
+    await page.route('**/api/ip/dhcp', route => route.fulfill({
+      json: { leases: [{ timestamp: '1', mac: testMac, ip: testIp, hostname: 'a4-host', client_id: '*', vendor: 'dnsmasq' }], count: 1 },
+    }));
+    await page.route('**/api/ip/dhcp-static', async route => {
+      if (route.request().method() === 'POST') {
+        staticList = [route.request().postDataJSON(), ...staticList];
+        await route.fulfill({ json: { ok: true } });
+      } else {
+        await route.fulfill({ json: { static: staticList, count: staticList.length } });
+      }
+    });
+
+    await page.goto(BASE);
+    await page.locator(SIDEBAR).getByText('IP Manager').click();
+    await page.locator('.ros-tabs').getByText('DHCP').click();
+    await expect(page.locator('.tab-body table').locator(`text=${testIp}`).first()).toBeVisible({ timeout: 5000 });
+
+    await page.locator('.btn-make-static').click();
+    await expect(page.getByText(`Static lease created for ${testMac}`)).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.ros-tabs').getByText('Static')).toHaveClass(/sel/);
+    await expect(page.locator('.tab-body table').locator(`text=${testMac}`).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.tab-body table').locator(`text=${testIp}`).first()).toBeVisible({ timeout: 3000 });
+  });
+
+});

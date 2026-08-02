@@ -288,12 +288,18 @@ async function delPfRule(r) {
     fetchFW(); setTimeout(parsePfRules, 500)
   } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
-function makeStatic(lease) {
-  newStaticMac.value = lease.mac
-  newStaticIp.value = lease.ip
-  newStaticHost.value = lease.hostname || ''
-  showStaticAdd.value = true
-  tab.value = 'static'
+async function makeStatic(lease) {
+  if (dhcpStatic.value.some(s => s.mac.toLowerCase() === lease.mac.toLowerCase())) {
+    addToast(`Static binding already exists for ${lease.mac}`, 'err')
+    return
+  }
+  try {
+    const r = await fetch('/api/ip/dhcp-static', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mac: lease.mac, ip: lease.ip, hostname: lease.hostname || '' }) })
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.status)
+    await fetchStatic()
+    tab.value = 'static'
+    addToast(`Static lease created for ${lease.mac}`, 'ok')
+  } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
 }
 async function addRule(chain) {
   if (!newRule.value.trim()) return

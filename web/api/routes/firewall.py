@@ -290,8 +290,13 @@ async def add_dhcp_static(data: dict = Body(...), user=Depends(require_auth)):
     static_file = Path("/etc/dnsmasq.d/static.conf")
     static_file.parent.mkdir(parents=True, exist_ok=True)
     line = f"dhcp-host={mac},{ip}" + (f",{hostname}" if hostname else "") + "\n"
-    with open(static_file, "a") as fh:
-        fh.write(line)
+    try:
+        lines = static_file.read_text().splitlines()
+    except Exception:
+        lines = []
+    filtered = [l for l in lines if mac.upper() not in l.upper()]
+    filtered.append(line.rstrip("\n"))
+    static_file.write_text("\n".join(filtered) + "\n")
     subprocess.run(["systemctl", "restart", "dnsmasq"], capture_output=True, timeout=5)
     return {"ok": True, "mac": mac, "ip": ip}
 
