@@ -9,6 +9,7 @@ import uuid
 from urllib.parse import parse_qs
 from fastapi import FastAPI, Request, WebSocket, APIRouter, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse, RedirectResponse
 from routes import status, config, tools, system as sys_routes, aaa, sim, extra, auth_endpoints as auth_routes
@@ -44,6 +45,8 @@ if _ENV == "development":
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.get("/api/health")
 async def health():
@@ -146,8 +149,11 @@ if os.path.isdir(sd):
             return JSONResponse({"detail": "Not Found"}, status_code=404)
         fp = os.path.join(sd, full_path if full_path else "index.html")
         if os.path.isfile(fp) and not fp.endswith(".py"):
-            return FileResponse(fp)
-        return FileResponse(os.path.join(sd, "index.html"))
+            # Hashed build assets are immutable → long-lived cache. index.html
+            # itself is not hashed → no-cache so new deploys are picked up.
+            cache_control = "public, max-age=31536000, immutable" if full_path.startswith("assets/") else "no-cache"
+            return FileResponse(fp, headers={"Cache-Control": cache_control})
+        return FileResponse(os.path.join(sd, "index.html"), headers={"Cache-Control": "no-cache"})
 
 # ── Startup ────────────────────────────────────────────────────────────────
 
