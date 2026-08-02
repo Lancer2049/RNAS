@@ -1,6 +1,7 @@
 """RNAS Extended System API — logs, protocol events, scheduler, setup, certs."""
 
 import os, re, json, glob, time, subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from api.auth import require_auth, require_role
@@ -166,18 +167,63 @@ async def setup_apply(data: dict = Body(...), user=Depends(require_auth)):
 
 # ── Certificates ────────────────────────────────────────────────────────────
 
+SSL_DIR = "/etc/rnas/ssl"
+
+
+def _cert_meta(fp: str) -> dict:
+    meta = {"subject": None, "expires": None, "days_left": None}
+    if fp.endswith((".crt", ".pem")):
+        try:
+            out = subprocess.run(
+                ["openssl", "x509", "-in", fp, "-noout", "-subject", "-enddate"],
+                capture_output=True, text=True, timeout=5,
+            ).stdout
+            for line in out.splitlines():
+                if line.startswith("subject="):
+                    meta["subject"] = line[8:]
+                elif line.startswith("notAfter="):
+                    raw = line[9:].strip()
+                    try:
+                        exp = datetime.strptime(raw, "%b %d %H:%M:%S %Y %Z").replace(tzinfo=timezone.utc)
+                        meta["expires"] = int(exp.timestamp())
+                        meta["days_left"] = int((exp - datetime.now(timezone.utc)).total_seconds() // 86400)
+                    except ValueError:
+                        pass
+        except Exception:
+            pass
+    return meta
+
+
+def _cert_usage(name: str) -> list:
+    refs = []
+    for conf in glob.glob("/etc/rnas/**/*.conf", recursive=True):
+        if "/snapshots/" in conf or "/backups/" in conf:
+            continue
+        try:
+            for line in Path(conf).read_text(errors="replace").splitlines():
+                if "=" in line and SSL_DIR in line and name in line:
+                    key = line.split("=")[0].strip()
+                    refs.append(f"{Path(conf).name}:{key}")
+        except Exception:
+            continue
+    return refs
+
+
 @router.get("/system/certificates")
 async def list_certificates(user=Depends(require_auth)):
     certs = []
-    for pattern in ["/etc/rnas/ssl/*.pem", "/etc/rnas/ssl/*.crt", "/etc/rnas/ssl/*.key"]:
+    for pattern in [f"{SSL_DIR}/*.pem", f"{SSL_DIR}/*.crt", f"{SSL_DIR}/*.key"]:
         for fp in glob.glob(pattern):
             name = os.path.basename(fp)
             kind = "key" if name.endswith(".key") else "cert" if name.endswith(".crt") else "pem"
-            certs.append({
+            entry = {
                 "name": name, "path": fp, "kind": kind,
                 "size": os.path.getsize(fp),
                 "modified": os.path.getmtime(fp),
-            })
+                "usage": _cert_usage(name),
+            }
+            entry.update(_cert_meta(fp))
+            certs.append(entry)
     return {"certificates": certs, "count": len(certs)}
 
 
@@ -187,17 +233,37 @@ async def generate_certificate(data: dict = Body(...), user=Depends(require_role
     if not re.match(r"^[\w.-]+$", name):
         raise HTTPException(400, "Invalid certificate name")
     days = data.get("days", 3650)
+    if not isinstance(days, int) or days < 1 or days > 36500:
+        raise HTTPException(400, "days must be 1-36500")
     cn = data.get("cn", "RNAS Server")
-    key_path = f"/etc/rnas/ssl/{name}.key"
-    cert_path = f"/etc/rnas/ssl/{name}.crt"
-    Path("/etc/rnas/ssl").mkdir(parents=True, exist_ok=True)
-    subprocess.run(["openssl", "genrsa", "-out", key_path, "2048"], capture_output=True)
-    subprocess.run([
+    key_path = f"{SSL_DIR}/{name}.key"
+    cert_path = f"{SSL_DIR}/{name}.crt"
+    Path(SSL_DIR).mkdir(parents=True, exist_ok=True)
+    r1 = subprocess.run(["openssl", "genrsa", "-out", key_path, "2048"], capture_output=True, text=True)
+    if r1.returncode != 0:
+        raise HTTPException(500, f"openssl genrsa failed: {r1.stderr.strip()[:200]}")
+    r2 = subprocess.run([
         "openssl", "req", "-new", "-x509", "-key", key_path,
         "-out", cert_path, "-days", str(days),
         "-subj", f"/CN={cn}/O=RNAS",
-    ], capture_output=True)
+    ], capture_output=True, text=True)
+    if r2.returncode != 0:
+        raise HTTPException(500, f"openssl req failed: {r2.stderr.strip()[:200]}")
     return {"status": "created", "key": key_path, "cert": cert_path}
+
+
+@router.delete("/system/certificates/{name}")
+async def delete_certificate(name: str, user=Depends(require_role("admin"))):
+    if not re.match(r"^[\w.-]+$", name) or "/" in name:
+        raise HTTPException(400, "Invalid certificate name")
+    fp = Path(SSL_DIR) / name
+    if not fp.is_file():
+        raise HTTPException(404, "Certificate not found")
+    refs = _cert_usage(name)
+    if refs:
+        raise HTTPException(409, f"Certificate in use by: {', '.join(refs)}")
+    fp.unlink()
+    return {"status": "deleted", "name": name}
 
 
 # ── Test Results ─────────────────────────────────────────────────────────────
