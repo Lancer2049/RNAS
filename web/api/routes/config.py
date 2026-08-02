@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from api.auth import require_auth
 from typing import Dict
 
@@ -37,6 +37,82 @@ async def get_all_config(user=Depends(require_auth)):
 
 
 SNAPSHOT_DIR = Path("/etc/rnas/snapshots")
+
+@router.get("/config/export")
+async def export_config(user=Depends(require_auth)):
+    """Download the active /etc/rnas config tree as a tar.gz archive."""
+    import io
+    import tarfile
+
+    root = Path(DEFAULT_ROOT)
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        for f in _active_config_files(root):
+            rel = f.relative_to(root)
+            info = tarfile.TarInfo(str(rel))
+            data = f.read_bytes()
+            info.size = len(data)
+            info.mtime = int(f.stat().st_mtime)
+            tar.addfile(info, io.BytesIO(data))
+    buf.seek(0)
+    from fastapi.responses import Response
+    return Response(
+        content=buf.read(),
+        media_type="application/gzip",
+        headers={"Content-Disposition": f'attachment; filename="rnas-config-{datetime.now():%Y%m%d-%H%M%S}.tar.gz"'},
+    )
+
+
+@router.post("/config/import")
+async def import_config(request: Request, user=Depends(require_auth)):
+    """Restore /etc/rnas from an uploaded tar.gz. Backs up current tree first."""
+    import io
+    import tarfile
+
+    body = await request.body()
+    if not body:
+        raise HTTPException(400, "Empty upload")
+    try:
+        tar = tarfile.open(fileobj=io.BytesIO(body), mode="r:gz")
+    except Exception as e:
+        raise HTTPException(400, f"Invalid archive: {e}")
+
+    # Backup current state
+    backup_name = f"pre-import-{datetime.now():%Y%m%d-%H%M%S}"
+    backup_dir = SNAPSHOT_DIR / backup_name
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    for f in _active_config_files():
+        rel = f.relative_to(Path(DEFAULT_ROOT))
+        d = backup_dir / rel
+        d.parent.mkdir(parents=True, exist_ok=True)
+        d.write_text(f.read_text())
+
+    config_root = Path(DEFAULT_ROOT)
+    restored = 0
+    members = [m for m in tar.getmembers() if m.isfile()]
+    for member in members:
+        name = member.name
+        if name.startswith("/") or ".." in Path(name).parts:
+            raise HTTPException(400, f"Unsafe path in archive: {name}")
+        if "snapshots" in Path(name).parts or "backup" in Path(name).parts:
+            continue
+        target = config_root / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        fobj = tar.extractfile(member)
+        if fobj is None:
+            continue
+        target.write_bytes(fobj.read())
+        restored += 1
+
+    try:
+        subprocess.run(
+            ["systemctl", "reload-or-restart", "rnas.target"],
+            capture_output=True, timeout=_SCRIPT_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(504, "Service restart timed out during import")
+
+    return {"success": True, "restored": restored, "backup": backup_name}
 
 @router.get("/config/snapshots")
 async def list_snapshots(user=Depends(require_auth)):

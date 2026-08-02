@@ -3,6 +3,12 @@
     <div class="section-header">
       <h2>Configuration</h2>
       <p class="hint">Low-level configuration editor — most settings are available in dedicated pages</p>
+      <div class="io-actions">
+        <button class="btn-export" @click="exportConfig" :disabled="busy">⬇ Export</button>
+        <button class="btn-import" @click="importConfig" :disabled="busy">⬆ Import</button>
+        <input ref="fileInput" type="file" accept=".tar.gz,.gz" style="display:none" @change="onFileSelected" />
+        <span v-if="message" class="msg" :class="messageType">{{ message }}</span>
+      </div>
     </div>
 
     <div class="cfg-layout">
@@ -148,6 +154,46 @@ async function applyConfig() {
   applying.value = false
 }
 
+const busy = ref(false)
+const fileInput = ref(null)
+
+async function exportConfig() {
+  busy.value = true
+  try {
+    const res = await fetch('/api/config/export')
+    if (!res.ok) throw new Error()
+    const blob = await res.blob()
+    const disposition = res.headers.get('Content-Disposition') || ''
+    const match = disposition.match(/filename="([^"]+)"/)
+    const name = match ? match[1] : 'rnas-config.tar.gz'
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = name; a.click()
+    URL.revokeObjectURL(url)
+    message.value = 'Exported'; messageType.value = 'success'
+  } catch { message.value = 'Export failed'; messageType.value = 'error' }
+  busy.value = false
+}
+
+function importConfig() {
+  fileInput.value?.click()
+}
+
+async function onFileSelected(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  busy.value = true
+  try {
+    const res = await fetch('/api/config/import', { method: 'POST', body: file })
+    const data = await res.json()
+    message.value = res.ok ? `Imported ${data.restored || 0} files` : `Import failed: ${data.detail || ''}`
+    messageType.value = res.ok ? 'success' : 'error'
+    if (res.ok) { await loadModules(); if (selectedModule.value) await loadModule() }
+  } catch { message.value = 'Import failed'; messageType.value = 'error' }
+  busy.value = false
+  e.target.value = ''
+}
+
 function isYesNo(v,k){ return v==='yes'||v==='no'||k.includes('enabled')||k==='daemon'||k==='auth'||k.includes('check_') }
 function isPort(k){ return k.includes('port') }
 function isNumber(k){ return k.includes('timeout')||k.includes('interval')||k.includes('limit')||k.includes('count')||k.includes('thread')||k.includes('max')||k.includes('weight') }
@@ -159,6 +205,7 @@ onMounted(loadModules)
 <style scoped>
 .config-section{display:flex;flex-direction:column;gap:12px}
 .section-header h2{font-size:15px;color:var(--fg);font-weight:600}
+.section-header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .hint{font-size:11px;color:var(--fg3)}
 .cfg-layout{display:grid;grid-template-columns:220px 1fr;gap:14px;align-items:start}
 .cfg-sidebar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px;max-height:65vh;overflow-y:auto}
@@ -181,6 +228,11 @@ onMounted(loadModules)
 .btn-save{background:var(--green);color:#000}
 .btn-apply{background:var(--accent);color:#000}
 .btn-save:disabled,.btn-apply:disabled{opacity:0.4}
+.io-actions{display:flex;gap:8px;align-items:center;margin-left:auto}
+.btn-export,.btn-import{padding:4px 12px;border:1px solid var(--border);border-radius:3px;cursor:pointer;font-size:11px;font-family:var(--font);background:var(--bg3);color:var(--fg)}
+.btn-export:hover,.btn-import:hover{border-color:var(--accent);color:var(--accent)}
+.btn-export:disabled,.btn-import:disabled{opacity:0.4}
+.msg{font-size:11px;font-weight:500}.success{color:var(--green)}.error{color:var(--red)}
 .msg{font-size:11px;font-weight:600}
 .msg.success{color:var(--green)}.msg.error{color:var(--red)}
 .empty-state{text-align:center;padding:40px;color:var(--fg3);font-size:12px}
