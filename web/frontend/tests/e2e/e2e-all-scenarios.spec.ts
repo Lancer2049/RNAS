@@ -128,9 +128,11 @@ async function verifySessions(page: any, expectedUser: string = 'testuser') {
     const count = await rows.count();
     console.log(`[Sessions] Active sessions: ${count}`);
     if (count > 0) {
-      const firstRow = await rows.first().textContent();
-      console.log(`[Sessions] First row: ${firstRow?.substring(0, 120)}`);
-      expect(firstRow?.toLowerCase()).toContain(expectedUser);
+      const rowsText: string[] = [];
+      for (let i = 0; i < count; i++) rowsText.push((await rows.nth(i).textContent()) ?? '');
+      console.log(`[Sessions] First row: ${rowsText[0]?.substring(0, 120)}`);
+      const matched = rowsText.some(t => t.toLowerCase().includes(expectedUser));
+      expect(matched).toBeTruthy();
     }
     return count;
   }

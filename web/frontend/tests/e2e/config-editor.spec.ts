@@ -102,9 +102,7 @@ test.describe('Config Editor — Browse/Edit/Snapshot', () => {
     // Otherwise check if snapshot info appears within config editor
     if (hasSnapshotLink) {
       await page.getByText(/snapshot/i).first().click();
-      // replaced waitForTimeout(600) → expect() auto-wait
-      const snapshotContent = await page.locator('.snapshot-section, .config-section, .card').first().isVisible().catch(() => false);
-      expect(snapshotContent).toBeTruthy();
+      await expect(page.locator('.snapshot-section, .config-section, .card').first()).toBeVisible({ timeout: 10000 });
     }
   });
 

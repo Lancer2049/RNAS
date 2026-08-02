@@ -171,6 +171,17 @@ async def restore_snapshot(name: str, user=Depends(require_auth)):
         raise HTTPException(504, "Service restart timed out during snapshot restore")
     return {"status": "restored", "name": name, "backup": backup_name}
 
+@router.delete("/config/snapshot/{name}")
+async def delete_snapshot(name: str, user=Depends(require_auth)):
+    target = (SNAPSHOT_DIR / name).resolve()
+    snap_root = SNAPSHOT_DIR.resolve()
+    if snap_root not in target.parents:
+        raise HTTPException(400, "Invalid snapshot name")
+    if not target.exists():
+        raise HTTPException(404, "Snapshot not found")
+    shutil.rmtree(target)
+    return {"status": "deleted", "name": name}
+
 @router.get("/config/snapshot/{name}/diff")
 async def diff_snapshot(name: str, user=Depends(require_auth)):
     source = SNAPSHOT_DIR / name

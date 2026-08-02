@@ -40,7 +40,7 @@ test.describe('F — Cross-Feature Workflows (Browser UI)', () => {
     const snapshotVisible = await snapshotLink.isVisible().catch(() => false);
     if (snapshotVisible) {
       await snapshotLink.click();
-      // replaced waitForTimeout(1000) → expect() auto-wait
+      await expect(page.locator('.snapshot-section, .snap-page, .config-section')).toBeVisible({ timeout: 10000 });
       const bodyText = await page.locator('.rnas-content').textContent() ?? '';
       expect(bodyText.length).toBeGreaterThan(0);
     } else {
