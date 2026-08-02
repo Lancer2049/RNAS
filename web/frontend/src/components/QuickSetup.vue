@@ -3,6 +3,7 @@
     <div class="qs-header">
       <h2>⚡ Quick Setup</h2>
       <p class="hint">Configure RNAS in 3 steps — Step {{ step }} of 3</p>
+      <div v-if="configured" class="qs-banner">⚠️ Already configured — applying will overwrite the current config</div>
     </div>
 
     <div class="qs-steps">
@@ -52,10 +53,19 @@ import { ref, onMounted } from 'vue'
 const step = ref(1)
 const applying = ref(false)
 const result = ref(null)
+const configured = ref(false)
 const cfg = ref({
   pppoe_iface: 'ens33', lan_ip: '192.168.100.1/24', ac_name: 'RNAS',
   ip_pool_start: '192.168.100.10', ip_pool_end: '192.168.100.200',
   radius_server: '192.168.0.202', radius_secret: 'testing123'
+})
+
+onMounted(async () => {
+  try {
+    const r = await fetch('/api/setup/status')
+    const d = await r.json()
+    configured.value = !!d.configured
+  } catch {}
 })
 
 async function apply() {
@@ -72,6 +82,7 @@ async function apply() {
 .quickset{display:flex;flex-direction:column;gap:16px;max-width:600px;margin:0 auto}
 .qs-header h2{font-size:18px;color:var(--fg);font-weight:700}
 .hint{font-size:12px;color:var(--fg3);margin-top:4px}
+.qs-banner{font-size:12px;color:#f4a261;background:rgba(244,162,97,0.1);border:1px solid rgba(244,162,97,0.4);padding:8px 12px;border-radius:3px;margin-top:8px}
 .qs-steps{display:flex;align-items:center;gap:8px;padding:16px 0}
 .qs-step{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fg3)}
 .qs-step.active{color:var(--accent);font-weight:600}
