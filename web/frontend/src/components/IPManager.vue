@@ -265,13 +265,15 @@ function parsePfRules() {
   if (!natChain) return
   for (const r of natChain.rules) {
     const t = typeof r === 'string' ? r : r.text
-    const m = t.match(/(tcp|udp)\s+dport\s+(\d+)\s+counter\s+dnat\s+to\s+(\S+):(\d+)/)
-    if (m) pfRules.value.push({ proto: m[1], port: m[2], target: m[3], targetPort: m[4], desc: '', handle: r.handle || 0 })
+    const m = t.match(/(tcp|udp)\s+dport\s+(\d+)\s+counter(?:\s+packets\s+\d+\s+bytes\s+\d+)?\s+dnat\s+to\s+(\S+):(\d+)(?:\s+comment\s+"([^"]*)")?/)
+    if (m) pfRules.value.push({ proto: m[1], port: m[2], target: m[3], targetPort: m[4], desc: m[5] || '', handle: r.handle || 0 })
   }
 }
 async function addPortForward() {
   if (!pfTarget.value || !pfPort.value) return
-  const rule = `${pfProto.value} dport ${pfPort.value} counter dnat to ${pfTarget.value}:${pfTargetPort.value}`
+  const desc = (pfDesc.value || '').trim().replace(/"/g, '')
+  let rule = `${pfProto.value} dport ${pfPort.value} counter dnat to ${pfTarget.value}:${pfTargetPort.value}`
+  if (desc) rule += ` comment "${desc}"`
   const c = { name: 'rnas-hotspot', table: 'nat', family: 'ip' }
   try {
     await fetch('/api/ip/firewall', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: c.name, table: c.table, family: c.family, rule }) })

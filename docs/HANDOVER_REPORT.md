@@ -699,7 +699,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-06-23  竞品分析 + 改进计划 (S/A/B/C 四级, 19 项)
 2026-07-13  E2E 测试 125 用例全部通过
 2026-07-18  代码质量加固收尾 (22 文件, 1331 行变更)
-2026-08-02  P2-03 MAC 认证 / S5 证书管理 / S4 审计日志 / S3 流量历史 / A5 DHCP Relay Option 82 完成
+2026-08-02  P2-03 MAC 认证 / S5 证书管理 / S4 审计日志 / S3 流量历史 / A5 DHCP Relay Option 82 / A2 端口转发向导 完成
 ```
 
 ### 10.2 未完成的高优先级工作
@@ -722,7 +722,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 | # | 功能 | 说明 |
 |---|------|------|
 | A1 | 设置向导（Quick Setup） | 当前页面可用，对接 API 验证 |
-| A2 | 端口转发向导 | 当前可用，UI 可改进 |
+| A2 | ✅ 端口转发向导 | **已完成** | 自动创建 nat 链 + nft comment 描述持久化 + parsePfRules 正则修复 + E2E |
 | A3 | 诊断工具箱集成 | 所有工具在单一页面，标签切换 |
 | A4 | 一键 DHCP Make Static | 当前需手动填写，可一键转换 |
 | A5 | ✅ DHCP Relay Option 82 | **已完成** | 生成器 option82/circuit_id/remote_id + 后端 GET/POST 配置树读写 + 前端表单 + relay 脚本读配置 + E2E |

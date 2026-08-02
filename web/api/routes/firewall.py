@@ -1,6 +1,6 @@
 """RNAS Firewall API — ARP, firewall rules CRUD, reorder, toggle."""
 
-import os, re, json, glob, time, subprocess
+import os, re, json, glob, time, subprocess, shlex
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from api.auth import require_auth
@@ -9,6 +9,41 @@ from services.oui import lookup
 
 router = APIRouter(tags=["Firewall"])
 _SCRIPT_TIMEOUT = 10
+
+
+def _ensure_nat_chain(family: str, table: str, chain: str) -> None:
+    """Create the nat table/chain if missing (Port Forward target)."""
+    if table != "nat":
+        return
+    probe = subprocess.run(
+        ["nft", "list", "chain", family, table, chain],
+        capture_output=True, text=True, timeout=5,
+    )
+    if probe.returncode == 0:
+        return
+    subprocess.run(["nft", "add", "table", family, table], capture_output=True, text=True, timeout=5)
+    hook = ["prerouting", "priority", "dstnat;"]
+    if chain == "postrouting":
+        hook = ["postrouting", "priority", "srcnat;"]
+    subprocess.run(
+        ["nft", "add", "chain", family, table, chain, "{", "type", "nat", "hook"] + hook + ["}"],
+        capture_output=True, text=True, timeout=5,
+    )
+
+
+def _tokenize_rule(rule: str) -> list:
+    """Split a rule string into nft argv, keeping comment values quoted."""
+    parts = shlex.split(rule)
+    argv = []
+    i = 0
+    while i < len(parts):
+        if parts[i] == "comment" and i + 1 < len(parts):
+            argv += ["comment", '"' + parts[i + 1].replace('"', "") + '"']
+            i += 2
+        else:
+            argv.append(parts[i])
+            i += 1
+    return argv
 
 
 
@@ -73,8 +108,9 @@ async def add_firewall_rule(data: dict = Body(...), user=Depends(require_auth)):
         raise HTTPException(400, "rule is required")
     family = data.get("family", "ip")
     try:
+        _ensure_nat_chain(family, table, chain)
         res = subprocess.run(
-            ["nft", "add", "rule", family, table, chain] + rule.split(),
+            ["nft", "add", "rule", family, table, chain] + _tokenize_rule(rule),
             capture_output=True, text=True, timeout=5,
         )
         if res.returncode != 0:
