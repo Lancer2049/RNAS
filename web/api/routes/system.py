@@ -296,9 +296,9 @@ async def test_notification(data: dict = Body(...), user=Depends(require_auth)):
 # ── Audit log ───────────────────────────────────────────────────
 
 @router.get("/system/audit")
-async def audit_log(limit: int = 50, user=Depends(require_auth)):
+async def audit_log(limit: int = 50, action: str | None = None, user=Depends(require_auth)):
     from services.audit import query
-    entries = query(limit=limit)
+    entries = query(limit=limit, action=action)
     return {"entries": entries, "count": len(entries)}
 
 

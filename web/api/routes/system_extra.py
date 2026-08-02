@@ -249,6 +249,8 @@ async def generate_certificate(data: dict = Body(...), user=Depends(require_role
     ], capture_output=True, text=True)
     if r2.returncode != 0:
         raise HTTPException(500, f"openssl req failed: {r2.stderr.strip()[:200]}")
+    from services.audit import record
+    record(user["username"], "cert_generate", name, {"cn": cn, "days": days})
     return {"status": "created", "key": key_path, "cert": cert_path}
 
 
@@ -263,6 +265,8 @@ async def delete_certificate(name: str, user=Depends(require_role("admin"))):
     if refs:
         raise HTTPException(409, f"Certificate in use by: {', '.join(refs)}")
     fp.unlink()
+    from services.audit import record
+    record(user["username"], "cert_delete", name)
     return {"status": "deleted", "name": name}
 
 

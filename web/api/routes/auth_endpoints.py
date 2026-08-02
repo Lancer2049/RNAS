@@ -116,6 +116,8 @@ async def create_user(req: UserCreate, user=Depends(require_role("admin"))):
         "role": req.role,
     }
     _save_users()
+    from services.audit import record
+    record(user["username"], "user_create", username, {"role": req.role})
     return {"status": "created", "username": username, "role": req.role}
 
 
@@ -131,6 +133,9 @@ async def update_user(username: str, req: UserUpdate, user=Depends(require_role(
     if req.password:
         users[username]["hashed_password"] = pwd_context.hash(req.password)
     _save_users()
+    from services.audit import record
+    record(user["username"], "user_update", username,
+           {"role": req.role, "password_changed": bool(req.password)})
     return {"status": "updated", "username": username}
 
 
@@ -143,4 +148,6 @@ async def delete_user(username: str, user=Depends(require_role("admin"))):
         raise HTTPException(404, f"user {username} not found")
     del users[username]
     _save_users()
+    from services.audit import record
+    record(user["username"], "user_delete", username)
     return {"status": "deleted", "username": username}

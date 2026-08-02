@@ -79,6 +79,7 @@
           <a :class="{sel:page==='acct-records'}" @click="page='acct-records'"><span class="si">◉</span> Accounting</a>
           <a :class="{sel:page==='user-groups'}" @click="page='user-groups'"><span class="si">◉</span> User Groups</a>
           <a :class="{sel:page==='nas-clients'}" @click="page='nas-clients'"><span class="si">◉</span> NAS Clients</a>
+          <a :class="{sel:page==='audit'}" @click="page='audit'"><span class="si">◉</span> Audit Log</a>
         </div>
         <div class="menu-group">
           <div class="menu-label">Simulation</div>
@@ -145,6 +146,7 @@
         <AcctRecords v-if="page==='acct-records'" />
         <UserGroups v-if="page==='user-groups'" />
         <NASClients v-if="page==='nas-clients'" />
+        <AuditLog v-if="page==='audit'" />
       </main>
     </div>
     <div class="toast-container"><div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">{{ t.msg }}</div></div>
@@ -211,6 +213,7 @@ const AAAUsers = lazy('AAAUsers', () => import('./components/AAAUsers.vue'))
 const AcctRecords = lazy('AcctRecords', () => import('./components/AcctRecords.vue'))
 const UserGroups = lazy('UserGroups', () => import('./components/UserGroups.vue'))
 const NASClients = lazy('NASClients', () => import('./components/NASClients.vue'))
+const AuditLog = lazy('AuditLog', () => import('./components/AuditLog.vue'))
 
 const KNOWN_PAGES = new Set(['overview','sessions','session-detail','iface-detail','network','config','services','proto-config','tools','bw-test','setup','terminal','certs','radius-editor','dictionary','subscriber-sim','proto-monitor','torch','queues','sniffer','scheduler','scenario-runner','fault-inject','system','test-results','routing','tunnels','vlans','hotspot','netflow','ip','log','aaa-users','acct-records','user-groups','nas-clients'])
 function resolvePage(h) { return KNOWN_PAGES.has(h) ? h : 'overview' }

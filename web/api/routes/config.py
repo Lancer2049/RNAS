@@ -210,6 +210,8 @@ async def update_config_section(module: str, values: Dict[str, str] = Body(...),
     success = write_config_section(root, section, values)
     if not success:
         raise HTTPException(status_code=404, detail=f"Section '{module}' not found")
+    from services.audit import record
+    record(user["username"], "config_update", module, values)
     return {"success": True, "module": module, "updated": values}
 
 
@@ -263,6 +265,9 @@ async def apply_config(user=Depends(require_auth)):
                 errors.append(err)
 
         if errors:
+            from services.audit import record
+            record(user["username"], "config_apply", snapshot_name,
+                   {"errors": errors}, result="failure")
             raise HTTPException(
                 status_code=400,
                 detail=f"Config validation failed:\n" + "\n".join(errors),
@@ -296,11 +301,16 @@ async def apply_config(user=Depends(require_auth)):
             do_restore(snapshot_name)
             subprocess.run(["systemctl", "reload-or-restart", "rnas.target"],
                           capture_output=True, timeout=10)
+            from services.audit import record
+            record(user["username"], "config_apply", snapshot_name,
+                   {"health": "failed"}, result="failure")
             raise HTTPException(
                 status_code=500,
                 detail=f"Config applied but health check failed. Rolled back to snapshot {snapshot_name}.",
             )
 
+        from services.audit import record
+        record(user["username"], "config_apply", snapshot_name, {"health": "passed"})
         return {
             "success": True,
             "message": "Configuration applied",
