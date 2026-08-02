@@ -166,10 +166,14 @@ async def queues(user=Depends(require_auth)):
 
 @router.get("/system/health/alerts")
 async def system_health_alerts(user=Depends(require_auth)):
+    """Aggregate health alerts: service outages, disk watermark, session anomalies."""
     services = [
         ("rnas-accel-ppp", "Access Server (PPPoE/L2TP/PPTP/SSTP)"),
         ("rnas-web", "Web Dashboard API"),
-        ("dnsmasq", "DHCP/DNS"),
+        ("rnas-dnsmasq", "DHCP/DNS"),
+        ("rnas-dot1x", "802.1X Authenticator"),
+        ("rnas-fastapi", "RNAS FastAPI"),
+        ("rnas-qosd", "Per-User QoS Daemon"),
         ("strongswan-starter", "IPsec VPN"),
         ("openvpn-server@server", "OpenVPN"),
     ]
@@ -180,9 +184,67 @@ async def system_health_alerts(user=Depends(require_auth)):
                 capture_output=True, text=True, timeout=5).stdout.strip()
             if out != "active":
                 sev = "critical" if out == "failed" else "warning"
-                alerts.append({"service": svc, "desc": desc, "status": out, "severity": sev})
+                alerts.append({
+                    "type": "service", "service": svc, "desc": desc,
+                    "status": out, "severity": sev,
+                    "title": f"Service {svc} is {out}", "message": desc,
+                })
         except Exception:
-            alerts.append({"service": svc, "desc": desc, "status": "unknown", "severity": "warning"})
+            alerts.append({
+                "type": "service", "service": svc, "desc": desc,
+                "status": "unknown", "severity": "warning",
+                "title": f"Service {svc} status unknown", "message": desc,
+            })
+
+    # Disk watermark: warn at 80%, critical at 90%
+    try:
+        df_out = subprocess.run(["df", "-P", "/"], capture_output=True,
+                                text=True, timeout=5).stdout.splitlines()
+        parts = df_out[1].split() if len(df_out) >= 2 else []
+        if len(parts) >= 5:
+            used_pct = int(parts[4].rstrip("%"))
+            if used_pct >= 90:
+                alerts.append({
+                    "type": "disk", "service": "disk", "status": "critical",
+                    "severity": "critical", "pct": used_pct,
+                    "title": f"Disk usage at {used_pct}%",
+                    "message": f"Root filesystem is {used_pct}% full — clean up or grow the volume.",
+                })
+            elif used_pct >= 80:
+                alerts.append({
+                    "type": "disk", "service": "disk", "status": "warning",
+                    "severity": "warning", "pct": used_pct,
+                    "title": f"Disk usage at {used_pct}%",
+                    "message": f"Root filesystem is {used_pct}% full.",
+                })
+    except Exception:
+        pass
+
+    # Session anomaly: auth failure spike or stuck sessions via accel-cmd
+    try:
+        from services.accel_cmd import run_accel_cmd, parse_stat, parse_sessions
+        stat = parse_stat(run_accel_cmd("show", "stat"))
+        sessions = parse_sessions(run_accel_cmd("show", "sessions"))
+        fail_count = stat.get("radius_fail_count", 0)
+        if fail_count >= 50:
+            alerts.append({
+                "type": "session", "service": "radius", "status": "warning",
+                "severity": "warning", "count": fail_count,
+                "title": f"RADIUS auth failures: {fail_count}",
+                "message": f"{fail_count} authentication failures recorded — check credentials or server health.",
+            })
+        stuck = [s for s in sessions if s.get("state") not in ("active", "established", "up")]
+        if len(stuck) >= 10:
+            alerts.append({
+                "type": "session", "service": "accel-ppp", "status": "warning",
+                "severity": "warning", "count": len(stuck),
+                "title": f"{len(stuck)} sessions in abnormal state",
+                "message": f"{len(stuck)} sessions are not in an active state.",
+            })
+    except Exception:
+        pass
+
+    alerts.sort(key=lambda a: 0 if a["severity"] == "critical" else 1)
     return {
         "total": len(alerts),
         "critical": sum(1 for a in alerts if a["severity"] == "critical"),

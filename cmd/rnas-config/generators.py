@@ -246,6 +246,14 @@ def generate_firewall(config: Dict[str, Dict[str, str]]) -> str:
     out.append("        type filter hook input priority 0; policy drop;")
     out.append("        iif lo accept")
     out.append("        ct state established,related accept")
+    out.append("        tcp dport { 22, 80, 443, 8099, 9099 } accept")
+    for rname, rv in rules.items():
+        if rv.get("target") != "ACCEPT":
+            continue
+        proto = rv.get("proto")
+        ports = rv.get("dest_port", "").replace(" ", "")
+        if proto in ("tcp", "udp") and ports:
+            out.append(f"        {proto} dport {{ {ports} }} accept")
     out.append("    }")
     out.append("")
     out.append("    chain forward {")

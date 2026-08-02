@@ -24,6 +24,15 @@
       </div>
     </header>
 
+    <!-- Health alert banner -->
+    <div v-if="isAuth && alerts.length > 0" class="alert-banner">
+      <div v-for="a in alerts" :key="a.type + '-' + a.service" class="alert-item" :class="'sev-' + a.severity" @click="page='system'" title="View system status">
+        <span class="ai-dot"></span>
+        <span class="ai-title">{{ a.title }}</span>
+        <span v-if="a.message" class="ai-msg">{{ a.message }}</span>
+      </div>
+    </div>
+
     <!-- Login overlay when not authenticated -->
     <div v-if="!isAuth" class="login-overlay">
       <div class="login-card">
@@ -209,6 +218,7 @@ const page = ref(resolvePage(location.hash ? location.hash.replace('#/','').spli
 const pageLoading = ref(false)
 watch(page, n => { window.location.hash = '#/' + n; pageLoading.value = true; setTimeout(() => pageLoading.value = false, 300) })
 const alertCount = ref(0)
+const alerts = ref([])
 const hostIP = ref('192.168.0.203')
 const service = ref({ uptime: '--', cpu: '--', mem: '--' })
 const sessions = ref([])
@@ -302,7 +312,12 @@ async function fetchData() {
   loading.value = false
 }
 async function fetchAlerts() {
-  try { const r = await api('/api/system/health/alerts'); const d = await r.json(); alertCount.value = (d.critical||0) + (d.total||0) } catch {}
+  try {
+    const r = await api('/api/system/health/alerts')
+    const d = await r.json()
+    alertCount.value = (d.critical||0) + (d.total||0)
+    alerts.value = d.alerts || []
+  } catch { alerts.value = [] }
 }
 async function handleDisconnect(sid) { await api(`/api/sessions/${sid}/disconnect`,{method:'POST'}); fetchData() }
 
@@ -379,6 +394,18 @@ body { font-family: var(--font); background: var(--bg); color: var(--fg); font-s
 
 /* Topbar */
 .rnas-topbar { display:flex; align-items:center; height:38px; padding:0 16px; background:var(--bg2); border-bottom:1px solid var(--border); font-size:12px; flex-shrink:0; }
+
+/* Alert banner */
+.alert-banner { display:flex; flex-direction:column; gap:1px; background:var(--border); padding:1px 0; flex-shrink:0; }
+.alert-item { display:flex; align-items:center; gap:10px; padding:7px 16px; font-size:12px; cursor:pointer; border-left:3px solid transparent; }
+.alert-item:hover { filter:brightness(1.15); }
+.alert-item.sev-critical { background:rgba(238,82,83,0.14); border-left-color:var(--red); color:#ffb3b4; }
+.alert-item.sev-warning { background:rgba(255,159,67,0.12); border-left-color:var(--orange); color:#ffd9b0; }
+.alert-item .ai-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.alert-item.sev-critical .ai-dot { background:var(--red); box-shadow:0 0 6px var(--red); }
+.alert-item.sev-warning .ai-dot { background:var(--orange); box-shadow:0 0 6px var(--orange); }
+.alert-item .ai-title { font-weight:700; white-space:nowrap; }
+.alert-item .ai-msg { color:var(--fg2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .rnas-topbar .t-left { display:flex; align-items:center; gap:10px; }
 .rnas-topbar .t-brand { font-weight:800; color:var(--accent); letter-spacing:2px; font-size:15px; background:rgba(10,189,227,0.08); padding:2px 10px; border-radius:var(--radius); }
 .rnas-topbar .t-sep { color:var(--fg3); font-size:10px; }

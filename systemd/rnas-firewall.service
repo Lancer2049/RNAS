@@ -6,7 +6,8 @@ PartOf=rnas.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/rnas-config generate firewall -o /var/run/rnas/nftables.conf && /usr/sbin/nft -f /var/run/rnas/nftables.conf
+ExecStartPre=/usr/bin/rnas-config generate firewall -o /var/run/rnas/nftables.conf
+ExecStart=/usr/sbin/nft -f /var/run/rnas/nftables.conf
 RemainAfterExit=yes
 
 [Install]
