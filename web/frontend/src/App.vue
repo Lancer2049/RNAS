@@ -20,8 +20,23 @@
       </div>
       <div class="t-right">
         <span class="t-ver">v3.0</span>
+        <span class="t-user" v-if="authUser">{{ authUser }} <a @click="logout" class="t-logout" title="Logout">⎋</a></span>
       </div>
     </header>
+
+    <!-- Login overlay when not authenticated -->
+    <div v-if="!isAuth" class="login-overlay">
+      <div class="login-card">
+        <h2>RNAS</h2>
+        <p class="login-sub">RADIUS Network Access Server</p>
+        <div class="login-form">
+          <input v-model="loginUser" placeholder="Username" @keyup.enter="login" />
+          <input v-model="loginPass" type="password" placeholder="Password" @keyup.enter="login" />
+          <button @click="login" :disabled="loginBusy">{{ loginBusy ? 'Logging in...' : 'Sign In' }}</button>
+        </div>
+        <p v-if="loginError" class="login-error">{{ loginError }}</p>
+      </div>
+    </div>
 
     <div class="rnas-main">
       <nav class="rnas-sidebar">
@@ -204,28 +219,120 @@ const toasts = ref([])
 function addToast(msg, type='info') { const id=Date.now(); toasts.value.push({id,msg,type}); setTimeout(()=>toasts.value=toasts.value.filter(t=>t.id!==id), 3500) }
 provide('addToast', addToast)
 
+// ── Auth state ──────────────────────────────────────────────────────────
+const isAuth = ref(false)
+const authUser = ref('')
+const loginUser = ref('')
+const loginPass = ref('')
+const loginError = ref('')
+const loginBusy = ref(false)
+
+function getToken() {
+  return localStorage.getItem('rnas_token') || sessionStorage.getItem('rnas_token') || ''
+}
+
+function setToken(token) {
+  localStorage.setItem('rnas_token', token)
+  sessionStorage.setItem('rnas_token', token)
+}
+
+// Global fetch wrapper: every component's fetch() to /api/* gets the Bearer
+// token automatically (sub-components call fetch directly, not via api()).
+const _origFetch = window.fetch
+window.fetch = function (input, init) {
+  const url = typeof input === 'string' ? input : (input && input.url) || ''
+  if (url.includes('/api/') && !url.includes('/auth/token')) {
+    const headers = new Headers((init && init.headers) || {})
+    const tok = getToken()
+    if (tok && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${tok}`)
+    return _origFetch(input, { ...(init || {}), headers })
+  }
+  return _origFetch(input, init)
+}
+
+// Wrapper that attaches the Bearer token to every API request and forces
+// logout on 401 so the login overlay reappears.
+async function api(path, opts = {}) {
+  const headers = new Headers(opts.headers || {})
+  const tok = getToken()
+  if (tok && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${tok}`)
+  const res = await fetch(path, { ...opts, headers })
+  if (res.status === 401 && !path.includes('/auth/token')) {
+    logout()
+    throw new Error('Not authenticated')
+  }
+  return res
+}
+
+async function login() {
+  if (!loginUser.value || !loginPass.value) { loginError.value = 'Username and password required'; return }
+  loginBusy.value = true; loginError.value = ''
+  try {
+    const res = await fetch('/api/auth/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: loginUser.value, password: loginPass.value }),
+    })
+    const d = await res.json()
+    if (!res.ok) { loginError.value = d.detail || 'Invalid credentials'; return }
+    setToken(d.access_token)
+    isAuth.value = true
+    authUser.value = loginUser.value
+    loginPass.value = ''
+    fetchData(); fetchAlerts(); connectWS()
+  } catch (e) {
+    loginError.value = 'Network error: ' + (e && e.message ? e.message : e)
+  } finally {
+    loginBusy.value = false
+  }
+}
+
+function logout() {
+  localStorage.removeItem('rnas_token')
+  sessionStorage.removeItem('rnas_token')
+  isAuth.value = false
+  authUser.value = ''
+  if (ws) { ws.close(); ws = null }
+}
+
 async function fetchData() {
   loading.value = true
-  try { const res = await fetch('/api/status'); const d = await res.json(); service.value = d.service||{}; sessions.value = d.sessions||[]; radiusOk.value = d.service?.radius_state === 'active' } catch(e){}
+  try { const res = await api('/api/status'); const d = await res.json(); service.value = d.service||{}; sessions.value = d.sessions||[]; radiusOk.value = d.service?.radius_state === 'active' } catch(e){}
   loading.value = false
 }
 async function fetchAlerts() {
-  try { const r = await fetch('/api/system/health/alerts'); const d = await r.json(); alertCount.value = (d.critical||0) + (d.total||0) } catch {}
+  try { const r = await api('/api/system/health/alerts'); const d = await r.json(); alertCount.value = (d.critical||0) + (d.total||0) } catch {}
 }
-async function handleDisconnect(sid) { await fetch(`/api/sessions/${sid}/disconnect`,{method:'POST'}); fetchData() }
+async function handleDisconnect(sid) { await api(`/api/sessions/${sid}/disconnect`,{method:'POST'}); fetchData() }
 
 let refreshTimer = null, alertTimer = null, ws = null
 function connectWS() {
   try {
-    const token = localStorage.getItem('rnas_token') || sessionStorage.getItem('rnas_token') || ''
+    const token = getToken()
     ws = new WebSocket(`ws://${location.host}/api/ws?token=${encodeURIComponent(token)}`)
-    ws.onmessage = e => { try { const d=JSON.parse(e.data); if(d.service) service.value=d.service; if(d.sessions) sessions.value=d.sessions; radiusOk.value=d.service?.radius_state==='active' } catch {} }
+    ws.onmessage = e => {
+      try {
+        const d = JSON.parse(e.data)
+        // Delta push: only changed fields arrive — merge, don't overwrite,
+        // so a push without service.radius_state keeps the previous value.
+        if (d.service && typeof d.service === 'object') service.value = { ...service.value, ...d.service }
+        if (d.sessions && Array.isArray(d.sessions)) sessions.value = d.sessions
+        const rs = d.service && d.service.radius_state
+        if (rs !== undefined) radiusOk.value = rs === 'active'
+      } catch {}
+    }
     ws.onclose = () => { ws=null; setTimeout(connectWS,3000) }
     ws.onerror = () => { ws?.close(); ws=null }
   } catch { ws=null }
 }
 onMounted(()=>{ 
-  fetchData(); fetchAlerts(); refreshTimer=setInterval(fetchData,15000); alertTimer=setInterval(fetchAlerts,30000); connectWS()
+  const tok = getToken()
+  if (tok) {
+    isAuth.value = true
+    authUser.value = 'admin'
+    fetchData(); fetchAlerts(); connectWS()
+  }
+  refreshTimer=setInterval(() => { if (isAuth.value) fetchData() },15000)
+  alertTimer=setInterval(() => { if (isAuth.value) fetchAlerts() },30000)
   window.addEventListener('hashchange', () => {
     const h = location.hash.replace('#/','') || 'overview'
     if (h !== page.value) page.value = h
@@ -360,4 +467,19 @@ input:focus, select:focus, textarea:focus { outline:none; border-color:var(--acc
 .page-loader { position:fixed; top:0; left:0; right:0; height:2px; z-index:9998; pointer-events:none; }
 .loader-bar { height:100%; background:var(--accent); width:30%; animation:loader-slide 1.2s ease-in-out infinite; border-radius:0 2px 2px 0; }
 @keyframes loader-slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(400%)} }
+
+/* Login overlay */
+.login-overlay { position:fixed; inset:0; z-index:9999; background:var(--bg); display:flex; align-items:center; justify-content:center; }
+.login-card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:36px 40px; width:320px; text-align:center; }
+.login-card h2 { font-size:24px; color:var(--fg); margin:0 0 4px; font-weight:700; letter-spacing:1px; }
+.login-sub { font-size:11px; color:var(--fg3); margin:0 0 24px; }
+.login-form { display:flex; flex-direction:column; gap:10px; }
+.login-form input { padding:10px 12px; background:var(--bg); border:1px solid var(--border); border-radius:4px; color:var(--fg); font-size:13px; outline:none; font-family:var(--font); }
+.login-form input:focus { border-color:var(--accent); }
+.login-form button { padding:10px; background:var(--accent); color:#000; border:none; border-radius:4px; font-size:14px; font-weight:600; cursor:pointer; font-family:var(--font); }
+.login-form button:disabled { opacity:0.5; }
+.login-error { color:var(--red); font-size:12px; margin-top:12px; }
+.t-user { margin-left:10px; font-size:11px; color:var(--fg2); }
+.t-logout { margin-left:4px; cursor:pointer; color:var(--fg3); text-decoration:none; }
+.t-logout:hover { color:var(--red); }
 </style>
