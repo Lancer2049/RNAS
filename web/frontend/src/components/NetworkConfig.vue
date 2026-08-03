@@ -68,9 +68,10 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const sections = ref([
   { title: 'Interfaces', data: {}, module: 'network.d.interface/lan', saving: false, saved: false },
-  { title: 'DHCP Server', data: {}, module: 'network.d.dhcp/dhcp lan', saving: false, saved: false },
-  { title: 'DNS', data: {}, module: 'network.d.dhcp/dhcp_option dns', saving: false, saved: false },
+  { title: 'DHCP Server', data: {}, module: 'network.d.dhcp/lan', saving: false, saved: false },
+  { title: 'DNS', data: {}, module: 'network.d.dhcp_option/dns', saving: false, saved: false },
   { title: 'Firewall Zone', data: {}, module: 'network.d.zone/nas', saving: false, saved: false },
+  { title: 'Multicast', data: {}, module: 'network.d.multicast', saving: false, saved: false },
 ])
 const applying = ref(false)
 const applied = ref(false)
@@ -120,6 +121,17 @@ async function loadAll() {
   const cfg = (await res.json()).config || {}
   for (const s of sections.value) { s.data = cfg[s.module] || {} }
   loadNetStatus()
+}
+
+async function saveSection(section) {
+  section.saving = true; section.saved = false
+  try {
+    const short = section.module.replace(/^network\.d\./, '')
+    const r = await fetch(`/api/config/${short}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(section.data) })
+    if (!r.ok) throw new Error(r.status)
+    section.saved = true
+  } catch { section.saved = false }
+  section.saving = false
 }
 
 onMounted(() => { loadAll(); loadNetStatus(); refreshTimer = setInterval(loadNetStatus, 3000) })

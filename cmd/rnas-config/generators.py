@@ -298,6 +298,11 @@ def generate_firewall(config: Dict[str, Dict[str, str]]) -> str:
     out.append("    chain forward {")
     out.append("        type filter hook forward priority 0; policy drop;")
     out.append(f"        ip saddr {A_NET} accept")
+    mcast = config.get("network.d.multicast", {})
+    if mcast.get("enabled") == "yes":
+        mnet = mcast.get("multicast_net", "224.0.0.0/4")
+        out.append(f"        ip daddr {mnet} accept")
+        out.append("        meta l4proto igmp accept")
     out.append("    }")
     out.append("")
     out.append("    chain output {")

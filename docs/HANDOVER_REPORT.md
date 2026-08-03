@@ -704,6 +704,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-08-03  C5 报警通知(Telegram/Webhook) 完成: services/alerts 统一通知渠道 + alert_worker 后台轮询(60s/状态变化去重) + collect_alerts 抽取 + Notification Settings 前端页 + E2E 4 用例; C1-C4 确认已由 A1/WebTerminal/S5/S3 覆盖, C 级路线图清零
 2026-08-03  P0 会话限速 + IPoE Option 60 完成: accel-ppp 生成器 speed-limit(PPPoE/IPoE) + [dhcpv4] vci 输出, Access Protocols 表单 Basic 组新增字段, E2E 3 用例; P0 三项(会话限速/Option60/82/IPoE限速)清零
 2026-08-03  P1 CGNAT 完成: nftables masquerade 生成器(network.d.cgnat) + IP Manager NAT tab 配置区(enabled/内部网段/WAN接口/保存) + E2E 2 用例; P1 中 Web认证/双栈/LNS 确认已有, CGNAT 落地, 剩余多实例支持为长期架构项
+2026-08-03  P2 组播完成: generate_firewall forward 链组播放行 + igmp 规则(network.d.multicast) + Network 页 Multicast 卡 + E2E 2 用例; 顺带修复 NetworkConfig saveSection 未定义(保存一直失效) + DHCP/DNS section module 名错误; P2 中 QinQ(vlan_name 格式)/L2TP+IPsec/SSTP/OpenVPN 确认已有
 ```
 
 ### 10.2 未完成的高优先级工作
@@ -757,7 +758,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 
 - **P0**: PPPoE 会话限速 ✅ / IPoE DHCP Option60/82 ✅ / IPoE/PPPoE 限速 ✅（speed-limit + [dhcpv4] vci 生成器 + Access Protocols 表单 + E2E；Option82 已由 A5 完成）
 - **P1**: L2TP LAC/LNS（LNS 已有）✅、PPPoE 双栈（ipv6 生成器）✅、IPoE Web 认证（HotspotManager + uam 生成器 + /hotspot/login）✅、多实例支持、CGNAT ✅（nftables masquerade 生成器 + NAT tab 配置区 + E2E）
-- **P2**: PPPoE 代拨、QinQ、组播、L2TP + IPsec、SSTP、OpenVPN 高级路由
+- **P2**: PPPoE 代拨、QinQ（vlan_name %P.%I:%O 配置驱动）✅、组播 ✅（nftables forward 放行组播 + igmp + Network 页 Multicast 卡 + E2E）、L2TP + IPsec（generate_ipsec）✅、SSTP ✅、OpenVPN 高级路由（generate_openvpn + radiusplugin）✅
 
 ### 10.4 集成测试计划缺口
 
