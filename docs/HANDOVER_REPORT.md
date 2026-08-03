@@ -702,6 +702,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-08-02  P2-03 MAC 认证 / S5 证书管理 / S4 审计日志 / S3 流量历史 / A5 DHCP Relay Option 82 / A2 端口转发向导 / B1 系统日志搜索 / B2 接口详情页图表 / B4 配置快照管理 / B3 Subscriber Sim 多用户批量拨号 / A4 一键 DHCP Make Static / A1 Quick Setup API 对接 / A3 诊断工具箱集成 完成
 2026-08-02  证书列表性能修复: system_extra 逐文件 openssl 子进程改为 cryptography 纯 Python 解析 (37.9s→1.6s), 消除 certs 残留导致的 B12 E2E 超时抖动
 2026-08-03  C5 报警通知(Telegram/Webhook) 完成: services/alerts 统一通知渠道 + alert_worker 后台轮询(60s/状态变化去重) + collect_alerts 抽取 + Notification Settings 前端页 + E2E 4 用例; C1-C4 确认已由 A1/WebTerminal/S5/S3 覆盖, C 级路线图清零
+2026-08-03  P0 会话限速 + IPoE Option 60 完成: accel-ppp 生成器 speed-limit(PPPoE/IPoE) + [dhcpv4] vci 输出, Access Protocols 表单 Basic 组新增字段, E2E 3 用例; P0 三项(会话限速/Option60/82/IPoE限速)清零
 ```
 
 ### 10.2 未完成的高优先级工作
@@ -753,7 +754,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 
 见 `docs/plans/2026-04-21-rnas-functionality-plan.md` (561 行)：
 
-- **P0**: PPPoE 会话限速、IPoE DHCP Option60/82、IPoE/PPPoE 限速
+- **P0**: PPPoE 会话限速 ✅ / IPoE DHCP Option60/82 ✅ / IPoE/PPPoE 限速 ✅（speed-limit + [dhcpv4] vci 生成器 + Access Protocols 表单 + E2E；Option82 已由 A5 完成）
 - **P1**: L2TP LAC/LNS、PPPoE 双栈、IPoE Web 认证、多实例支持、CGNAT
 - **P2**: PPPoE 代拨、QinQ、组播、L2TP + IPsec、SSTP、OpenVPN 高级路由
 

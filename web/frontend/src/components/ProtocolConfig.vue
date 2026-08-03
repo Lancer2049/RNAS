@@ -20,7 +20,7 @@
 
       <div class="field-group">
         <div class="field-group-title">Basic Settings</div>
-        <div class="field-row" v-for="f in current.fields.filter(f=>['enabled','interface','port','ac_name','service_name','mtu','mru','accept','ssl_pemfile','mode','start','ip_pool','opt_src'].includes(f.key))" :key="f.key">
+        <div class="field-row" v-for="f in current.fields.filter(f=>['enabled','interface','port','ac_name','service_name','mtu','mru','accept','ssl_pemfile','mode','start','ip_pool','opt_src','speed_limit','option60'].includes(f.key))" :key="f.key">
           <label>{{ f.label }}</label>
           <select v-if="f.key==='interface'" v-model="current.values[f.key]" class="field-input">
             <option v-for="iface in interfaces" :key="iface" :value="iface">{{ iface }}</option>
@@ -38,7 +38,7 @@
           {{ showAdvanced ? '▼' : '▶' }} Advanced Settings
         </div>
         <template v-if="showAdvanced">
-          <div class="field-row" v-for="f in current.fields.filter(f=>!['enabled','interface','port','ac_name','service_name','mtu','mru','accept','ssl_pemfile','mode','start','ip_pool','opt_src'].includes(f.key))" :key="f.key">
+          <div class="field-row" v-for="f in current.fields.filter(f=>!['enabled','interface','port','ac_name','service_name','mtu','mru','accept','ssl_pemfile','mode','start','ip_pool','opt_src','speed_limit','option60'].includes(f.key))" :key="f.key">
             <label>{{ f.label }}</label>
             <input :type="f.type||'text'" v-model="current.values[f.key]" :placeholder="f.default" class="field-input" />
             <span class="field-hint">{{ f.hint }}</span>
@@ -83,6 +83,7 @@ const protocols = reactive([
       {key:'max_sessions',label:'Max Sessions',type:'number',default:'1000',hint:'PPPoE session limit'},
       {key:'padi_timeout',label:'PADI Timeout',type:'number',default:'5',hint:'PPPoE discovery timeout'},
       {key:'padr_timeout',label:'PADR Timeout',type:'number',default:'5',hint:'PPPoE request timeout'},
+      {key:'speed_limit',label:'Speed Limit (up/down)',default:'',hint:'Kbit/s per session, e.g. 1024/2048 — empty = unlimited'},
     ]},
   {id:'l2tp',name:'L2TP',icon:'🛡',enabled:false,section:'access.d.l2tp', module:'l2tp',
     fields:[
@@ -136,6 +137,8 @@ const protocols = reactive([
       {key:'lease_time',label:'Lease Time',type:'number',default:'3600',hint:'DHCP lease duration seconds'},
       {key:'session_timeout',label:'Session Timeout',type:'number',default:'0',hint:'Seconds'},
       {key:'idle_timeout',label:'Idle Timeout',type:'number',default:'0',hint:'Seconds'},
+      {key:'speed_limit',label:'Speed Limit (up/down)',default:'',hint:'Kbit/s per session, e.g. 1024/2048 — empty = unlimited'},
+      {key:'option60',label:'DHCP Option 60 (Vendor Class)',default:'',hint:'Only accept DHCP with this vendor class, e.g. OpenWrt-IPoE'},
     ]},
   {id:'mac_auth',name:'MAC Auth',icon:'🖧',enabled:false,section:'access.d.mac_auth', module:'mac_auth',
     fields:[

@@ -144,7 +144,13 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
                 w(f"ip-pool={mac_auth['ip_pool']}")
             if mac_auth.get("vlan"):
                 w(f"vlan={mac_auth['vlan']}")
+            if pconf.get("speed_limit"):
+                w(f"speed-limit={pconf['speed_limit']}")
             w()
+            if pconf.get("option60"):
+                w("[dhcpv4]")
+                w(f"vci={pconf['option60']}")
+                w()
             continue
         if proto[0] == "ipoe" and pconf.get("enabled") != "yes":
             continue
@@ -165,8 +171,13 @@ def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
         if pconf.get("ssl_pemfile"): w(f"ssl-pemfile={pconf['ssl_pemfile']}")
         if pconf.get("ip_pool"): w(f"ip-pool={pconf['ip_pool']}")
         if pconf.get("opt_src"): w(f"opt-src={pconf['opt_src']}")
+        if pconf.get("speed_limit"): w(f"speed-limit={pconf['speed_limit']}")
         if proto[0] == "l2tp": w("dictionary=/usr/share/accel-ppp/l2tp/dictionary")
         w()
+        if proto[0] == "ipoe" and pconf.get("option60"):
+            w("[dhcpv4]")
+            w(f"vci={pconf['option60']}")
+            w()
 
     # CLI
     cli = get_section("access.d.cli")
