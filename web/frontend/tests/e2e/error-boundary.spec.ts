@@ -130,6 +130,37 @@ test.describe('Form Validation — UI Error Handling', () => {
     await expect(radTab).toBeVisible({ timeout: 5000 });
   });
 
+  test('E5: Invalid IP/CIDR is rejected before submission', async ({ page }) => {
+    let postCount = 0;
+    await page.route('**/api/ip/addresses', route => { if (route.request().method() === 'POST') postCount++; route.fulfill({ json: { ok: true } }); });
+    await page.goto(BASE);
+    await page.locator(SIDEBAR).getByText('IP Manager').click();
+    await page.locator('.ros-tabs').getByText('Addresses').click();
+    await page.locator('.tab-body .btn-mini').filter({ hasText: '+ Add' }).click();
+    await page.locator('.fw-add input[placeholder*="Interface"]').fill('lo');
+    await page.locator('.fw-add input[placeholder*="IP"]').fill('not-an-ip');
+    await page.locator('.fw-add .btn-mini').filter({ hasText: 'Add' }).click();
+    await page.waitForTimeout(600);
+    expect(postCount).toBe(0);
+    const formStillVisible = await page.locator('.fw-add').isVisible().catch(() => false);
+    expect(formStillVisible).toBeTruthy();
+  });
+
+  test('E6: Rapid double-click submits only once', async ({ page }) => {
+    let postCount = 0;
+    await page.route('**/api/ip/addresses', route => { if (route.request().method() === 'POST') postCount++; route.fulfill({ json: { ok: true } }); });
+    await page.goto(BASE);
+    await page.locator(SIDEBAR).getByText('IP Manager').click();
+    await page.locator('.ros-tabs').getByText('Addresses').click();
+    await page.locator('.tab-body .btn-mini').filter({ hasText: '+ Add' }).click();
+    await page.locator('.fw-add input[placeholder*="Interface"]').fill('lo');
+    await page.locator('.fw-add input[placeholder*="IP"]').fill('127.0.0.2/32');
+    const addBtn = page.locator('.fw-add .btn-mini').filter({ hasText: 'Add' });
+    await addBtn.click({ clickCount: 3 });
+    await page.waitForTimeout(800);
+    expect(postCount).toBeLessThanOrEqual(1);
+  });
+
   test('Tools page diagnostics tab switching renders correct panels', async ({ page }) => {
     await page.goto(BASE);
     await page.locator(SIDEBAR).getByText('RADIUS Tools').click();

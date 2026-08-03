@@ -340,6 +340,11 @@ async def add_ip_address(data: dict = Body(...), user=Depends(require_auth)):
     ip = data.get("ip", "")
     if not iface or not ip:
         raise HTTPException(400, "iface and ip are required")
+    import ipaddress
+    try:
+        ipaddress.ip_interface(ip)
+    except ValueError:
+        raise HTTPException(400, f"Invalid IP/CIDR: {ip}")
     res = subprocess.run(["ip", "addr", "add", ip, "dev", iface], capture_output=True, text=True, timeout=5)
     if res.returncode != 0:
         raise HTTPException(400, res.stderr.strip())

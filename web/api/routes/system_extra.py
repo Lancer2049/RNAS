@@ -188,13 +188,20 @@ def _cert_meta(fp: str) -> dict:
     return meta
 
 
-def _cert_usage(name: str) -> list:
+def _cert_usage(name: str, conf_cache: dict = None) -> list:
     refs = []
-    for conf in glob.glob("/etc/rnas/**/*.conf", recursive=True):
-        if "/snapshots/" in conf or "/backups/" in conf:
-            continue
+    if conf_cache is None:
+        conf_cache = {}
+        for conf in glob.glob("/etc/rnas/**/*.conf", recursive=True):
+            if "/snapshots/" in conf or "/backups/" in conf:
+                continue
+            try:
+                conf_cache[conf] = Path(conf).read_text(errors="replace").splitlines()
+            except Exception:
+                continue
+    for conf, lines in conf_cache.items():
         try:
-            for line in Path(conf).read_text(errors="replace").splitlines():
+            for line in lines:
                 if "=" in line and SSL_DIR in line and name in line:
                     key = line.split("=")[0].strip()
                     refs.append(f"{Path(conf).name}:{key}")
@@ -205,6 +212,14 @@ def _cert_usage(name: str) -> list:
 
 @router.get("/system/certificates")
 async def list_certificates(user=Depends(require_auth)):
+    conf_cache = {}
+    for conf in glob.glob("/etc/rnas/**/*.conf", recursive=True):
+        if "/snapshots/" in conf or "/backups/" in conf:
+            continue
+        try:
+            conf_cache[conf] = Path(conf).read_text(errors="replace").splitlines()
+        except Exception:
+            continue
     certs = []
     for pattern in [f"{SSL_DIR}/*.pem", f"{SSL_DIR}/*.crt", f"{SSL_DIR}/*.key"]:
         for fp in glob.glob(pattern):
@@ -214,7 +229,7 @@ async def list_certificates(user=Depends(require_auth)):
                 "name": name, "path": fp, "kind": kind,
                 "size": os.path.getsize(fp),
                 "modified": os.path.getmtime(fp),
-                "usage": _cert_usage(name),
+                "usage": _cert_usage(name, conf_cache),
             }
             entry.update(_cert_meta(fp))
             certs.append(entry)

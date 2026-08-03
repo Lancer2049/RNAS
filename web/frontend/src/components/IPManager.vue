@@ -149,7 +149,7 @@
       <div v-if="showAddrAdd" class="fw-add">
         <input v-model="newAddrIface" placeholder="Interface name" />
         <input v-model="newAddrIp" placeholder="IP/CIDR" />
-        <button class="btn-mini" @click="addAddr">Add</button>
+        <button class="btn-mini" @click="addAddr" :disabled="addAddrSaving">Add</button>
         <button class="btn-cancel" @click="showAddrAdd=false; newAddrIface=''; newAddrIp=''">Cancel</button>
       </div>
       <table v-if="addrs.length">
@@ -177,7 +177,7 @@ const arp = ref([]), fwChains = ref([]), dhcp = ref([]), routes = ref([]), dhcpS
 const cgnatEnabled = ref(false), cgnatNet = ref('192.168.100.0/24'), cgnatWan = ref('ens33'), cgnatMsg = ref(''), cgnatMsgType = ref('')
 const addTarget = ref(''), newRule = ref('')
 const showStaticAdd = ref(false), newStaticMac = ref(''), newStaticIp = ref(''), newStaticHost = ref('')
-const showAddrAdd = ref(false), newAddrIface = ref(''), newAddrIp = ref('')
+const showAddrAdd = ref(false), newAddrIface = ref(''), newAddrIp = ref(''), addAddrSaving = ref(false)
 const pfProto = ref('tcp'), pfPort = ref(80), pfTarget = ref(''), pfTargetPort = ref(80), pfDesc = ref('')
 const showPfTab = ref(false), pfRules = ref([]), natSub = ref('')
 
@@ -243,11 +243,15 @@ async function delStatic(mac) {
 }
 async function addAddr() {
   const iface = newAddrIface.value.trim(), ip = newAddrIp.value.trim()
-  if (!iface || !ip) return
+  if (!iface || !ip) { addToast('Interface and IP are required', 'err'); return }
+  if (!/^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/.test(ip)) { addToast('Invalid IP/CIDR format', 'err'); return }
+  if (addAddrSaving.value) return
+  addAddrSaving.value = true
   try {
     await fetch('/api/ip/addresses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ iface, ip }) })
     showAddrAdd.value = false; newAddrIface.value = ''; newAddrIp.value = ''; fetchAddr()
   } catch(e){ addToast('操作失败: '+(e&&e.message||e), 'err') }
+  addAddrSaving.value = false
 }
 async function delAddr(iface, ip) {
   if (!confirm(`Remove ${ip} from ${iface}?`)) return

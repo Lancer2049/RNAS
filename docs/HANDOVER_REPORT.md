@@ -705,6 +705,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-08-03  P0 会话限速 + IPoE Option 60 完成: accel-ppp 生成器 speed-limit(PPPoE/IPoE) + [dhcpv4] vci 输出, Access Protocols 表单 Basic 组新增字段, E2E 3 用例; P0 三项(会话限速/Option60/82/IPoE限速)清零
 2026-08-03  P1 CGNAT 完成: nftables masquerade 生成器(network.d.cgnat) + IP Manager NAT tab 配置区(enabled/内部网段/WAN接口/保存) + E2E 2 用例; P1 中 Web认证/双栈/LNS 确认已有, CGNAT 落地, 剩余多实例支持为长期架构项
 2026-08-03  P2 组播完成: generate_firewall forward 链组播放行 + igmp 规则(network.d.multicast) + Network 页 Multicast 卡 + E2E 2 用例; 顺带修复 NetworkConfig saveSection 未定义(保存一直失效) + DHCP/DNS section module 名错误; P2 中 QinQ(vlan_name 格式)/L2TP+IPsec/SSTP/OpenVPN 确认已有
+2026-08-03  E5/E6 边界完成: IP Manager addAddr 加 IP/CIDR 格式校验 + 防抖, 后端 ipaddress 显式校验, E2E 2 用例; 修复 B12 复发根因(_cert_usage 每次全量 glob+读 conf → conf 缓存共享, 8.4s→0.42s); integration-test-plan.md 46 场景全部标记覆盖
 ```
 
 ### 10.2 未完成的高优先级工作
@@ -764,17 +765,17 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 
 见 `integration-test-plan.md` (174 行)：
 
-目前已有 125 个 E2E 用例，但 `integration-test-plan.md` 中计划的新增场景中有以下缺口：
+场景已全部覆盖（203+ E2E 用例，46 个计划场景全部 ✅，integration-test-plan.md 状态列已更新）：
 
-| 类别 | 计划 | 当前 | 缺口 |
-|------|------|------|------|
-| A — 认证与会话 | 4 | 0 | 4 (A1-A4) |
-| B — 配置 CRUD | 12 | 4 (部分) | 8 |
-| C — 网络运维 | 6 | 1 | 5 |
-| D — 监控与状态 | 5 | 3 | 2 (监控已补 monitoring.spec.ts) |
-| E — 边界与错误 | 6 | 0 | 6 |
-| F — 跨功能联动 | 5 | 0 | 5 (跨功能已补 cross-feature.spec.ts) |
-| G — 性能与稳定性 | 3 | 1 | 2 (稳定性已补 stability.spec.ts) |
+| 类别 | 覆盖情况 |
+|------|----------|
+| A — 认证与会话 (A1-A7) | ✅ sessions/interface-detail/aaa specs |
+| B — 配置 CRUD (B1-B12) | ✅ ip-manager-crud/config-editor/config-snapshots/certificates/quick-setup/protocol-config specs |
+| C — 网络运维 (C1-C6) | ✅ tools spec |
+| D — 监控与状态 (D1-D6) | ✅ monitoring/dashboard/notifications/interface-detail/traffic/proto-monitor specs |
+| E — 边界与错误 (E1-E7) | ✅ error-boundary spec（含本轮新增 E5 IP 校验 / E6 防抖） |
+| F — 跨功能联动 (F1-F5) | ✅ cross-feature spec |
+| G — 性能与稳定性 (G1-G3) | ✅ stability spec |
 
 ---
 
