@@ -125,7 +125,7 @@ async def setup_status(user=Depends(require_auth)):
 async def setup_apply(data: dict = Body(...), user=Depends(require_auth)):
     lan_ip = data.get("lan_ip", "192.168.100.1/24")
     radius_server = data.get("radius_server", "192.168.0.202")
-    radius_secret = data.get("radius_secret", "testing123")
+    radius_secret = data.get("radius_secret", os.environ.get("RNAS_RADIUS_SECRET", "testing123"))
     pppoe_iface = data.get("pppoe_iface", "ens33")
     ac_name = data.get("ac_name", "RNAS")
     ip_pool_start = data.get("ip_pool_start", "192.168.100.10")

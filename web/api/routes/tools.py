@@ -7,6 +7,7 @@ from typing import Optional
 
 router = APIRouter(tags=["Diagnostics"])
 RADCLIENT = "/usr/bin/radclient"
+_DEFAULT_SECRET = os.environ.get("RNAS_RADIUS_SECRET", "testing123")
 
 
 
@@ -109,7 +110,7 @@ async def traceroute(host: str = Query("8.8.8.8"), user=Depends(require_auth)):
 async def radius_test(
     user: str = Query("testuser"), passwd: str = Query("testpass"),
     attrs: str = Query(""), server: str = Query("192.168.0.202:1812"),
-    secret: str = Query("testing123"), _auth=Depends(require_auth),
+    secret: str = Query(_DEFAULT_SECRET), _auth=Depends(require_auth),
 ):
     if server.startswith("-") or secret.startswith("-") or user.startswith("-"):
         raise HTTPException(400, "Parameters must not start with '-'")
@@ -126,7 +127,7 @@ async def radius_test(
 @router.post("/tools/radius-send")
 async def radius_send(data: dict = Body(...), user=Depends(require_auth)):
     server = data.get("server", "192.168.0.202:1812")
-    secret = data.get("secret", "testing123")
+    secret = data.get("secret", _DEFAULT_SECRET)
     port_type = data.get("type", "auth")
     if server.startswith("-") or secret.startswith("-"):
         raise HTTPException(400, "server/secret must not start with '-'")
@@ -142,7 +143,7 @@ async def radius_send(data: dict = Body(...), user=Depends(require_auth)):
 
 
 @router.get("/tools/coa-pyrad")
-async def coa_pyrad(user: str = Query(""), server: str = Query("127.0.0.1:3799"), secret: str = Query("testing123"), _auth=Depends(require_auth)):
+async def coa_pyrad(user: str = Query(""), server: str = Query("127.0.0.1:3799"), secret: str = Query(_DEFAULT_SECRET), _auth=Depends(require_auth)):
     """Send CoA Disconnect-Request using pyrad library"""
     result = _pyrad_send(server, secret, DisconnectRequest, {"User-Name": user})
     return {"output": "Disconnect-ACK" if result.get("ok") and result.get("code") == DisconnectACK else "Failed", "detail": result}
@@ -150,7 +151,7 @@ async def coa_pyrad(user: str = Query(""), server: str = Query("127.0.0.1:3799")
 async def coa_disconnect(
     user: str = Query(""),
     server: str = Query("127.0.0.1"), port: int = Query(3799),
-    secret: str = Query("testing123"), _auth=Depends(require_auth),
+    secret: str = Query(_DEFAULT_SECRET), _auth=Depends(require_auth),
 ):
     payload = f"User-Name={user}"
     out = subprocess.run(

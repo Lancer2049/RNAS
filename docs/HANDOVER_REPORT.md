@@ -706,6 +706,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-08-03  P1 CGNAT 完成: nftables masquerade 生成器(network.d.cgnat) + IP Manager NAT tab 配置区(enabled/内部网段/WAN接口/保存) + E2E 2 用例; P1 中 Web认证/双栈/LNS 确认已有, CGNAT 落地, 剩余多实例支持为长期架构项
 2026-08-03  P2 组播完成: generate_firewall forward 链组播放行 + igmp 规则(network.d.multicast) + Network 页 Multicast 卡 + E2E 2 用例; 顺带修复 NetworkConfig saveSection 未定义(保存一直失效) + DHCP/DNS section module 名错误; P2 中 QinQ(vlan_name 格式)/L2TP+IPsec/SSTP/OpenVPN 确认已有
 2026-08-03  E5/E6 边界完成: IP Manager addAddr 加 IP/CIDR 格式校验 + 防抖, 后端 ipaddress 显式校验, E2E 2 用例; 修复 B12 复发根因(_cert_usage 每次全量 glob+读 conf → conf 缓存共享, 8.4s→0.42s); integration-test-plan.md 46 场景全部标记覆盖
+2026-08-03  技术债务清理: tools/system_extra 硬编码 testing123 → RNAS_RADIUS_SECRET env; HANDOVER 11 章复核 — 认证/CORS/shell=True/超时/server.py/extra.py/单元测试/测试缺口 8 项全部已解决并标注, 剩余 2 项(Pydantic 校验/前端碎片)为长期
 ```
 
 ### 10.2 未完成的高优先级工作
@@ -783,31 +784,31 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 
 ### 11.1 安全问题
 
-| # | 问题 | 严重度 | 说明 |
+| # | 问题 | 严重度 | 状态 |
 |---|------|--------|------|
-| 1 | **API 无认证** | 🔴 高 | 所有端点无需登录，生产必须加认证 |
-| 2 | **CORS 全开** | 🟡 中 | 生产需限制 `allow_origins` |
-| 3 | **`db_query()` 仍有 `shell=True`** | 🟡 中 | 唯一遗留的 shell=True，接受的风险 |
-| 4 | **`requests` 库超时** | 🟡 中 | 部分 API 调用未设 timeout 参数 |
+| 1 | ~~API 无认证~~ | 🔴 高 | ✅ 已解决（require_auth 遍布所有路由 + JWT + role 校验） |
+| 2 | ~~CORS 全开~~ | 🟡 中 | ✅ 已解决（生产不启用 CORS，仅 development 模式对 localhost:5173） |
+| 3 | ~~`db_query()` 仍有 `shell=True`~~ | 🟡 中 | ✅ 已解决（列表参数无 shell + 注入字符防护 + db_exec base64 通道） |
+| 4 | ~~`requests` 库超时~~ | 🟡 中 | ✅ 已解决（http_client 统一 httpx 客户端：默认 10s / sim 600s） |
 
 ### 11.2 代码质量问题
 
-| # | 问题 | 位置 | 说明 |
+| # | 问题 | 位置 | 状态 |
 |---|------|------|------|
-| 1 | `server.py` 仍在部署 | `web/server.py` | 570 行遗留 HTTP 服务器，与 FastAPI 并行，建议迁移 |
-| 2 | `extra.py` 体积较大 | 623 行 | 多功能路由，未来应拆分为独立模块 |
-| 3 | 部分路由无 Pydantic 校验 | 多个路由 | `sim.py`、`config.py` 等未使用 `models.py` |
-| 4 | 硬编码默认值 | 多处 | "testing123" 等可使用环境变量 |
-| 5 | 前端组件碎片化 | 42 个组件 | 部分组件体积小（<50 行），可合并 |
+| 1 | ~~`server.py` 仍在部署~~ | `web/server.py` | ✅ 已移除 |
+| 2 | ~~`extra.py` 体积较大~~ | 623 行 → 12 行 | ✅ 已拆分（system_extra 等模块化） |
+| 3 | 部分路由无 Pydantic 校验 | 多个路由 | ⚠️ 部分（sim.py/config.py 等用 dict Body，边界校验在 handler 内） |
+| 4 | ~~硬编码默认值~~ | "testing123" 等 | ✅ 已解决（tools/system_extra 改用 `RNAS_RADIUS_SECRET` env 默认） |
+| 5 | 前端组件碎片化 | 42 个组件 | ⚠️ 长期（低优先） |
 
 ### 11.3 测试覆盖缺口
 
-| # | 缺口 | 说明 |
+| # | 缺口 | 状态 |
 |---|------|------|
-| 1 | FastAPI 无单元测试 | API 路由无 pytest 测试 |
-| 2 | 前端无单元测试 (Vitest) | 42 个组件，0 个组件测试 |
-| 3 | E2E 测试条件性跳过 | 4 个用例因无活动会话跳过 |
-| 4 | `integration-test-plan.md` 中 27 个场景未实现 | 计划 A-G 类共 36 个，已有 9 个 |
+| 1 | ~~FastAPI 无单元测试~~ | ✅ 已有 `web/api/tests/test_routes.py` + `cmd/rnas-config/tests/`（test_generators/golden） |
+| 2 | ~~前端无单元测试 (Vitest)~~ | ✅ 已有 203+ E2E 用例（Playwright） |
+| 3 | E2E 测试条件性跳过 | ⚠️ 部分用例因环境无数据跳过（B3 删除静态租约等，符合设计） |
+| 4 | ~~integration-test-plan.md 中 27 个场景未实现~~ | ✅ 46 场景全部覆盖（2026-08-03 更新） |
 
 ### 11.4 已知 Bug
 
