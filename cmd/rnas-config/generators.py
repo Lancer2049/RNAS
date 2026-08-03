@@ -305,6 +305,18 @@ def generate_firewall(config: Dict[str, Dict[str, str]]) -> str:
     out.append("    }")
     out.append("}")
 
+    cgnat = config.get("network.d.cgnat", {})
+    if cgnat.get("enabled") == "yes":
+        net = cgnat.get("internal_net", "192.168.100.0/24")
+        wan = cgnat.get("wan_interface", "ens33")
+        out.append("")
+        out.append("table ip nat {")
+        out.append("    chain postrouting {")
+        out.append("        type nat hook postrouting priority 100;")
+        out.append(f"        ip saddr {net} oifname \"{wan}\" masquerade")
+        out.append("    }")
+        out.append("}")
+
     return "\n".join(out)
 
 

@@ -82,9 +82,20 @@
           </tbody>
         </table>
       </div>
+      <!-- CGNAT (Masquerade) persistent config -->
+      <div v-if="tab==='nat'" class="fw-cgnat">
+        <div class="fw-cgnat-head">
+          <h3>CGNAT (Masquerade)</h3>
+          <label class="cgnat-toggle"><input type="checkbox" v-model="cgnatEnabled" /> Enable</label>
+        </div>
+        <div class="fw-cgnat-fields">
+          <input v-model="cgnatNet" placeholder="Internal net (e.g. 192.168.100.0/24)" />
+          <input v-model="cgnatWan" placeholder="WAN interface (e.g. ens33)" />
+          <button class="btn-mini" @click="saveCgnat">Save</button>
+          <span v-if="cgnatMsg" class="msg" :class="cgnatMsgType">{{ cgnatMsg }}</span>
+        </div>
+      </div>
     </div>
-
-    <!-- DHCP Leases -->
     <div v-if="tab==='dhcp'" class="tab-body">
       <table v-if="dhcp.length">
         <thead><tr><th>IP</th><th>MAC</th><th>Vendor</th><th>Hostname</th><th>Expires</th><th></th></tr></thead>
@@ -163,6 +174,7 @@ const TBL_MAP = { fw: 'filter', nat: 'nat', mangle: 'mangle' }
 const tab = ref('arp')
 const tabs = [ {id:'arp',label:'ARP'}, {id:'dhcp',label:'DHCP'}, {id:'static',label:'Static'}, {id:'fw',label:'Filter'}, {id:'nat',label:'NAT'}, {id:'mangle',label:'Mangle'}, {id:'routes',label:'Routes'}, {id:'addr',label:'Addresses'} ]
 const arp = ref([]), fwChains = ref([]), dhcp = ref([]), routes = ref([]), dhcpStatic = ref([]), addrs = ref([])
+const cgnatEnabled = ref(false), cgnatNet = ref('192.168.100.0/24'), cgnatWan = ref('ens33'), cgnatMsg = ref(''), cgnatMsgType = ref('')
 const addTarget = ref(''), newRule = ref('')
 const showStaticAdd = ref(false), newStaticMac = ref(''), newStaticIp = ref(''), newStaticHost = ref('')
 const showAddrAdd = ref(false), newAddrIface = ref(''), newAddrIp = ref('')
@@ -178,11 +190,29 @@ const fwFiltered = computed(() => {
 function switchTab(id) {
   tab.value = id
   if (id === 'arp') fetchArp()
-  else if (['fw','nat','mangle'].includes(id)) fetchFW()
+  else if (['fw','nat','mangle'].includes(id)) { fetchFW(); if (id === 'nat') fetchCgnat() }
   else if (id === 'dhcp') fetchDHCP()
   else if (id === 'static') fetchStatic()
   else if (id === 'addr') fetchAddr()
   else if (id === 'routes') fetchRoutes()
+}
+
+async function fetchCgnat() {
+  try {
+    const r = await fetch('/api/config/cgnat')
+    const d = (await r.json()).config || {}
+    const cfg = d['network.d.cgnat'] || {}
+    cgnatEnabled.value = cfg.enabled === 'yes'
+    cgnatNet.value = cfg.internal_net || '192.168.100.0/24'
+    cgnatWan.value = cfg.wan_interface || 'ens33'
+  } catch {}
+}
+
+async function saveCgnat() {
+  try {
+    await fetch('/api/config/cgnat', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: cgnatEnabled.value ? 'yes' : 'no', internal_net: cgnatNet.value.trim(), wan_interface: cgnatWan.value.trim() }) })
+    cgnatMsg.value = 'CGNAT saved — run Apply to activate'; cgnatMsgType.value = 'ok'
+  } catch(e) { cgnatMsg.value = 'Save failed'; cgnatMsgType.value = 'err' }
 }
 
 async function fetchArp() { try{const r=await fetch('/api/ip/arp'); arp.value=(await r.json()).arp||[]; tabs[0].count=arp.value.length}catch{} }

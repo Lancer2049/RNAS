@@ -120,6 +120,50 @@ test.describe('IP Manager — IP Address CRUD', () => {
 
 });
 
+test.describe('IP Manager — CGNAT Config (P1)', () => {
+
+  test('P1-1: NAT tab shows CGNAT section with loaded values', async ({ page }) => {
+    await page.route('**/api/config/cgnat', route => route.fulfill({
+      json: { config: { 'network.d.cgnat': { enabled: 'yes', internal_net: '10.10.0.0/16', wan_interface: 'eth1' } } },
+    }));
+    await page.route('**/api/ip/firewall-full', route => route.fulfill({ json: { chains: [] } }));
+    await page.goto(BASE);
+    await page.locator(SIDEBAR).getByText('IP Manager').click();
+    await page.locator('.ros-tabs').getByText('NAT').click();
+    await expect(page.locator('.fw-cgnat')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.fw-cgnat-head')).toContainText('CGNAT');
+    await expect(page.locator('.cgnat-toggle input')).toBeChecked();
+    await expect(page.locator('.fw-cgnat-fields input').nth(0)).toHaveValue('10.10.0.0/16');
+    await expect(page.locator('.fw-cgnat-fields input').nth(1)).toHaveValue('eth1');
+  });
+
+  test('P1-2: Saving CGNAT persists values via config API', async ({ page }) => {
+    let savedBody = null;
+    await page.route('**/api/config/cgnat', async route => {
+      if (route.request().method() === 'PUT') {
+        savedBody = route.request().postDataJSON();
+        await route.fulfill({ json: { success: true } });
+      } else {
+        await route.fulfill({ json: { config: { 'network.d.cgnat': { enabled: 'no', internal_net: '192.168.100.0/24', wan_interface: 'ens33' } } } });
+      }
+    });
+    await page.route('**/api/ip/firewall-full', route => route.fulfill({ json: { chains: [] } }));
+    await page.goto(BASE);
+    await page.locator(SIDEBAR).getByText('IP Manager').click();
+    await page.locator('.ros-tabs').getByText('NAT').click();
+    await expect(page.locator('.fw-cgnat')).toBeVisible({ timeout: 5000 });
+
+    await page.locator('.cgnat-toggle input').check();
+    await page.locator('.fw-cgnat-fields input').nth(0).fill('10.20.0.0/16');
+    await page.locator('.fw-cgnat-fields input').nth(1).fill('eth2');
+    await page.locator('.fw-cgnat .btn-mini').click();
+
+    await expect(page.locator('.fw-cgnat .msg')).toContainText('CGNAT saved', { timeout: 5000 });
+    expect(savedBody).toEqual({ enabled: 'yes', internal_net: '10.20.0.0/16', wan_interface: 'eth2' });
+  });
+
+});
+
 test.describe('IP Manager — One-Click Make Static (A4)', () => {
 
   test('A4: One-click converts a DHCP lease into a static binding', async ({ page }) => {
