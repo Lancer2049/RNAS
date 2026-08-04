@@ -708,6 +708,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-08-03  E5/E6 边界完成: IP Manager addAddr 加 IP/CIDR 格式校验 + 防抖, 后端 ipaddress 显式校验, E2E 2 用例; 修复 B12 复发根因(_cert_usage 每次全量 glob+读 conf → conf 缓存共享, 8.4s→0.42s); integration-test-plan.md 46 场景全部标记覆盖
 2026-08-03  技术债务清理: tools/system_extra 硬编码 testing123 → RNAS_RADIUS_SECRET env; HANDOVER 11 章复核 — 认证/CORS/shell=True/超时/server.py/extra.py/单元测试/测试缺口 8 项全部已解决并标注, 剩余 2 项(Pydantic 校验/前端碎片)为长期
 2026-08-03  Pydantic 校验落地: models.py 9 模型从死代码接入 3 路由(sim multi-connect/firewall/snapshot), 非法输入自动 422; 修复 VM3 部署路径(models.py 应入 api/) + 9099 重启脚本化(start9099.sh 避免 pkill 自匹配)
+2026-08-03  收尾复核: 11.4 两项 bug 确认已解决(8099 无依赖/场景非 bug), 11.2#5 前端碎片评估保留(低收益高风险), 技术债务 15/17 清零, 剩余 PPPoE 代拨与多实例为架构级长期项
 ```
 
 ### 10.2 未完成的高优先级工作
@@ -800,7 +801,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 | 2 | ~~`extra.py` 体积较大~~ | 623 行 → 12 行 | ✅ 已拆分（system_extra 等模块化） |
 | 3 | 部分路由无 Pydantic 校验 | 多个路由 | ✅ 已接入（sim multi-connect → MultiConnectRequest / firewall → FirewallRule / snapshot → SnapshotCreate；422 自动校验 count/pattern 等） |
 | 4 | ~~硬编码默认值~~ | "testing123" 等 | ✅ 已解决（tools/system_extra 改用 `RNAS_RADIUS_SECRET` env 默认） |
-| 5 | 前端组件碎片化 | 42 个组件 | ⚠️ 长期（低优先） |
+| 5 | 前端组件碎片化 | 45 个组件（12 个 <50 行） | ⚠️ 已评估：碎片均为独立懒加载路由页，合并需改 App.vue 注册结构，低收益高风险，判定保留（低优先） |
 
 ### 11.3 测试覆盖缺口
 
@@ -815,8 +816,8 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 
 | # | 问题 | 状态 |
 |---|------|------|
-| 1 | 场景运行部分未达 100% (7/8, 8/9) | 属于后端条件依赖，非 UI Bug |
-| 2 | E2E 测试因 Port 8099 偶发占用失败 | 运行前需确认端口可用 |
+| 1 | 场景运行部分未达 100% (7/8, 8/9) | ✅ 已确认非 Bug（后端条件依赖，scenarios.spec 无 100% 断言） |
+| 2 | E2E 测试因 Port 8099 偶发占用失败 | ✅ 已解决（E2E 全走 127.0.0.1:8098 隧道直连 9099，无 spec 依赖 8099） |
 
 ---
 
