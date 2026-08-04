@@ -69,8 +69,10 @@ async def _dial_one(proto: str, user: str, passwd: str) -> dict:
 
 @router.get("/sim/connect")
 async def sim_connect(
-    proto: str = Query("pppoe"), user: str = Query("testuser"),
-    passwd: str = Query("testpass"), _auth=Depends(require_auth),
+    proto: str = Query("pppoe", pattern="^(pppoe|pptp|sstp|l2tp)$"),
+    user: str = Query("testuser", min_length=1, max_length=32, pattern=r"^[A-Za-z0-9_.-]+$"),
+    passwd: str = Query("testpass", min_length=1, max_length=128),
+    _auth=Depends(require_auth),
 ):
     return await _dial_one(proto, user, passwd)
 

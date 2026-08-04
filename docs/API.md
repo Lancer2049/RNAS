@@ -17,12 +17,12 @@
 | Tag | 路由模块 | 主要端点 |
 |-----|----------|----------|
 | **Status** | `routes/status.py` | `/api/health`, `/api/status` |
-| **Configuration** | `routes/config.py` | `/api/config`, `/api/config/apply`, 快照  |
-| **Network** | `routes/extra.py` | 接口/防火墙/抓包/带宽/隧道/VLAN/QoS |
+| **Configuration** | `routes/config.py` | `/api/config`, `/api/config/apply`, 快照, `/api/config/{module}`（cgnat/multicast/协议段） |
+| **Network** | `routes/extra.py` | 接口/防火墙/抓包/带宽/隧道/VLAN/QoS, `/api/ip/dhcp-static`, `/api/ip/addresses` |
 | **Diagnostics** | `routes/tools.py` | Ping/Trace/DNS/RADIUS/CoA |
-| **System** | `routes/system.py` | 系统状态/日志/证书/服务 |
+| **System** | `routes/system.py` | 系统状态/日志/证书/服务, `/api/system/notifications`, `/api/system/notifications/test`, `/api/system/health/alerts` |
 | **AAA RADIUS** | `routes/aaa.py` | 用户/计费/组/NAS客户端 |
-| **Simulation** | `routes/sim.py` | 用户拨号仿真 |
+| **Simulation** | `routes/sim.py` | `/api/sim/connect`, `/api/sim/multi-connect`, `/api/sim/stop`, 故障注入, 场景 |
 
 ## 认证
 

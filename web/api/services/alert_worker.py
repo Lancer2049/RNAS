@@ -1,14 +1,18 @@
 """Background alert notifier — polls health alerts and sends notifications
 for new or escalated alerts (deduped until recovery)."""
 
+import fcntl
 import threading
 import time
+from pathlib import Path
 
 from services.alerts import send_alert
 
 POLL_INTERVAL = 60
+LOCK_FILE = Path("/var/run/rnas-alert-worker.lock")
 _alerts_seen: dict = {}
 _lock = threading.Lock()
+_lock_fd = None
 
 
 def _alert_key(a: dict) -> str:
@@ -47,5 +51,14 @@ def _loop() -> None:
 
 
 def start_alert_worker() -> None:
+    """Start the worker thread, guarded by a process-wide flock so a
+    multi-worker uvicorn deployment does not spawn duplicate notifiers."""
+    global _lock_fd
+    try:
+        LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _lock_fd = LOCK_FILE.open("w")
+        fcntl.flock(_lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except (OSError, BlockingIOError):
+        return
     thread = threading.Thread(target=_loop, daemon=True)
     thread.start()
