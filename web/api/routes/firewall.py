@@ -4,6 +4,7 @@ import os, re, json, glob, time, subprocess, shlex
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from api.auth import require_auth
+from api.models import FirewallRule
 from services.traffic import get_history
 from services.oui import lookup
 
@@ -100,13 +101,13 @@ async def firewall_rules(user=Depends(require_auth)):
 
 
 @router.post("/ip/firewall")
-async def add_firewall_rule(data: dict = Body(...), user=Depends(require_auth)):
-    chain = data.get("chain", "rnas-hotspot")
-    table = data.get("table", "nat")
-    rule = data.get("rule", "")
+async def add_firewall_rule(data: FirewallRule = Body(...), user=Depends(require_auth)):
+    chain = data.chain
+    table = data.table
+    rule = data.rule
     if not rule:
         raise HTTPException(400, "rule is required")
-    family = data.get("family", "ip")
+    family = data.family
     try:
         _ensure_nat_chain(family, table, chain)
         res = subprocess.run(

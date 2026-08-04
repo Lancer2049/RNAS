@@ -707,6 +707,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-08-03  P2 组播完成: generate_firewall forward 链组播放行 + igmp 规则(network.d.multicast) + Network 页 Multicast 卡 + E2E 2 用例; 顺带修复 NetworkConfig saveSection 未定义(保存一直失效) + DHCP/DNS section module 名错误; P2 中 QinQ(vlan_name 格式)/L2TP+IPsec/SSTP/OpenVPN 确认已有
 2026-08-03  E5/E6 边界完成: IP Manager addAddr 加 IP/CIDR 格式校验 + 防抖, 后端 ipaddress 显式校验, E2E 2 用例; 修复 B12 复发根因(_cert_usage 每次全量 glob+读 conf → conf 缓存共享, 8.4s→0.42s); integration-test-plan.md 46 场景全部标记覆盖
 2026-08-03  技术债务清理: tools/system_extra 硬编码 testing123 → RNAS_RADIUS_SECRET env; HANDOVER 11 章复核 — 认证/CORS/shell=True/超时/server.py/extra.py/单元测试/测试缺口 8 项全部已解决并标注, 剩余 2 项(Pydantic 校验/前端碎片)为长期
+2026-08-03  Pydantic 校验落地: models.py 9 模型从死代码接入 3 路由(sim multi-connect/firewall/snapshot), 非法输入自动 422; 修复 VM3 部署路径(models.py 应入 api/) + 9099 重启脚本化(start9099.sh 避免 pkill 自匹配)
 ```
 
 ### 10.2 未完成的高优先级工作
@@ -797,7 +798,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 |---|------|------|------|
 | 1 | ~~`server.py` 仍在部署~~ | `web/server.py` | ✅ 已移除 |
 | 2 | ~~`extra.py` 体积较大~~ | 623 行 → 12 行 | ✅ 已拆分（system_extra 等模块化） |
-| 3 | 部分路由无 Pydantic 校验 | 多个路由 | ⚠️ 部分（sim.py/config.py 等用 dict Body，边界校验在 handler 内） |
+| 3 | 部分路由无 Pydantic 校验 | 多个路由 | ✅ 已接入（sim multi-connect → MultiConnectRequest / firewall → FirewallRule / snapshot → SnapshotCreate；422 自动校验 count/pattern 等） |
 | 4 | ~~硬编码默认值~~ | "testing123" 等 | ✅ 已解决（tools/system_extra 改用 `RNAS_RADIUS_SECRET` env 默认） |
 | 5 | 前端组件碎片化 | 42 个组件 | ⚠️ 长期（低优先） |
 

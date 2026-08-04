@@ -7,6 +7,7 @@ from pathlib import Path
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from api.auth import require_auth
+from api.models import SnapshotCreate
 from typing import Dict
 
 # Config engine modules live in ../cmd/rnas-config on dev or /opt/rnas-config
@@ -126,8 +127,8 @@ async def list_snapshots(user=Depends(require_auth)):
     return {"snapshots": snapshots, "total": len(snapshots)}
 
 @router.post("/config/snapshot")
-async def create_snapshot(data: dict = Body({}), user=Depends(require_auth)):
-    name = data.get("name", f"snap-{datetime.now():%Y%m%d-%H%M%S}")
+async def create_snapshot(data: SnapshotCreate = Body(default=SnapshotCreate()), user=Depends(require_auth)):
+    name = data.name or f"snap-{datetime.now():%Y%m%d-%H%M%S}"
     target = SNAPSHOT_DIR / name
     target.mkdir(parents=True, exist_ok=True)
     count = 0

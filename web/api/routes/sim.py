@@ -3,6 +3,7 @@ import asyncio, json, re, shlex, subprocess
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from api.auth import require_auth
+from api.models import MultiConnectRequest
 
 router = APIRouter(tags=["Simulation"])
 
@@ -75,7 +76,7 @@ async def sim_connect(
 
 
 @router.post("/sim/multi-connect")
-async def sim_multi_connect(data: dict = Body({}), _auth=Depends(require_auth)):
+async def sim_multi_connect(data: MultiConnectRequest = Body(...), _auth=Depends(require_auth)):
     """Batch-dial N subscribers with auto-created RADIUS users.
 
     Creates users <base>-1..<base>-N in radcheck (Cleartext-Password),
@@ -84,19 +85,12 @@ async def sim_multi_connect(data: dict = Body({}), _auth=Depends(require_auth)):
     from rnas_env import get_env
     env = get_env()
 
-    proto = str(data.get("proto", "pppoe"))
-    base_user = str(data.get("user", "testuser"))
-    passwd = str(data.get("pass", "testpass"))
-    try:
-        count = int(data.get("count", 5))
-    except (TypeError, ValueError):
-        raise HTTPException(status_code=400, detail="count must be an integer")
-    if count < 1 or count > 50:
-        raise HTTPException(status_code=400, detail="count must be between 1 and 50")
+    proto = data.proto
+    base_user = data.user
+    passwd = data.password
+    count = data.count
     if proto == "l2tp":
         raise HTTPException(status_code=400, detail="l2tp is a single tunnel; use /sim/connect")
-    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,32}", base_user):
-        raise HTTPException(status_code=400, detail="invalid base username")
 
     users = [f"{base_user}-{i}" for i in range(1, count + 1)]
     esc_p = passwd.replace("'", "''")
