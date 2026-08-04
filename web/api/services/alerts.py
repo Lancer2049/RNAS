@@ -6,9 +6,12 @@ RNAS_ALERT_EMAIL remain as fallback for backward compatibility.
 """
 
 import json
+import logging
 import os
 import subprocess
 from pathlib import Path
+
+logger = logging.getLogger("rnas-alerts")
 
 NOTIF_PATH = Path("/etc/rnas/notifications.json")
 
@@ -17,8 +20,8 @@ def _load_config() -> dict:
     if NOTIF_PATH.exists():
         try:
             return json.loads(NOTIF_PATH.read_text())
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to parse %s: %s", NOTIF_PATH, e)
     return {}
 
 
@@ -31,7 +34,8 @@ def _notify_telegram(token: str, chat_id: str, text: str) -> bool:
             capture_output=True, text=True, timeout=10,
         )
         return '"ok":true' in result.stdout
-    except Exception:
+    except Exception as e:
+        logger.warning("Telegram notify failed: %s", e)
         return False
 
 
@@ -45,7 +49,8 @@ def _notify_webhook(url: str, title: str, message: str, severity: str) -> bool:
             capture_output=True, text=True, timeout=10,
         )
         return result.returncode == 0
-    except Exception:
+    except Exception as e:
+        logger.warning("Webhook notify failed: %s", e)
         return False
 
 

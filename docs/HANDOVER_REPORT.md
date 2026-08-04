@@ -709,6 +709,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-08-03  技术债务清理: tools/system_extra 硬编码 testing123 → RNAS_RADIUS_SECRET env; HANDOVER 11 章复核 — 认证/CORS/shell=True/超时/server.py/extra.py/单元测试/测试缺口 8 项全部已解决并标注, 剩余 2 项(Pydantic 校验/前端碎片)为长期
 2026-08-03  Pydantic 校验落地: models.py 9 模型从死代码接入 3 路由(sim multi-connect/firewall/snapshot), 非法输入自动 422; 修复 VM3 部署路径(models.py 应入 api/) + 9099 重启脚本化(start9099.sh 避免 pkill 自匹配)
 2026-08-03  收尾复核: 11.4 两项 bug 确认已解决(8099 无依赖/场景非 bug), 11.2#5 前端碎片评估保留(低收益高风险), 技术债务 15/17 清零, 剩余 PPPoE 代拨与多实例为架构级长期项
+2026-08-03  对抗性审查修复: (1) sim/multi-connect 创建-拨号-清理包 try/finally, 异常时 radcheck 用户不残留(CRITICAL); (2) dhcp-static 加 mac 正则/ip 校验/hostname 白名单防 dnsmasq 配置注入(MAJOR); (3) cgnat/multicast 生成器值校验(_valid_cidr)防 nft 语法注入; (4) alerts 吞错加 logging; 修复 start9099 的 pgrep 自匹配导致旧进程未杀净问题
 ```
 
 ### 10.2 未完成的高优先级工作

@@ -288,6 +288,15 @@ async def add_dhcp_static(data: dict = Body(...), user=Depends(require_auth)):
     hostname = data.get("hostname", "")
     if not mac or not ip:
         raise HTTPException(400, "mac and ip are required")
+    if not re.fullmatch(r"[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}", mac):
+        raise HTTPException(400, "mac must be a valid MAC address (aa:bb:cc:dd:ee:ff)")
+    import ipaddress
+    try:
+        ipaddress.ip_address(ip)
+    except ValueError:
+        raise HTTPException(400, f"Invalid IP: {ip}")
+    if hostname and not re.fullmatch(r"[A-Za-z0-9._-]{1,63}", hostname):
+        raise HTTPException(400, "hostname may only contain [A-Za-z0-9._-], max 63 chars")
     static_file = Path("/etc/dnsmasq.d/static.conf")
     static_file.parent.mkdir(parents=True, exist_ok=True)
     line = f"dhcp-host={mac},{ip}" + (f",{hostname}" if hostname else "") + "\n"

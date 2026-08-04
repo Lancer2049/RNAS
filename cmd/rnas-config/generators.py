@@ -1,6 +1,17 @@
 # ── Accel-PPP generator ─────────────────────────────────────────────────────
 
+import re
 from typing import Dict
+
+
+def _valid_cidr(value: str) -> bool:
+    """Validate an IPv4 CIDR string before emitting it into nftables rules."""
+    try:
+        import ipaddress
+        ipaddress.ip_network(value, strict=False)
+        return True
+    except (ValueError, TypeError):
+        return False
 
 
 def generate_accel_ppp(config: Dict[str, Dict[str, str]]) -> str:
@@ -301,8 +312,9 @@ def generate_firewall(config: Dict[str, Dict[str, str]]) -> str:
     mcast = config.get("network.d.multicast", {})
     if mcast.get("enabled") == "yes":
         mnet = mcast.get("multicast_net", "224.0.0.0/4")
-        out.append(f"        ip daddr {mnet} accept")
-        out.append("        meta l4proto igmp accept")
+        if _valid_cidr(mnet):
+            out.append(f"        ip daddr {mnet} accept")
+            out.append("        meta l4proto igmp accept")
     out.append("    }")
     out.append("")
     out.append("    chain output {")
@@ -314,13 +326,14 @@ def generate_firewall(config: Dict[str, Dict[str, str]]) -> str:
     if cgnat.get("enabled") == "yes":
         net = cgnat.get("internal_net", "192.168.100.0/24")
         wan = cgnat.get("wan_interface", "ens33")
-        out.append("")
-        out.append("table ip nat {")
-        out.append("    chain postrouting {")
-        out.append("        type nat hook postrouting priority 100;")
-        out.append(f"        ip saddr {net} oifname \"{wan}\" masquerade")
-        out.append("    }")
-        out.append("}")
+        if _valid_cidr(net) and re.fullmatch(r"[A-Za-z0-9_.-]{1,32}", wan):
+            out.append("")
+            out.append("table ip nat {")
+            out.append("    chain postrouting {")
+            out.append("        type nat hook postrouting priority 100;")
+            out.append(f"        ip saddr {net} oifname \"{wan}\" masquerade")
+            out.append("    }")
+            out.append("}")
 
     return "\n".join(out)
 

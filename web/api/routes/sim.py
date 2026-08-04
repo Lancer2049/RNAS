@@ -95,24 +95,27 @@ async def sim_multi_connect(data: MultiConnectRequest = Body(...), _auth=Depends
     users = [f"{base_user}-{i}" for i in range(1, count + 1)]
     esc_p = passwd.replace("'", "''")
 
-    # 1. Create RADIUS users (idempotent: delete-then-insert)
-    for u in users:
-        esc_u = u.replace("'", "''")
-        env.db_exec(
-            f"DELETE FROM radcheck WHERE username='{esc_u}';"
-            f"INSERT INTO radcheck (username, attribute, op, value) "
-            f"VALUES ('{esc_u}', 'Cleartext-Password', ':=', '{esc_p}');"
-        )
+    created = []
+    try:
+        # 1. Create RADIUS users (idempotent: delete-then-insert)
+        for u in users:
+            esc_u = u.replace("'", "''")
+            env.db_exec(
+                f"DELETE FROM radcheck WHERE username='{esc_u}';"
+                f"INSERT INTO radcheck (username, attribute, op, value) "
+                f"VALUES ('{esc_u}', 'Cleartext-Password', ':=', '{esc_p}');"
+            )
+            created.append(u)
 
-    # 2. Dial serially — CPE pppd is one tunnel per call
-    results = []
-    for u in users:
-        r = await _dial_one(proto, u, passwd)
-        results.append({"username": u, **r})
-
-    # 3. Cleanup created users
-    for u in users:
-        env.db_exec(f"DELETE FROM radcheck WHERE username='{u.replace(chr(39), chr(39)*2)}'")
+        # 2. Dial serially — CPE pppd is one tunnel per call
+        results = []
+        for u in users:
+            r = await _dial_one(proto, u, passwd)
+            results.append({"username": u, **r})
+    finally:
+        # 3. Always clean up created users, even on dial/DB failure
+        for u in created:
+            env.db_exec(f"DELETE FROM radcheck WHERE username='{u.replace(chr(39), chr(39)*2)}'")
 
     return {"success": True, "count": count, "results": results}
 
