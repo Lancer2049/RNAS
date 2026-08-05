@@ -31,6 +31,8 @@ def _check_once() -> None:
             if prev is None or (prev != "critical" and sev == "critical"):
                 _alerts_seen[key] = sev
                 new_ones.append(a)
+            elif prev != sev:
+                _alerts_seen[key] = sev
         active_keys = {_alert_key(a) for a in alerts}
         for key in list(_alerts_seen):
             if key not in active_keys:

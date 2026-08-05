@@ -20,13 +20,14 @@ def get_client() -> httpx.AsyncClient:
 def get_sim_client() -> httpx.AsyncClient:
     """Return an httpx AsyncClient with a long timeout for simulation routes.
 
-    Dial operations run serially with up to 12s per subscriber, so the
-    compat proxy needs a much larger timeout than the default 10s.
+    Dial operations run serially with up to 20s per subscriber and count is
+    capped at 50 (worst case ~1000s), so the compat proxy needs a timeout
+    larger than the worst-case batch.
     """
     global _sim_client
     if _sim_client is None:
         _sim_client = httpx.AsyncClient(
-            timeout=httpx.Timeout(600.0),
+            timeout=httpx.Timeout(1200.0),
             limits=httpx.Limits(max_keepalive_connections=5),
         )
     return _sim_client
