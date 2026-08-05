@@ -91,7 +91,7 @@ async def compat_proxy(path: str, request: Request):
     if path == "ws" or path == "terminal":
         raise HTTPException(status_code=410, detail="Use /api/v1/ws or /api/v1/terminal")
 
-    from http_client import get_client, get_sim_client
+    from http_client import get_client, get_sim_client, get_notify_client
     from urllib.parse import urlsplit
     loopback_port = os.environ.get("RNAS_API_PORT", "9099")
     parts = urlsplit(str(request.url).replace("/api/", "/api/v1/", 1))
@@ -99,7 +99,12 @@ async def compat_proxy(path: str, request: Request):
     body = await request.body()
     headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")}
     try:
-        proxy = get_sim_client() if path.startswith("sim/") else get_client()
+        if path.startswith("sim/"):
+            proxy = get_sim_client()
+        elif path == "system/notifications/test":
+            proxy = get_notify_client()
+        else:
+            proxy = get_client()
         resp = await proxy.request(
             request.method,
             target_url,

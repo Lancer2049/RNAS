@@ -30,3 +30,12 @@ def get_sim_client() -> httpx.AsyncClient:
             limits=httpx.Limits(max_keepalive_connections=5),
         )
     return _sim_client
+
+
+def get_notify_client() -> httpx.AsyncClient:
+    """Longer timeout client for notification test routes — outbound
+    Telegram/webhook calls can take up to ~12s per channel."""
+    return httpx.AsyncClient(
+        timeout=httpx.Timeout(60.0),
+        limits=httpx.Limits(max_keepalive_connections=5),
+    )

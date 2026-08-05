@@ -64,10 +64,14 @@ class FirewallToggle(BaseModel):
     family: str = Field("ip")
     enabled: bool = Field(True)
 
+PROTO_RE = "^(pppoe|pptp|sstp|l2tp)$"
+USER_RE = r"^[A-Za-z0-9_.-]{1,32}$"
+PASSWD_RE = r"^[A-Za-z0-9@._\-]{1,128}$"
+
 class MultiConnectRequest(BaseModel):
     proto: str = Field("pppoe", pattern="^(pppoe|pptp|sstp)$")
-    user: str = Field("testuser", min_length=1, max_length=32, pattern="^[A-Za-z0-9_.-]{1,32}$")
-    password: str = Field("testpass", alias="pass", min_length=1, max_length=128)
+    user: str = Field("testuser", min_length=1, max_length=32, pattern=USER_RE)
+    password: str = Field("testpass", alias="pass", min_length=1, max_length=128, pattern=PASSWD_RE)
     count: int = Field(5, ge=1, le=50)
 
     model_config = {"populate_by_name": True}

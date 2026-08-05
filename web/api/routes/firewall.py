@@ -340,7 +340,8 @@ async def ip_addresses(user=Depends(require_auth)):
         parts = line.split()
         if len(parts) >= 3:
             state = parts[1] if parts[1].upper() != "UNKNOWN" else "UP"
-            addrs.append({"name": parts[0], "ip": parts[2], "state": state})
+            for addr in parts[2:]:
+                addrs.append({"name": parts[0], "ip": addr, "state": state})
     return {"addresses": addrs, "count": len(addrs)}
 
 

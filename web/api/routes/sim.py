@@ -1,9 +1,11 @@
 """RNAS Simulation API — subscriber dial, fault injection, scenario runner."""
-import asyncio, json, re, shlex, subprocess
+import asyncio, json, logging, re, shlex, subprocess
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from api.auth import require_auth
-from api.models import MultiConnectRequest
+from api.models import MultiConnectRequest, PROTO_RE, USER_RE, PASSWD_RE
+
+logger = logging.getLogger("rnas-sim")
 
 router = APIRouter(tags=["Simulation"])
 
@@ -40,7 +42,11 @@ async def _dial_one(proto: str, user: str, passwd: str) -> dict:
             "systemctl start xl2tpd 2>/dev/null; echo c rnas > /var/run/xl2tpd/l2tp-control"))
         await asyncio.sleep(8)
         out2 = await _ssh(env.ssh_cmd_str(env.cpe_host, "ip addr show dev ppp0 2>&1 | grep inet"))
-        ip = out2.stdout.strip().split()[-1].split('/')[0] if out2 and 'inet' in out2.stdout else None
+        ip = None
+        if out2 and 'inet' in out2.stdout:
+            parts = out2.stdout.strip().split()
+            if len(parts) >= 2:
+                ip = parts[1].split('/')[0]
         return {"success": ip is not None, "ip": ip, "protocol": proto}
     else:
         peer_map = {"pppoe": "rnas-pppoe", "pptp": "rnas-pptp", "sstp": "rnas-sstp"}
@@ -69,9 +75,9 @@ async def _dial_one(proto: str, user: str, passwd: str) -> dict:
 
 @router.get("/sim/connect")
 async def sim_connect(
-    proto: str = Query("pppoe", pattern="^(pppoe|pptp|sstp|l2tp)$"),
-    user: str = Query("testuser", min_length=1, max_length=32, pattern=r"^[A-Za-z0-9_.-]+$"),
-    passwd: str = Query("testpass", min_length=1, max_length=128),
+    proto: str = Query("pppoe", pattern=PROTO_RE),
+    user: str = Query("testuser", min_length=1, max_length=32, pattern=USER_RE),
+    passwd: str = Query("testpass", min_length=1, max_length=128, pattern=PASSWD_RE),
     _auth=Depends(require_auth),
 ):
     return await _dial_one(proto, user, passwd)
@@ -117,7 +123,10 @@ async def sim_multi_connect(data: MultiConnectRequest = Body(...), _auth=Depends
     finally:
         # 3. Always clean up created users, even on dial/DB failure
         for u in created:
-            env.db_exec(f"DELETE FROM radcheck WHERE username='{u.replace(chr(39), chr(39)*2)}'")
+            try:
+                env.db_exec(f"DELETE FROM radcheck WHERE username='{u.replace(chr(39), chr(39)*2)}'")
+            except Exception as e:
+                logger.warning("cleanup failed for %s: %s", u, e)
 
     return {"success": True, "count": count, "results": results}
 

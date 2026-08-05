@@ -122,6 +122,8 @@ class RNASEnv:
             cmd += ["-p", str(port)]
         cmd += [f"{self.ssh_user}@{connect_host}", remote_cmd]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or f"db_query failed rc={result.returncode}")
         return result.stdout
 
     def db_exec(self, sql: str, timeout: int = 15) -> str:
@@ -148,6 +150,8 @@ class RNASEnv:
             cmd += ["-p", str(port)]
         cmd += [f"{self.ssh_user}@{connect_host}", remote_cmd]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or f"db_exec failed rc={result.returncode}")
         return result.stdout
 
     def ssh_cmd_str(self, host: str, command: str) -> str:

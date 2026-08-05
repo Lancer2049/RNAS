@@ -8,7 +8,7 @@ def _valid_cidr(value: str) -> bool:
     """Validate an IPv4 CIDR string before emitting it into nftables rules."""
     try:
         import ipaddress
-        ipaddress.ip_network(value, strict=False)
+        ipaddress.IPv4Network(value, strict=False)
         return True
     except (ValueError, TypeError):
         return False

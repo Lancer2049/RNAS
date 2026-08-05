@@ -171,7 +171,7 @@ def collect_alerts() -> list:
         ("rnas-web", "Web Dashboard API"),
         ("rnas-dnsmasq", "DHCP/DNS"),
         ("rnas-dot1x", "802.1X Authenticator"),
-        ("rnas-fastapi", "RNAS FastAPI"),
+        ("rnas-web", "Web Dashboard API"),
         ("rnas-qosd", "Per-User QoS Daemon"),
         ("strongswan-starter", "IPsec VPN"),
         ("openvpn-server@server", "OpenVPN"),
