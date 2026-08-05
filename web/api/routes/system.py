@@ -260,19 +260,20 @@ async def system_health_alerts(user=Depends(require_auth)):
 _NOTIF_PATH = Path("/etc/rnas/notifications.json")
 
 @router.get("/system/notifications")
-async def get_notification_config(user=Depends(require_auth)):
+async def get_notification_config(user=Depends(require_role("admin"))):
     if _NOTIF_PATH.exists():
         return json.loads(_NOTIF_PATH.read_text())
     return {"telegram_bot_token": "", "telegram_chat_id": "", "webhook_url": "", "enabled": False}
 
 @router.post("/system/notifications")
-async def set_notification_config(data: dict = Body(...), user=Depends(require_auth)):
+async def set_notification_config(data: dict = Body(...), user=Depends(require_role("admin"))):
     _NOTIF_PATH.parent.mkdir(parents=True, exist_ok=True)
     _NOTIF_PATH.write_text(json.dumps(data, indent=2))
+    _NOTIF_PATH.chmod(0o600)
     return {"status": "saved"}
 
 @router.post("/system/notifications/test")
-async def test_notification(data: dict = Body(...), user=Depends(require_auth)):
+async def test_notification(data: dict = Body(...), user=Depends(require_role("admin"))):
     from services.alerts import send_test
     return {"results": send_test(data)}
 

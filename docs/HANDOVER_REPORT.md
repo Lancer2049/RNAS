@@ -712,6 +712,7 @@ A  web/frontend/tests/e2e/stability.spec.ts      — 新文件
 2026-08-03  对抗性审查修复: (1) sim/multi-connect 创建-拨号-清理包 try/finally, 异常时 radcheck 用户不残留(CRITICAL); (2) dhcp-static 加 mac 正则/ip 校验/hostname 白名单防 dnsmasq 配置注入(MAJOR); (3) cgnat/multicast 生成器值校验(_valid_cidr)防 nft 语法注入; (4) alerts 吞错加 logging; 修复 start9099 的 pgrep 自匹配导致旧进程未杀净问题
 2026-08-03  审查后续计划实施(C1-C4): GET /sim/connect 加 Query 长度/pattern 约束(422); alert_worker 加 flock 单实例锁(二次启动不增线程); API.md 路由分组表补齐新端点; scripts/restart-api.sh 入仓库(精确 kill + 健康门禁 12 次重试); 全量回归 205+6
 2026-08-04  5-agent 第三方审查(重启后): 3 lane FAIL 发现并修复 — Security CRITICAL(_dial_one shlex.quote+外层单引号抵消致 passwd 本地 shell RCE, 修复: passwd 字符集白名单两入口+常量 DRY) / CodeQuality 2×MAJOR(finally 清理逐用户 try+log 防泄漏与掩異常; db_exec/db_query 检查 returncode 抛 RuntimeError 防谎报 success) / QA P1(ip/addresses 遍历 parts[2:] 显示辅助 IP) + P2 修复(notifications/test 长超时客户端; health/alerts 幽灵单元 rnas-fastapi→rnas-web; _valid_cidr 改 IPv4Network; l2tp IP 解析 split()[1]); RCE 注入实测 422 拒绝
+2026-08-04  审查重审 2 轮修复: Security 重审 PASS(无 CRITICAL/HIGH), CodeQuality 重审 2 MAJOR 修复 — fault_inject None 分支 502(SSH 不可达不再谎报) + 故障注入幂等(tc qdisc replace/iptables -C) + FaultInject.vue res.ok 检查; 顺带修复: _ssh 日志脱敏(sshpass 密码不进日志)、notifications 三端点 require_role(admin)+chmod 600、aaa.py db_query 降级(500→空列表+error)、get_notify_client 缓存、l2tp dead guard 收敛、multi-connect success=any() 语义
 ```
 
 ### 10.2 未完成的高优先级工作

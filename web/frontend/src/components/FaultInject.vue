@@ -22,7 +22,7 @@ const faults = ref([
   {id:'latency',icon:'🐌',name:'Network Latency',desc:'Add 200ms delay on VM3',active:false,result:null},
   {id:'packet-loss',icon:'📦',name:'Packet Loss',desc:'10% packet loss',active:false,result:null},
 ])
-async function inject(f) { f.active=true;f.result=null; try{const r=await fetch(`/api/sim/fault/${f.id}`);f.result={ok:(await r.json()).success,text:'Injected'}}catch{};f.active=false }
+async function inject(f) { f.active=true;f.result=null; try{const r=await fetch(`/api/sim/fault/${f.id}`);const d=await r.json().catch(()=>({}));f.result={ok:r.ok && !!d.success,text:r.ok?'Injected':(d.detail||'Failed')}}catch(e){f.result={ok:false,text:'Failed'}};f.active=false }
 async function clear(f) { try{await fetch(`/api/sim/fault/clear`);f.active=false;f.result=null }catch{} }
 </script>
 

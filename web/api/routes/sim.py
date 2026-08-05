@@ -17,7 +17,7 @@ async def _run(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:
     try:
         return await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True, **kwargs)
     except Exception as e:
-        print(f"[sim] _run error: {e}")
+        logger.warning("[sim] _run error: %s", e)
 
 
 async def _ssh(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:
@@ -27,9 +27,22 @@ async def _ssh(cmd: str, **kwargs) -> subprocess.CompletedProcess | None:
     try:
         return await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True, **kwargs)
     except subprocess.TimeoutExpired:
-        print(f"[sim] SSH timeout: {cmd[:80]}")
+        logger.warning("[sim] SSH timeout: %s", _redact(cmd)[:80])
     except Exception as e:
-        print(f"[sim] SSH error: {e}")
+        logger.warning("[sim] SSH error: %s", e)
+
+
+def _redact(cmd: str) -> str:
+    """Strip the sshpass password prefix from a command before logging."""
+    marker = "sshpass -p "
+    idx = cmd.find(marker)
+    if idx < 0:
+        return cmd
+    rest = cmd[idx + len(marker):]
+    end = rest.find(" ")
+    if end < 0:
+        return cmd[:idx] + "sshpass -p ***"
+    return cmd[:idx] + "sshpass -p ***" + rest[end:]
 
 
 async def _dial_one(proto: str, user: str, passwd: str) -> dict:
@@ -60,7 +73,7 @@ async def _dial_one(proto: str, user: str, passwd: str) -> dict:
             f"timeout 12 pppd call {peer} user {safe_user} password {safe_pass} nodetach 2>&1")
         # The remote pppd runs for up to 12s before `timeout` SIGTERMs it —
         # the SSH call needs a larger timeout than _ssh's 10s default.
-        out = await _ssh(cmd, timeout=15)
+        out = await _ssh(cmd, timeout=20)
         ip = None
         if out:
             for line in out.stdout.splitlines():
@@ -128,7 +141,8 @@ async def sim_multi_connect(data: MultiConnectRequest = Body(...), _auth=Depends
             except Exception as e:
                 logger.warning("cleanup failed for %s: %s", u, e)
 
-    return {"success": True, "count": count, "results": results}
+    return {"success": any(r["success"] for r in results), "count": count,
+            "ok_count": sum(1 for r in results if r["success"]), "results": results}
 
 
 @router.post("/sim/stop")
@@ -146,14 +160,23 @@ async def fault_inject(fault_type: str, user=Depends(require_auth)):
     env = get_env()
 
     if fault_type == "radius-timeout":
-        await _ssh(env.ssh_cmd_str(env.radius_host,
+        # Idempotent: only add the DROP rule if not already present
+        r = await _ssh(env.ssh_cmd_str(env.radius_host,
+            "iptables -C INPUT -p udp --dport 1812 -j DROP 2>/dev/null || "
             "iptables -A INPUT -p udp --dport 1812 -j DROP"))
+        if not r or r.returncode != 0:
+            raise HTTPException(status_code=502, detail="RADIUS host unreachable or iptables failed")
     elif fault_type == "radius-reject":
         return {"success": True, "info": "Use wrong password in Subscriber Sim"}
     elif fault_type == "latency":
-        await _run("tc qdisc add dev ens33 root netem delay 200ms 50ms 2>/dev/null")
+        # tc qdisc replace is idempotent across repeated injections
+        r = await _run("tc qdisc replace dev ens33 root netem delay 200ms 50ms 2>/dev/null")
+        if not r or r.returncode != 0:
+            raise HTTPException(status_code=502, detail="tc qdisc failed (ens33 missing?)")
     elif fault_type == "packet-loss":
-        await _run("tc qdisc add dev ens33 root netem loss 10% 2>/dev/null")
+        r = await _run("tc qdisc replace dev ens33 root netem loss 10% 2>/dev/null")
+        if not r or r.returncode != 0:
+            raise HTTPException(status_code=502, detail="tc qdisc failed (ens33 missing?)")
     elif fault_type == "clear":
         await _ssh(env.ssh_cmd_str(env.radius_host,
             "iptables -D INPUT -p udp --dport 1812 -j DROP 2>/dev/null"))

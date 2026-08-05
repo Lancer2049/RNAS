@@ -27,7 +27,10 @@ async def aaa_users(user=Depends(require_auth)):
     # Fallback to SQL
     if not users:
         env = get_env()
-        result = env.db_query("SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50")
+        try:
+            result = env.db_query("SELECT username, attribute, value FROM radcheck ORDER BY id DESC LIMIT 50")
+        except RuntimeError:
+            return {"users": users, "count": len(users), "error": "RADIUS DB unreachable"}
         for line in result.splitlines():
             parts = line.strip().split("|")
             if len(parts) >= 3:
@@ -43,11 +46,14 @@ async def aaa_logs(user=Depends(require_auth)):
 @router.get("/aaa/acct")
 async def aaa_acct(user=Depends(require_auth)):
     env = get_env()
-    result = env.db_query(
-        "SELECT radacctid, username, nasipaddress, acctstarttime, acctstoptime, "
-        "acctsessiontime, framedipaddress, acctinputoctets, acctoutputoctets, "
-        "acctterminatecause FROM radacct ORDER BY radacctid DESC LIMIT 100"
-    )
+    try:
+        result = env.db_query(
+            "SELECT radacctid, username, nasipaddress, acctstarttime, acctstoptime, "
+            "acctsessiontime, framedipaddress, acctinputoctets, acctoutputoctets, "
+            "acctterminatecause FROM radacct ORDER BY radacctid DESC LIMIT 100"
+        )
+    except RuntimeError:
+        return {"records": [], "error": "RADIUS DB unreachable"}
     records = []
     for line in result.splitlines():
         parts = [p.strip() for p in line.split("|")]
@@ -61,9 +67,12 @@ async def aaa_acct(user=Depends(require_auth)):
 @router.get("/aaa/groups")
 async def aaa_groups(user=Depends(require_auth)):
     env = get_env()
-    result = env.db_query(
-        "SELECT id, username, groupname, priority FROM radusergroup ORDER BY priority, username LIMIT 100"
-    )
+    try:
+        result = env.db_query(
+            "SELECT id, username, groupname, priority FROM radusergroup ORDER BY priority, username LIMIT 100"
+        )
+    except RuntimeError:
+        return {"groups": [], "error": "RADIUS DB unreachable"}
     groups = []
     for line in result.splitlines():
         parts = [p.strip() for p in line.split("|")]
@@ -76,9 +85,12 @@ async def aaa_groups(user=Depends(require_auth)):
 @router.get("/aaa/nas")
 async def aaa_nas(user=Depends(require_auth)):
     env = get_env()
-    result = env.db_query(
-        "SELECT id, nasname, shortname, type, ports, secret, server FROM nas ORDER BY id"
-    )
+    try:
+        result = env.db_query(
+            "SELECT id, nasname, shortname, type, ports, secret, server FROM nas ORDER BY id"
+        )
+    except RuntimeError:
+        return {"nas": [], "error": "RADIUS DB unreachable"}
     nas_list = []
     for line in result.splitlines():
         parts = [p.strip() for p in line.split("|")]
