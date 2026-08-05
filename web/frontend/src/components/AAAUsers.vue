@@ -20,6 +20,7 @@
         </tr>
       </tbody>
     </table>
+    <div v-else-if="error" class="empty err">{{ error }}</div>
     <div v-else class="empty">Loading...</div>
   </div>
 </template>
@@ -28,6 +29,7 @@
 import { ref, onMounted } from 'vue'
 const users = ref([])
 const loading = ref(false)
+const error = ref('')
 
 async function loadUsers() {
   loading.value = true
@@ -35,7 +37,8 @@ async function loadUsers() {
     const res = await fetch('/api/aaa/users')
     const d = await res.json()
     users.value = d.users || []
-  } catch {}
+    error.value = d.error || ''
+  } catch { error.value = 'Failed to load users' }
   loading.value = false
 }
 function exportCSV() {

@@ -134,12 +134,21 @@ async def sim_multi_connect(data: MultiConnectRequest = Body(...), _auth=Depends
             r = await _dial_one(proto, u, passwd)
             results.append({"username": u, **r})
     finally:
-        # 3. Always clean up created users, even on dial/DB failure
+        # 3. Always clean up created users, even on dial/DB failure.
+        #    Retry briefly: a transient SSH/DB blip during creation may
+        #    also affect cleanup, and the delete-then-insert pattern on
+        #    the next run self-heals any rows that still leak.
         for u in created:
-            try:
-                env.db_exec(f"DELETE FROM radcheck WHERE username='{u.replace(chr(39), chr(39)*2)}'")
-            except Exception as e:
-                logger.warning("cleanup failed for %s: %s", u, e)
+            esc = u.replace(chr(39), chr(39) * 2)
+            for attempt in range(3):
+                try:
+                    await asyncio.to_thread(env.db_exec,
+                                            f"DELETE FROM radcheck WHERE username='{esc}'", 8)
+                    break
+                except Exception as e:
+                    logger.warning("cleanup failed for %s (attempt %d): %s", u, attempt + 1, e)
+                    if attempt < 2:
+                        await asyncio.sleep(0.5)
 
     return {"success": any(r["success"] for r in results), "count": count,
             "ok_count": sum(1 for r in results if r["success"]), "results": results}

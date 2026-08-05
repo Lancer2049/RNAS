@@ -67,7 +67,7 @@ async function startSim() {
         throw new Error(d.detail || 'Invalid response')
       }
     } catch(e) {
-      results.value.push({ id: 1, proto: proto.value, user: user.value, ok: false, latency: Date.now()-start })
+      results.value.push({ id: 1, proto: proto.value, user: user.value, ok: false, ip: (e && e.message) || '', latency: Date.now()-start })
       done.value++; failed.value++
     }
   } else {
